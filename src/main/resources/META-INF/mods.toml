@@ -1,6 +1,6 @@
 modLoader="javafml"
 loaderVersion="[36,)"
-license="All rights reserved."
+license="CC BY-NC-ND 4.0"
 
 [[mods]]
 modId="iceberg"
