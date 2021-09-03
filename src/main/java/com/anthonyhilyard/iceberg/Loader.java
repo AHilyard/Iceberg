@@ -1,8 +1,5 @@
 package com.anthonyhilyard.iceberg;
 
-import com.anthonyhilyard.iceberg.events.CriterionEvent;
-import com.anthonyhilyard.iceberg.events.EntityFluidEvent;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
