@@ -4,8 +4,11 @@
 	"compatibilityLevel": "JAVA_8",
 	"refmap": "iceberg.refmap.json",
 	"mixins": [
-		"PlayerAdvancementsMixin",
-		"EntityMixin"
+		"EntityMixin",
+		"PlayerAdvancementsMixin"
+	],
+	"server": [
+		"ForgeEventFactoryMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
