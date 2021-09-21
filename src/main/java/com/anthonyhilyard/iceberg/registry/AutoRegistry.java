@@ -14,7 +14,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.client.registry.IRenderFactory;
-import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -31,6 +30,8 @@ public abstract class AutoRegistry
 	private static boolean entityCreationRegistered = false;
 
 	private static Map<EntityType<?>, Supplier<AttributeModifierMap.MutableAttribute>> entityAttributes = new HashMap<>();
+
+	private static Map<String, EntityType<? extends Entity>> registeredEntityTypes = new HashMap<>();
 
 	public static void init(String ModID)
 	{
@@ -58,6 +59,17 @@ public abstract class AutoRegistry
 		{
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static boolean isEntityTypeRegistered(String name)
+	{
+		return registeredEntityTypes.containsKey(name);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T extends Entity> EntityType<T> getEntityType(String name)
+	{
+		return (EntityType<T>) registeredEntityTypes.getOrDefault(name, null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -111,15 +123,14 @@ public abstract class AutoRegistry
 		ResourceLocation resourceLocation = new ResourceLocation(MODID, name);
 		EntityType<T> entityType = (EntityType<T>) builder.build(name).setRegistryName(resourceLocation);
 
-		// Register the rendering handler.
-		RenderingRegistry.registerEntityRenderingHandler(entityType, renderFactory);
+		// Add this entity type to the registered hashmap.
+		registeredEntityTypes.put(name, entityType);
 
 		// Store mob attributes if provided.  These will be added in the attribute creation event below.
 		if (attributes != null)
 		{
 			entityAttributes.put(entityType, attributes);
 		}
-
 
 		return entityType;
 	}
