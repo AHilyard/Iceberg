@@ -106,11 +106,23 @@ public abstract class AutoRegistry
 		}
 	}
 
+	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder)
+	{
+		return registerEntity(name, builder, (Supplier<AttributeModifierMap.MutableAttribute>)null);
+	}
+
+	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, Supplier<AttributeModifierMap.MutableAttribute> attributes)
+	{
+		return registerEntity(name, builder, null, attributes);
+	}
+
+	@Deprecated
 	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, IRenderFactory<? super T> renderFactory)
 	{
 		return registerEntity(name, builder, renderFactory, null);
 	}
 
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, IRenderFactory<? super T> renderFactory, Supplier<AttributeModifierMap.MutableAttribute> attributes)
 	{
@@ -142,7 +154,8 @@ public abstract class AutoRegistry
 			throw new RuntimeException("AutoRegistry was not initialized with mod id!");
 		}
 
-		return new SoundEvent(new ResourceLocation(MODID, name));
+		ResourceLocation resourceLocation = new ResourceLocation(MODID, name);
+		return new SoundEvent(resourceLocation).setRegistryName(resourceLocation);
 	}
 
 	@SuppressWarnings("unchecked")
