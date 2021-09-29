@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import com.anthonyhilyard.iceberg.events.RenderTooltipExtEvent;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -85,10 +86,17 @@ public class Tooltips
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack mStack, TooltipInfo info,
 										Rectangle2d rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd)
+	{
+		renderItemTooltip(stack, mStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
+	}
+
+	@SuppressWarnings("deprecation")
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack mStack, TooltipInfo info,
+										Rectangle2d rect, int screenWidth, int screenHeight,
+										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
 	{
 		if (info.getLines().isEmpty())
 		{
@@ -99,7 +107,7 @@ public class Tooltips
 		int rectY = rect.getY() + 18;
 		int maxTextWidth = rect.getWidth() - 8;
 
-		RenderTooltipEvent.Pre event = new RenderTooltipEvent.Pre(stack, info.getLines(), mStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont());
+		RenderTooltipExtEvent.Pre event = new RenderTooltipExtEvent.Pre(stack, info.getLines(), mStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont(), comparison);
 		if (MinecraftForge.EVENT_BUS.post(event))
 		{
 			return;
@@ -171,7 +179,7 @@ public class Tooltips
 		}
 
 		final int zLevel = 400;
-		RenderTooltipEvent.Color colorEvent = new RenderTooltipEvent.Color(stack, info.getLines(), mStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd);
+		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), mStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd, comparison);
 		MinecraftForge.EVENT_BUS.post(colorEvent);
 		backgroundColor = colorEvent.getBackground();
 		borderColorStart = colorEvent.getBorderStart();
@@ -216,7 +224,7 @@ public class Tooltips
 		renderType.endBatch();
 		mStack.popPose();
 
-		MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostText(stack, info.getLines(), mStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight));
+		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), mStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison));
 
 		RenderSystem.enableDepthTest();
 		RenderSystem.enableRescaleNormal();
