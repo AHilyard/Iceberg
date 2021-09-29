@@ -1,5 +1,7 @@
 package com.anthonyhilyard.iceberg.util;
 
+import net.minecraft.util.text.Color;
+
 /**
  * Helper functions for smooth easing/interpolation.  If you need linear, use net.minecraft.util.math.MathHelper.lerp instead.
  */
@@ -8,6 +10,7 @@ public final class Easing
 	public static enum EasingType
 	{
 		None, // Produces step-wise interpolation.
+		Linear,
 		Quad,
 		Cubic
 	}
@@ -29,6 +32,19 @@ public final class Easing
 		return Ease(a, b, t, type, EasingDirection.InOut);
 	}
 
+	public static Color Ease(Color a, Color b, float t, EasingType type)
+	{
+		// Helper function to ease between colors.
+		// Ease each component individually.
+		int aV = a.getValue(), bV = b.getValue();
+		int aA = (aV >> 24) & 0xFF, aR = (aV >> 16) & 0xFF, aG = (aV >> 8) & 0xFF, aB = (aV >> 0) & 0xFF,
+			bA = (bV >> 24) & 0xFF, bR = (bV >> 16) & 0xFF, bG = (bV >> 8) & 0xFF, bB = (bV >> 0) & 0xFF;
+		return Color.fromRgb((int)Ease(aA, bA, t, type) << 24 |
+							 (int)Ease(aR, bR, t, type) << 16 |
+							 (int)Ease(aG, bG, t, type) << 8  |
+							 (int)Ease(aB, bB, t, type) << 0);
+	}
+
 	public static float Ease(float a, float b, float t, EasingType type, EasingDirection direction)
 	{
 		switch (type)
@@ -36,6 +52,8 @@ public final class Easing
 			case None:
 			default:
 				return None(a, b, t);
+			case Linear:
+				return Linear(a, b, t);
 			case Quad:
 				return Quad(a, b, t, direction);
 			case Cubic:
@@ -53,6 +71,11 @@ public final class Easing
 		{
 			return b;
 		}
+	}
+
+	private static float Linear(float a, float b, float t)
+	{
+		return a + (b - a) * t;
 	}
 
 	private static float Quad(float a, float b, float t, EasingDirection direction)
