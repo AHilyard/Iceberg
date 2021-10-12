@@ -1,6 +1,6 @@
 package com.anthonyhilyard.iceberg.events;
 
-import net.minecraftforge.event.entity.player.AdvancementEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraftforge.common.MinecraftForge;
@@ -14,14 +14,14 @@ import net.minecraftforge.common.MinecraftForge;
  * <br>
  * This event is fired on the {@link MinecraftForge#EVENT_BUS}.
  */
-public class CriterionEvent extends AdvancementEvent
+public class CriterionEvent extends PlayerEvent
 {
 	private final Advancement advancement;
 	private final String criterionKey;
 
 	public CriterionEvent(PlayerEntity player, Advancement advancement, String criterionKey)
 	{
-		super(player, advancement);
+		super(player);
 		this.advancement = advancement;
 		this.criterionKey = criterionKey;
 	}

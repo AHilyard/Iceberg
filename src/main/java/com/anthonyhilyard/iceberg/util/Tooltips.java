@@ -234,7 +234,7 @@ public class Tooltips
 												int screenWidth, int screenHeight, int maxTextWidth, FontRenderer font)
 	{
 		Rectangle2d rect = new Rectangle2d(0, 0, 0, 0);
-		if (textLines.isEmpty())
+		if (textLines == null || textLines.isEmpty() || stack == null)
 		{
 			return rect;
 		}
