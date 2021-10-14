@@ -1,9 +1,9 @@
 package com.anthonyhilyard.iceberg.network;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -22,13 +22,13 @@ public final class NewItemPickupEventPacket
 		this.item = item;
 	}
 
-	public static void encode(final NewItemPickupEventPacket msg, final PacketBuffer packetBuffer)
+	public static void encode(final NewItemPickupEventPacket msg, final FriendlyByteBuf packetBuffer)
 	{
 		packetBuffer.writeUUID(msg.playerUUID);
 		packetBuffer.writeItem(msg.item);
 	}
 
-	public static NewItemPickupEventPacket decode(final PacketBuffer packetBuffer)
+	public static NewItemPickupEventPacket decode(final FriendlyByteBuf packetBuffer)
 	{
 		return new NewItemPickupEventPacket(packetBuffer.readUUID(), packetBuffer.readItem());
 	}

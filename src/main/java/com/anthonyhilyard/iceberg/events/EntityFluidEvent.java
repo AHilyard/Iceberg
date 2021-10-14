@@ -1,7 +1,7 @@
 package com.anthonyhilyard.iceberg.events;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.fluid.Fluid;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.event.entity.EntityEvent;
 
 public class EntityFluidEvent extends EntityEvent

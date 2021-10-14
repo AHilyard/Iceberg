@@ -1,6 +1,6 @@
 package com.anthonyhilyard.iceberg.util;
 
-import net.minecraft.util.text.Color;
+import net.minecraft.network.chat.TextColor;
 
 /**
  * Helper functions for smooth easing/interpolation.  If you need linear, use net.minecraft.util.math.MathHelper.lerp instead.
@@ -32,14 +32,14 @@ public final class Easing
 		return Ease(a, b, t, type, EasingDirection.InOut);
 	}
 
-	public static Color Ease(Color a, Color b, float t, EasingType type)
+	public static TextColor Ease(TextColor a, TextColor b, float t, EasingType type)
 	{
-		// Helper function to ease between colors.
+		// Helper function to ease between TextColors.
 		// Ease each component individually.
 		int aV = a.getValue(), bV = b.getValue();
 		int aA = (aV >> 24) & 0xFF, aR = (aV >> 16) & 0xFF, aG = (aV >> 8) & 0xFF, aB = (aV >> 0) & 0xFF,
 			bA = (bV >> 24) & 0xFF, bR = (bV >> 16) & 0xFF, bG = (bV >> 8) & 0xFF, bB = (bV >> 0) & 0xFF;
-		return Color.fromRgb((int)Ease(aA, bA, t, type) << 24 |
+		return TextColor.fromRgb((int)Ease(aA, bA, t, type) << 24 |
 							 (int)Ease(aR, bR, t, type) << 16 |
 							 (int)Ease(aG, bG, t, type) << 8  |
 							 (int)Ease(aB, bB, t, type) << 0);

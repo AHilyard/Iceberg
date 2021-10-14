@@ -11,9 +11,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.tags.ITag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.tags.Tag;
 import net.minecraftforge.common.MinecraftForge;
 
 @Mixin(Entity.class)
@@ -22,7 +22,7 @@ public class EntityMixin extends net.minecraftforge.common.capabilities.Capabili
 	private Fluid previousFluidOnEyes = null;
 
 	@Shadow
-	protected ITag<Fluid> fluidOnEyes;
+	protected Tag<Fluid> fluidOnEyes;
 
 	protected EntityMixin(Class<Entity> baseClass) { super(baseClass); }
 
@@ -45,7 +45,7 @@ public class EntityMixin extends net.minecraftforge.common.capabilities.Capabili
 	}
 
 	@Inject(method = "updateFluidOnEyes",
-			at = @At(value = "FIELD", target = "Lnet/minecraft/entity/Entity;fluidOnEyes:Lnet/minecraft/tags/ITag;", ordinal = 1, shift = Shift.AFTER))
+			at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/Entity;fluidOnEyes:Lnet/minecraft/tags/Tag;", ordinal = 1, shift = Shift.AFTER))
 	public void onUpdateFluidOnEyeAssign(CallbackInfo callbackInfo)
 	{
 		Fluid currentFluid = null;

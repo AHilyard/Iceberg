@@ -6,14 +6,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.AttributeModifierMap;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvent;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.fml.client.registry.IRenderFactory;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -21,7 +20,7 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 
 /**
- * Extend this class to have all registerable fields be automatically registered in Forge.  Easy.
+ * Extend this class to have all registerable fields be automatically registered in Forge.  Easy.  (Just no renderers.)
  */
 public abstract class AutoRegistry
 {
@@ -29,7 +28,7 @@ public abstract class AutoRegistry
 
 	private static boolean entityCreationRegistered = false;
 
-	private static Map<EntityType<?>, Supplier<AttributeModifierMap.MutableAttribute>> entityAttributes = new HashMap<>();
+	private static Map<EntityType<?>, Supplier<AttributeSupplier.Builder>> entityAttributes = new HashMap<>();
 
 	private static Map<String, EntityType<? extends Entity>> registeredEntityTypes = new HashMap<>();
 
@@ -108,23 +107,11 @@ public abstract class AutoRegistry
 
 	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder)
 	{
-		return registerEntity(name, builder, (Supplier<AttributeModifierMap.MutableAttribute>)null);
+		return registerEntity(name, builder, (Supplier<AttributeSupplier.Builder>)null);
 	}
 
-	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, Supplier<AttributeModifierMap.MutableAttribute> attributes)
-	{
-		return registerEntity(name, builder, null, attributes);
-	}
-
-	@Deprecated
-	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, IRenderFactory<? super T> renderFactory)
-	{
-		return registerEntity(name, builder, renderFactory, null);
-	}
-
-	@Deprecated
 	@SuppressWarnings("unchecked")
-	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, IRenderFactory<? super T> renderFactory, Supplier<AttributeModifierMap.MutableAttribute> attributes)
+	protected static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder, Supplier<AttributeSupplier.Builder> attributes)
 	{
 		if (MODID == null)
 		{

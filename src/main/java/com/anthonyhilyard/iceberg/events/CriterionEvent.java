@@ -2,7 +2,7 @@ package com.anthonyhilyard.iceberg.events;
 
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraft.advancements.Advancement;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
 
 /**
@@ -19,7 +19,7 @@ public class CriterionEvent extends PlayerEvent
 	private final Advancement advancement;
 	private final String criterionKey;
 
-	public CriterionEvent(PlayerEntity player, Advancement advancement, String criterionKey)
+	public CriterionEvent(Player player, Advancement advancement, String criterionKey)
 	{
 		super(player);
 		this.advancement = advancement;

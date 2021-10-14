@@ -6,21 +6,23 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import com.anthonyhilyard.iceberg.events.RenderTooltipExtEvent;
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.Rectangle2d;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraft.util.text.ITextProperties;
-import net.minecraft.util.text.LanguageMap;
-import net.minecraft.util.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+
+import com.mojang.blaze3d.vertex.Tesselator;
+import net.minecraft.world.item.ItemStack;
+import com.mojang.math.Matrix4f;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Style;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.client.gui.GuiUtils;
+import net.minecraftforge.fmlclient.gui.GuiUtils;
 
 public class Tooltips
 {
@@ -28,10 +30,10 @@ public class Tooltips
 	{
 		private int tooltipWidth = 0;
 		private int titleLines = 1;
-		private FontRenderer font;
-		private List<? extends ITextProperties> lines = new ArrayList<>();
+		private Font font;
+		private List<? extends FormattedText> lines = new ArrayList<>();
 
-		public TooltipInfo(List<? extends ITextProperties> lines, FontRenderer font)
+		public TooltipInfo(List<? extends FormattedText> lines, Font font)
 		{
 			this.lines = lines;
 			this.font = font;
@@ -39,15 +41,15 @@ public class Tooltips
 
 		public int getTooltipWidth() { return tooltipWidth; }
 		public int getTitleLines() { return titleLines; }
-		public FontRenderer getFont() { return font; }
-		public List<? extends ITextProperties> getLines() { return lines; }
+		public Font getFont() { return font; }
+		public List<? extends FormattedText> getLines() { return lines; }
 
-		public void setFont(FontRenderer font) { this.font = font; }
+		public void setFont(Font font) { this.font = font; }
 
 		public int getMaxLineWidth()
 		{
 			int textWidth = 0;
-			for (ITextProperties textLine : lines)
+			for (FormattedText textLine : lines)
 			{
 				int textLineWidth = font.width(textLine);
 				if (textLineWidth > textWidth)
@@ -61,17 +63,17 @@ public class Tooltips
 		public void wrap(int maxWidth)
 		{
 			tooltipWidth = 0;
-			List<ITextProperties> wrappedLines = new ArrayList<>();
+			List<FormattedText> wrappedLines = new ArrayList<>();
 			for (int i = 0; i < lines.size(); i++)
 			{
-				ITextProperties textLine = lines.get(i);
-				List<ITextProperties> wrappedLine = font.getSplitter().splitLines(textLine, maxWidth, Style.EMPTY);
+				FormattedText textLine = lines.get(i);
+				List<FormattedText> wrappedLine = font.getSplitter().splitLines(textLine, maxWidth, Style.EMPTY);
 				if (i == 0)
 				{
 					titleLines = wrappedLine.size();
 				}
 
-				for (ITextProperties line : wrappedLine)
+				for (FormattedText line : wrappedLine)
 				{
 					int lineWidth = font.width(line);
 					if (lineWidth > tooltipWidth)
@@ -86,16 +88,16 @@ public class Tooltips
 		}
 	}
 
-	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack mStack, TooltipInfo info,
-										Rectangle2d rect, int screenWidth, int screenHeight,
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, PoseStack mStack, TooltipInfo info,
+										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd)
 	{
 		renderItemTooltip(stack, mStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
 	}
 
-	@SuppressWarnings("deprecation")
-	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack mStack, TooltipInfo info,
-										Rectangle2d rect, int screenWidth, int screenHeight,
+	@SuppressWarnings("removal")
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, PoseStack mStack, TooltipInfo info,
+										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
 	{
 		if (info.getLines().isEmpty())
@@ -120,7 +122,6 @@ public class Tooltips
 		maxTextWidth = event.getMaxWidth();
 		info.setFont(event.getFontRenderer());
 
-		RenderSystem.disableRescaleNormal();
 		RenderSystem.disableDepthTest();
 		int tooltipTextWidth = info.getMaxLineWidth();
 
@@ -200,17 +201,17 @@ public class Tooltips
 
 		MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostBackground(stack, info.getLines(), mStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight));
 
-		IRenderTypeBuffer.Impl renderType = IRenderTypeBuffer.immediate(Tessellator.getInstance().getBuilder());
+		BufferSource renderType = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
 		mStack.translate(0.0D, 0.0D, zLevel);
 
 		int tooltipTop = tooltipY;
 
 		for (int lineNumber = 0; lineNumber < info.getLines().size(); ++lineNumber)
 		{
-			ITextProperties line = info.getLines().get(lineNumber);
+			FormattedText line = info.getLines().get(lineNumber);
 			if (line != null)
 			{
-				info.getFont().drawInBatch(LanguageMap.getInstance().getVisualOrder(line), (float)tooltipX, (float)tooltipY, -1, true, mat, renderType, false, 0, 15728880);
+				info.getFont().drawInBatch(Language.getInstance().getVisualOrder(line), (float)tooltipX, (float)tooltipY, -1, true, mat, renderType, false, 0, 15728880);
 			}
 
 			if (lineNumber + 1 == info.getTitleLines())
@@ -227,13 +228,13 @@ public class Tooltips
 		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), mStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison));
 
 		RenderSystem.enableDepthTest();
-		RenderSystem.enableRescaleNormal();
 	}
 
-	public static Rectangle2d calculateRect(final ItemStack stack, MatrixStack mStack, List<? extends ITextProperties> textLines, int mouseX, int mouseY,
-												int screenWidth, int screenHeight, int maxTextWidth, FontRenderer font)
+	@SuppressWarnings("removal")
+	public static Rect2i calculateRect(final ItemStack stack, PoseStack mStack, List<? extends FormattedText> textLines, int mouseX, int mouseY,
+												int screenWidth, int screenHeight, int maxTextWidth, Font font)
 	{
-		Rectangle2d rect = new Rectangle2d(0, 0, 0, 0);
+		Rect2i rect = new Rect2i(0, 0, 0, 0);
 		if (textLines == null || textLines.isEmpty() || stack == null)
 		{
 			return rect;
@@ -255,7 +256,7 @@ public class Tooltips
 
 		int tooltipTextWidth = 0;
 
-		for (ITextProperties textLine : textLines)
+		for (FormattedText textLine : textLines)
 		{
 			int textLineWidth = font.width(textLine);
 			if (textLineWidth > tooltipTextWidth)
@@ -294,17 +295,17 @@ public class Tooltips
 		if (needsWrap)
 		{
 			int wrappedTooltipWidth = 0;
-			List<ITextProperties> wrappedTextLines = new ArrayList<>();
+			List<FormattedText> wrappedTextLines = new ArrayList<>();
 			for (int i = 0; i < textLines.size(); i++)
 			{
-				ITextProperties textLine = textLines.get(i);
-				List<ITextProperties> wrappedLine = font.getSplitter().splitLines(textLine, tooltipTextWidth, Style.EMPTY);
+				FormattedText textLine = textLines.get(i);
+				List<FormattedText> wrappedLine = font.getSplitter().splitLines(textLine, tooltipTextWidth, Style.EMPTY);
 				if (i == 0)
 				{
 					titleLinesCount = wrappedLine.size();
 				}
 
-				for (ITextProperties line : wrappedLine)
+				for (FormattedText line : wrappedLine)
 				{
 					int lineWidth = font.width(line);
 					if (lineWidth > wrappedTooltipWidth)
@@ -348,7 +349,7 @@ public class Tooltips
 			tooltipY = screenHeight - tooltipHeight - 4;
 		}
 
-		rect = new Rectangle2d(tooltipX - 4, tooltipY - 4, tooltipTextWidth + 8, tooltipHeight + 8);
+		rect = new Rect2i(tooltipX - 4, tooltipY - 4, tooltipTextWidth + 8, tooltipHeight + 8);
 		return rect;
 	}
 }

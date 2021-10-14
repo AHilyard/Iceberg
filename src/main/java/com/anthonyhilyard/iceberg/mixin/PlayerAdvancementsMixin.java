@@ -10,15 +10,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import net.minecraft.advancements.Advancement;
-import net.minecraft.advancements.PlayerAdvancements;
-import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.server.PlayerAdvancements;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.common.MinecraftForge;
 
 @Mixin(PlayerAdvancements.class)
 public class PlayerAdvancementsMixin
 {
 	@Shadow
-	private ServerPlayerEntity player;
+	private ServerPlayer player;
 
 	@Inject(method = "award", at = @At(value = "TAIL"), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
 	public void onAward(Advancement advancement, String criterionKey, CallbackInfoReturnable<Boolean> callbackInfo, boolean success)

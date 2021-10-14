@@ -5,8 +5,8 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 
 /**
@@ -22,7 +22,7 @@ public class NewItemPickupEvent extends PlayerEvent
 {
 	private final ItemStack itemStack;
 
-	public NewItemPickupEvent(PlayerEntity player, ItemStack itemStack)
+	public NewItemPickupEvent(Player player, ItemStack itemStack)
 	{
 		super(player);
 		this.itemStack = itemStack;
