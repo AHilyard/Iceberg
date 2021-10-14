@@ -56,7 +56,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	protected void  renderItemModelIntoGUIWithAlpha(ItemStack stack, int x, int y, float alpha)
+	public void renderItemModelIntoGUIWithAlpha(ItemStack stack, int x, int y, float alpha)
 	{
 		BakedModel bakedModel = mc.getItemRenderer().getModel(stack, null, null, 0);
 		RenderTarget lastFrameBuffer = mc.getMainRenderTarget();
