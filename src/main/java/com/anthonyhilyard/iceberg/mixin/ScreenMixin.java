@@ -1,6 +1,5 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.anthonyhilyard.iceberg.util.StringRecomposer;
@@ -20,16 +19,18 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
 
 @Mixin(Screen.class)
 public class ScreenMixin extends AbstractContainerEventHandler
 {
+	@Shadow
+	protected Font font = null;
+
 	@Shadow(remap = false)
 	private Font tooltipFont = null;
 
@@ -48,18 +49,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	{
 		if (!components.isEmpty())
 		{
-			List<FormattedText> standinLines = new ArrayList<>();
-			for (ClientTooltipComponent component : components)
-			{
-				if (component instanceof ClientTextTooltip)
-				{
-					StringRecomposer recomposer = new StringRecomposer();
-					((ClientTextTooltip)component).text.accept(recomposer);
-					standinLines.add(recomposer.getFormattedText());
-				}
-			}
-
-			MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostText(tooltipStack, standinLines, poseStack, postX, postY, tooltipFont, tooltipWidth, tooltipHeight));
+			MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostText(tooltipStack, StringRecomposer.recompose(components), poseStack, postX, postY, ForgeHooksClient.getTooltipFont(tooltipFont, tooltipStack, font), tooltipWidth, tooltipHeight));
 		}
 	}
 
