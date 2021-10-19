@@ -10,6 +10,9 @@
 	"server": [
 		"ForgeEventFactoryMixin"
 	],
+	"client": [
+		"ScreenMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},

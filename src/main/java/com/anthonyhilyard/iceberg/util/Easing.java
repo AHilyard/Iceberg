@@ -3,7 +3,7 @@ package com.anthonyhilyard.iceberg.util;
 import net.minecraft.network.chat.TextColor;
 
 /**
- * Helper functions for smooth easing/interpolation.  If you need linear, use net.minecraft.util.math.MathHelper.lerp instead.
+ * Helper functions for smooth easing/interpolation.
  */
 public final class Easing
 {
