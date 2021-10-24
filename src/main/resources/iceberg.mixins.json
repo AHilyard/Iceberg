@@ -8,7 +8,7 @@
 		"PlayerAdvancementsMixin"
 	],
 	"server": [
-		"ForgeEventFactoryMixin"
+		"ItemEntityMixin"
 	],
 	"client": [
 		"ScreenMixin"

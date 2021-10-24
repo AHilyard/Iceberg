@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "iceberg",
+	"version": "${version}",
+
+	"name": "Iceberg",
+	"description": "A library containing events, helpers, and utilities to make modding easier.",
+	"authors": [ "Grend" ],
+	"contact": {
+		"homepage": "https://anthonyhilyard.com/",
+		"sources": "https://github.com/AHilyard/Iceberg",
+		"discord": "https://discord.gg/S5NQjbXPnb"
+	},
+
+	"license": "CC BY-NC-ND 4.0",
+	"icon": "icon.png",
+
+	"environment": "*",
+
+	"entrypoints": { },
+	"accessWidener": "iceberg.accesswidener",
+
+	"depends": {
+		"fabricloader": ">=0.11.3",
+		"fabric": "*",
+		"minecraft": "1.17.x",
+		"java": ">=16"
+	},
+	"custom": {
+		"modupdater": {
+		  "strategy": "curseforge",
+		  "projectID": 539382,
+		  "strict": false
+		},
+		"modmenu": {
+		  "links": {
+			"modmenu.discord": "https://discord.gg/S5NQjbXPnb"
+		  }
+		}
+	  }
+}

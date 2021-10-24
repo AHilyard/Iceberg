@@ -1,43 +1,20 @@
-buildscript {
-	repositories {
-		maven { url = 'https://files.minecraftforge.net/maven' }
-		maven { url = "https://repo.spongepowered.org/maven" }
-		jcenter()
-		mavenCentral()
-	}
-	dependencies {
-		classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-		classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7-SNAPSHOT'
-	}
+plugins {
+	id 'fabric-loom' version '0.9-SNAPSHOT'
+	id 'maven-publish'
 }
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.spongepowered.mixin'
-apply plugin: 'eclipse'
+
+sourceCompatibility = JavaVersion.VERSION_16
+targetCompatibility = JavaVersion.VERSION_16
 
 archivesBaseName = project.name + '-' + project.mcVersion
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(16)
+sourceSets.main.java.srcDirs += 'java'
+sourceSets.main.resources.srcDirs += 'resources'
 
-mixin {
-	add sourceSets.main, "${project.name.toLowerCase()}.refmap.json"
-}
-
-minecraft {
-	mappings channel: 'official', version: project.mcVersion
-	accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-	runs {
-		client = {
-			properties 'forge.logging.markers': ''
-			properties 'forge.logging.console.level': 'debug'
-			properties 'terminal.ansi': 'true'
-			workingDirectory project.file('run').canonicalPath
-			source sourceSets.main
-
-			arg "-mixin.debug=true"
-			arg "-mixin.checks.interfaces=true"
-			arg "-mixin.config=${project.name}.mixins.json".toLowerCase()
-		}
+repositories {
+	maven {
+		name = "CurseMaven"
+		url = "https://www.cursemaven.com"
 	}
 }
 
@@ -50,11 +27,29 @@ sourceSets {
 }
 
 dependencies {
-	minecraft "net.minecraftforge:forge:${project.mcVersion}-${project.forgeVersion}"
-	annotationProcessor 'org.spongepowered:mixin:0.8.4:processor'
+	minecraft "com.mojang:minecraft:${project.mcVersion}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loaderVersion}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabricVersion}"
+}
+
+loom {
+	accessWidenerPath = file("src/main/resources/${project.name.toLowerCase()}.accesswidener")
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	it.options.release = 16
+}
+
+java {
+	withSourcesJar()
 }
 
 jar {
+	from("LICENSE") {
+		rename { "${it}_${project.archivesBaseName}"}
+	}
 	manifest {
 		attributes(["Specification-Title": project.name,
 					"Specification-Vendor": project.author,
@@ -62,7 +57,6 @@ jar {
 					"Implementation-Title": project.name,
 					"Implementation-Version": project.version,
 					"Implementation-Vendor" : project.author,
-					"Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-					"MixinConfigs": "${project.name.toLowerCase()}.mixins.json"],)
+					"Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")],)
 	}
 }

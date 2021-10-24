@@ -1,6 +1,6 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import com.anthonyhilyard.iceberg.events.CriterionEvent;
+import com.anthonyhilyard.iceberg.events.CriterionCallback;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.common.MinecraftForge;
 
 @Mixin(PlayerAdvancements.class)
 public class PlayerAdvancementsMixin
@@ -25,7 +24,7 @@ public class PlayerAdvancementsMixin
 	{
 		if (success)
 		{
-			MinecraftForge.EVENT_BUS.post(new CriterionEvent(player, advancement, criterionKey));
+			CriterionCallback.EVENT.invoker().awardCriterion(player, advancement, criterionKey);
 		}
 	}
 }

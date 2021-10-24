@@ -1,47 +1,18 @@
 package com.anthonyhilyard.iceberg;
 
-import com.anthonyhilyard.iceberg.network.IcebergNetworkProtocol;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.IExtensionPoint;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.fabricmc.api.ModInitializer;
 
-@Mod(Loader.MODID)
-public class Loader
+public class Loader implements ModInitializer
 {
 	public static final String MODID = "iceberg";
 	public static final Logger LOGGER = LogManager.getLogger(MODID);
 
-	public Loader()
+	@Override
+	public void onInitialize()
 	{
-		if (FMLEnvironment.dist == Dist.CLIENT)
-		{
-			IcebergClient mod = new IcebergClient();
-			FMLJavaModLoadingContext.get().getModEventBus().addListener(mod::onClientSetup);
-		}
-		else
-		{
-			new IcebergServer();
-		}
-
-		// Register the network protocol.
-		IcebergNetworkProtocol.register();
-
-		ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class, () -> new IExtensionPoint.DisplayTest(() -> "ANY", (remote, isServer) -> true));
-	}
-
-	@SubscribeEvent
-	public void onCommonSetup(FMLCommonSetupEvent event)
-	{
-
 	}
 
 	// Event testing.

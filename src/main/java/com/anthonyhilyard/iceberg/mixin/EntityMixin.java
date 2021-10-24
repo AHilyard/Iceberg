@@ -2,7 +2,7 @@ package com.anthonyhilyard.iceberg.mixin;
 
 import java.util.Objects;
 
-import com.anthonyhilyard.iceberg.events.EntityFluidEvent;
+import com.anthonyhilyard.iceberg.events.EntityFluidEvents;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,17 +14,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.tags.Tag;
-import net.minecraftforge.common.MinecraftForge;
 
 @Mixin(Entity.class)
-public class EntityMixin extends net.minecraftforge.common.capabilities.CapabilityProvider<Entity>
+public class EntityMixin
 {
 	private Fluid previousFluidOnEyes = null;
 
 	@Shadow
 	protected Tag<Fluid> fluidOnEyes;
-
-	protected EntityMixin(Class<Entity> baseClass) { super(baseClass); }
 
 	@Inject(method = "updateFluidOnEyes", at = @At(value = "RETURN"))
 	public void onUpdateFluidOnEyes(CallbackInfo callbackInfo)
@@ -38,7 +35,7 @@ public class EntityMixin extends net.minecraftforge.common.capabilities.Capabili
 			// We were submerged in a fluid that we no longer are.
 			if (previousFluidOnEyes != null)
 			{
-				MinecraftForge.EVENT_BUS.post(new EntityFluidEvent.Exited((Entity)(Object)this, previousFluidOnEyes));
+				EntityFluidEvents.EXITED.invoker().onExited((Entity)(Object)this, previousFluidOnEyes);
 			}
 			previousFluidOnEyes = null;
 		}
@@ -59,7 +56,7 @@ public class EntityMixin extends net.minecraftforge.common.capabilities.Capabili
 			// We are now submerged in a fluid that doesn't match the previous one.
 			if (currentFluid != null)
 			{
-				MinecraftForge.EVENT_BUS.post(new EntityFluidEvent.Entered((Entity)(Object)this, currentFluid));
+				EntityFluidEvents.ENTERED.invoker().onEntered((Entity)(Object)this, currentFluid);
 			}
 		}
 	}
