@@ -33,6 +33,7 @@ import net.minecraft.network.chat.Style;
 
 public class Tooltips
 {
+	private static boolean initialized = false;
 	private static ItemRenderer itemRenderer = null;
 	private static TextureManager textureManager = null;
 
@@ -120,10 +121,11 @@ public class Tooltips
 		}
 	}
 
-	public static void init(Minecraft minecraft)
+	private static void init(Minecraft minecraft)
 	{
 		itemRenderer = minecraft.getItemRenderer();
 		textureManager = minecraft.getTextureManager();
+		initialized = true;
 	}
 
 	public static void renderItemTooltip(final ItemStack stack, PoseStack mStack, TooltipInfo info,
@@ -138,6 +140,12 @@ public class Tooltips
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
 	{
+		// Initialize if needed.
+		if (!initialized)
+		{
+			init(Minecraft.getInstance());
+		}
+
 		if (info.lines.isEmpty())
 		{
 			return;

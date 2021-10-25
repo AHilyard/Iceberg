@@ -19,6 +19,9 @@
 
 	"entrypoints": { },
 	"accessWidener": "iceberg.accesswidener",
+	"mixins": [
+		"iceberg.mixins.json"
+	],
 
 	"depends": {
 		"fabricloader": ">=0.11.3",
