@@ -6,7 +6,6 @@ import com.anthonyhilyard.iceberg.events.RenderTooltipEvents;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,7 +29,6 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	@Shadow
 	protected Font font = null;
 
-	@Final
 	@Shadow
 	private final List<GuiEventListener> children = Lists.newArrayList();
 

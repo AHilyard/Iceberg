@@ -6,11 +6,10 @@
 		"EntityMixin",
 		"PlayerAdvancementsMixin"
 	],
-	"server": [
-		"ItemEntityMixin"
-	],
 	"client": [
-		"ScreenMixin"
+		"ScreenMixin",
+		"ClientPacketListenerMixin",
+		"LivingEntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

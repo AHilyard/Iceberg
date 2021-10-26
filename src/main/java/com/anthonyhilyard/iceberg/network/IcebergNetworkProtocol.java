@@ -1,41 +1,28 @@
 package com.anthonyhilyard.iceberg.network;
 
 import com.anthonyhilyard.iceberg.Loader;
+import com.anthonyhilyard.iceberg.events.NewItemPickupCallback;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-// import net.minecraftforge.fmllegacy.network.NetworkRegistry;
-// import net.minecraftforge.fmllegacy.network.simple.SimpleChannel;
 
 public final class IcebergNetworkProtocol
 {
-	//private static final String NETWORK_PROTOCOL_VERSION = "1";
-	private static final ResourceLocation IDENTIFIER = new ResourceLocation(Loader.MODID, "main");
+	private static final String VERSION = "v1";
+
+	private static final ResourceLocation SEND_ITEM_ID = new ResourceLocation(Loader.MODID, VERSION + '/' + String.valueOf(0));
 	
-	// public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-	// 		new ResourceLocation(Loader.MODID, "main"), () -> NETWORK_PROTOCOL_VERSION,
-	// 		NETWORK_PROTOCOL_VERSION::equals, NETWORK_PROTOCOL_VERSION::equals
-	// );
-
-	// public static final void register()
-	// {
-	// 	int messageID = 0;
-
-	// 	CHANNEL.registerMessage(
-	// 		messageID++,
-	// 		NewItemPickupEventPacket.class,
-	// 		NewItemPickupEventPacket::encode,
-	// 		NewItemPickupEventPacket::decode,
-	// 		NewItemPickupEventPacket::handle
-	// 	);
-	// }
-
 	public static void sendItemPickupEvent(ServerPlayer player, ItemStack item)
 	{
+		Loader.LOGGER.info("Sending item pickup event message!");
 		if (!player.level.isClientSide)
 		{
 			// Build buffer.
@@ -44,7 +31,20 @@ public final class IcebergNetworkProtocol
 			buffer.writeItem(item);
 
 			// Send packet.
-			ServerPlayNetworking.send(player, IDENTIFIER, buffer);
+			ServerPlayNetworking.send(player, SEND_ITEM_ID, buffer);
 		}
+	}
+
+	public static void handleItemPickupEvent(Minecraft client, ClientPacketListener handler, FriendlyByteBuf buf, PacketSender responseSender)
+	{
+		Loader.LOGGER.info("receiving item pickup event message!");
+		client.execute(() -> {
+			NewItemPickupCallback.EVENT.invoker().onItemPickup(buf.readUUID(), buf.readItem());
+		});
+	}
+
+	public static void registerHandlers()
+	{
+		ClientPlayNetworking.registerGlobalReceiver(SEND_ITEM_ID, IcebergNetworkProtocol::handleItemPickupEvent);
 	}
 }

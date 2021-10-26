@@ -17,7 +17,11 @@
 
 	"environment": "*",
 
-	"entrypoints": { },
+	"entrypoints": { 
+		"client": [
+			"com.anthonyhilyard.iceberg.IcebergClient"
+		]
+	},
 	"accessWidener": "iceberg.accesswidener",
 	"mixins": [
 		"iceberg.mixins.json"
