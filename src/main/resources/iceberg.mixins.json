@@ -2,9 +2,11 @@
 	"required": true,
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_8",
+	"verbose": true,
 	"mixins": [
 		"EntityMixin",
-		"PlayerAdvancementsMixin"
+		"PlayerAdvancementsMixin",
+		"MinecraftMixin"
 	],
 	"client": [
 		"ScreenMixin",

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents;
+import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorResult;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -135,7 +136,6 @@ public class Tooltips
 		renderItemTooltip(stack, mStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
 	}
 
-	//private void renderTooltipInternal(PoseStack poseStack, List<ClientTooltipComponent> list, int x, int y)
 	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
@@ -221,7 +221,11 @@ public class Tooltips
 		int borderStart = 0x505000FF;
 		int borderEnd = 0x5028007F;
 
-		RenderTooltipEvents.COLOR.invoker().onColor(stack, info.lines, poseStack, tooltipX, tooltipY, info.getFont(), bgColor, borderStart, borderEnd, comparison);
+		ColorResult colors = RenderTooltipEvents.COLOR.invoker().onColor(stack, info.lines, poseStack, tooltipX, tooltipY, info.getFont(), bgColor, borderStart, borderEnd, comparison);
+
+		bgColor = colors.background();
+		borderStart = colors.borderStart();
+		borderEnd = colors.borderEnd();
 
 		float f = itemRenderer.blitOffset;
 		itemRenderer.blitOffset = 400.0F;

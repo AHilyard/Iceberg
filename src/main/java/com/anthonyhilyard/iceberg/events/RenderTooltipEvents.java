@@ -31,10 +31,12 @@ public final class RenderTooltipEvents
 
 	public static final Event<RenderTooltipEvents.Color> COLOR = EventFactory.createArrayBacked(RenderTooltipEvents.Color.class,
 		callbacks -> (stack, components, poseStack, x, y, font, background, borderStart, borderEnd, comparison) -> {
+		ColorResult result = new ColorResult(background, borderStart, borderEnd);
 		for (RenderTooltipEvents.Color callback : callbacks)
 		{
-			callback.onColor(stack, components, poseStack, x, y, font, background, borderStart, borderEnd, comparison);
+			result = callback.onColor(stack, components, poseStack, x, y, font, result.background, result.borderStart, result.borderEnd, comparison);
 		}
+		return result;
 	});
 
 	public static final Event<RenderTooltipEvents.Post> POST = EventFactory.createArrayBacked(RenderTooltipEvents.Post.class,
@@ -54,7 +56,7 @@ public final class RenderTooltipEvents
 	@FunctionalInterface
 	public interface Color
 	{
-		void onColor(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int background, int borderStart, int borderEnd, boolean comparison);
+		ColorResult onColor(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int background, int borderStart, int borderEnd, boolean comparison);
 	}
 
 	@FunctionalInterface
@@ -62,4 +64,6 @@ public final class RenderTooltipEvents
 	{
 		void onPost(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int width, int height, boolean comparison);
 	}
+
+	public record ColorResult(int background, int borderStart, int borderEnd) {}
 }

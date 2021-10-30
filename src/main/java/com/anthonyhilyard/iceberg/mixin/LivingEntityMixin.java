@@ -7,7 +7,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 
-import com.anthonyhilyard.iceberg.Loader;
 import com.anthonyhilyard.iceberg.events.NewItemPickupCallback;
 
 import org.spongepowered.asm.mixin.Mixin;
