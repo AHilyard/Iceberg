@@ -142,7 +142,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 				if (hoveredSlot != null)
 				{
 					ItemStack tooltipStack = hoveredSlot.getItem();
-					RenderTooltipEvents.POST.invoker().onPost(tooltipStack, components, poseStack, x + 12, y - 12, font, tooltipWidth, tooltipHeight, false);
+					RenderTooltipEvents.POST.invoker().onPost(tooltipStack, components, poseStack, postX, postY, font, tooltipWidth, tooltipHeight, false);
 				}
 			}
 		}
