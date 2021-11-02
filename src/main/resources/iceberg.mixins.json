@@ -7,11 +7,9 @@
 		"EntityMixin",
 		"PlayerAdvancementsMixin"
 	],
-	"server": [
-		"ForgeEventFactoryMixin"
-	],
 	"client": [
-		"ScreenMixin"
+		"ScreenMixin",
+		"ClientPacketListenerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
