@@ -1,7 +1,5 @@
 package com.anthonyhilyard.iceberg;
 
-import com.anthonyhilyard.iceberg.network.IcebergNetworkProtocol;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,9 +31,6 @@ public class Loader
 		{
 			new IcebergServer();
 		}
-
-		// Register the network protocol.
-		IcebergNetworkProtocol.register();
 
 		ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (a, b) -> true));
 	}

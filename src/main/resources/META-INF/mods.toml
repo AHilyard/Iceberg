@@ -4,7 +4,7 @@ license="CC BY-NC-ND 4.0"
 
 [[mods]]
 modId="iceberg"
-version="${version}"
+version="${file.jarVersion}"
 displayName="Iceberg"
 displayURL="https://anthonyhilyard.com/"
 updateJSONURL="https://mc-curse-update-checker.herokuapp.com/520110"

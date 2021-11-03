@@ -7,8 +7,8 @@
 		"EntityMixin",
 		"PlayerAdvancementsMixin"
 	],
-	"server": [
-		"ForgeEventFactoryMixin"
+	"client": [
+		"ClientPlayNetHandlerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
