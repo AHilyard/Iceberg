@@ -271,7 +271,7 @@ public class Tooltips
 		for (int i = 0; i < info.getLines().size(); ++i)
 		{
 			clientTooltipComponent3 = (ClientTooltipComponent)info.getLines().get(i);
-			clientTooltipComponent3.renderImage(info.getFont(), tooltipX, v, poseStack, itemRenderer, 400, textureManager);
+			clientTooltipComponent3.renderImage(info.getFont(), tooltipX, v, poseStack, itemRenderer, 400);
 			v += clientTooltipComponent3.getHeight() + (i == 0 ? 2 : 0);
 		}
 
