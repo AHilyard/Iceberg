@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "com.anthonyhilyard.iceberg.mixin",
-	"compatibilityLevel": "JAVA_8",
+	"compatibilityLevel": "JAVA_16",
 	"verbose": true,
 	"mixins": [
 		"EntityMixin",

@@ -20,7 +20,6 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.TextureManager;
 
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -36,7 +35,6 @@ public class Tooltips
 {
 	private static boolean initialized = false;
 	private static ItemRenderer itemRenderer = null;
-	private static TextureManager textureManager = null;
 
 	public static class TooltipInfo
 	{
@@ -125,7 +123,6 @@ public class Tooltips
 	private static void init(Minecraft minecraft)
 	{
 		itemRenderer = minecraft.getItemRenderer();
-		textureManager = minecraft.getTextureManager();
 		initialized = true;
 	}
 
@@ -271,7 +268,7 @@ public class Tooltips
 		for (int i = 0; i < info.getLines().size(); ++i)
 		{
 			clientTooltipComponent3 = (ClientTooltipComponent)info.getLines().get(i);
-			clientTooltipComponent3.renderImage(info.getFont(), tooltipX, v, poseStack, itemRenderer, 400, textureManager);
+			clientTooltipComponent3.renderImage(info.getFont(), tooltipX, v, poseStack, itemRenderer, 400);
 			v += clientTooltipComponent3.getHeight() + (i == 0 ? 2 : 0);
 		}
 

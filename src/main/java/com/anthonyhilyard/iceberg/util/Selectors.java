@@ -27,10 +27,12 @@ public class Selectors
 	public static boolean itemMatches(ItemStack item, String selector)
 	{
 		String itemResourceLocation = Registry.ITEM.getKey(item.getItem()).toString();
+		// Item ID
 		if (selector.equals(itemResourceLocation) || selector.equals(itemResourceLocation.replace("minecraft:", "")))
 		{
 			return true;
 		}
+		// Item name color
 		else if (selector.startsWith("#"))
 		{
 			TextColor entryColor = TextColor.parseColor(selector);
@@ -39,6 +41,7 @@ public class Selectors
 				return true;
 			}
 		}
+		// Vanilla rarity
 		else if (selector.startsWith("!"))
 		{
 			if (item.getRarity() == rarities.get(selector.substring(1)))
@@ -46,6 +49,7 @@ public class Selectors
 				return true;
 			}
 		}
+		// Mod ID
 		else if (selector.startsWith("@"))
 		{
 			if (itemResourceLocation.startsWith(selector.substring(1) + ":"))
@@ -53,6 +57,7 @@ public class Selectors
 				return true;
 			}
 		}
+		// Item tag
 		else if (selector.startsWith("$"))
 		{
 			if (ItemTags.getAllTags().getTagOrEmpty(new ResourceLocation(selector.substring(1))).getValues().contains(item.getItem()))
@@ -60,6 +65,7 @@ public class Selectors
 				return true;
 			}
 		}
+		// Item display name
 		else if (selector.startsWith("%"))
 		{
 			if (item.getDisplayName().getString().contains(selector.substring(1)))
@@ -67,6 +73,7 @@ public class Selectors
 				return true;
 			}
 		}
+		// Tooltip text
 		else if (selector.startsWith("^"))
 		{
 			Minecraft mc = Minecraft.getInstance();
