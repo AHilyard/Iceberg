@@ -114,9 +114,12 @@ public class ScreenMixin extends AbstractContainerEventHandler
 		{
 			// Do colors now, sure why not.
 			ColorResult result = RenderTooltipEvents.COLOR.invoker().onColor(tooltipStack, components, poseStack, x, y, font, background, borderStart, borderEnd, false);
-			background = result.background();
-			borderStart = result.borderStart();
-			borderEnd = result.borderEnd();
+			if (result != null)
+			{
+				background = result.background();
+				borderStart = result.borderStart();
+				borderEnd = result.borderEnd();
+			}
 
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 4, left + width + 3, top - 3, zIndex, background, background);
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top + height + 3, left + width + 3, top + height + 4, zIndex, background, background);
