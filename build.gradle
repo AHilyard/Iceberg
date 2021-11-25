@@ -47,7 +47,7 @@ sourceSets {
 }
 
 dependencies {
-	minecraft 'net.minecraftforge:forge:' + project.properties.mcVersion + '-' + project.forgeVersion
+	minecraft "net.minecraftforge:forge:${project.mcVersion}-${project.forgeVersion}"
 	annotationProcessor 'org.spongepowered:mixin:0.8:processor'
 }
 
