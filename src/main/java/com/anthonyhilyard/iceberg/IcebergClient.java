@@ -14,13 +14,5 @@ public class IcebergClient
 
 	public void onClientSetup(FMLClientSetupEvent event)
 	{
-		event.enqueueWork(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-
-			}
-		});
 	}
 }
