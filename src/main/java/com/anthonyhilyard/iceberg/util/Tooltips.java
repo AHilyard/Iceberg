@@ -129,16 +129,23 @@ public class Tooltips
 		initialized = true;
 	}
 
-	public static void renderItemTooltip(final ItemStack stack, PoseStack mStack, TooltipInfo info,
+	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd)
 	{
-		renderItemTooltip(stack, mStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
+		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
 	}
 
 	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
+	{
+		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, comparison, false);
+	}
+
+	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
+										Rect2i rect, int screenWidth, int screenHeight,
+										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
 	{
 		// Initialize if needed.
 		if (!initialized)
@@ -165,6 +172,13 @@ public class Tooltips
 
 		int tooltipX = rectX + 12;
 		int tooltipTextWidth = info.getMaxLineWidth();
+
+		// Constrain the minimum width to the rect.
+		if (constrain)
+		{
+			tooltipTextWidth = Math.max(info.getMaxLineWidth(), rect.getWidth() - 8);
+		}
+
 		if (tooltipX + tooltipTextWidth + 4 > screenWidth)
 		{
 			tooltipX = rectX - 16 - tooltipTextWidth;
