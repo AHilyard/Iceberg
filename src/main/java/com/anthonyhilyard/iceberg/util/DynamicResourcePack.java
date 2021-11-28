@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -34,6 +35,29 @@ public class DynamicResourcePack implements IResourcePack
 			this.type = type;
 			this.namespace = namespace;
 			this.path = path;
+		}
+
+		@Override
+		public int hashCode() { return Objects.hash(type, namespace, path); }
+
+		@Override
+		public boolean equals(Object obj)
+		{
+			if (this == obj)
+			{
+				return true;
+			}
+			else if (!(obj instanceof DynamicResourceKey))
+			{
+				return false;
+			}
+			else
+			{
+				DynamicResourceKey other = (DynamicResourceKey) obj;
+				return Objects.equals(type, other.type) &&
+					   Objects.equals(namespace, other.namespace) &&
+					   Objects.equals(path, other.path);
+			}
 		}
 	}
 
