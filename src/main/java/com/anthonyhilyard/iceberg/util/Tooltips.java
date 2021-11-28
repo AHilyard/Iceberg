@@ -86,17 +86,24 @@ public class Tooltips
 		}
 	}
 
-	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack mStack, TooltipInfo info,
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack matrixStack, TooltipInfo info,
 										Rectangle2d rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd)
 	{
-		renderItemTooltip(stack, mStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
+		renderItemTooltip(stack, matrixStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
+	}
+
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack matrixStack, TooltipInfo info,
+										Rectangle2d rect, int screenWidth, int screenHeight,
+										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
+	{
+		renderItemTooltip(stack, matrixStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, comparison, false);
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack mStack, TooltipInfo info,
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack matrixStack, TooltipInfo info,
 										Rectangle2d rect, int screenWidth, int screenHeight,
-										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
+										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
 	{
 		if (info.getLines().isEmpty())
 		{
@@ -107,7 +114,7 @@ public class Tooltips
 		int rectY = rect.getY() + 18;
 		int maxTextWidth = rect.getWidth() - 8;
 
-		RenderTooltipExtEvent.Pre event = new RenderTooltipExtEvent.Pre(stack, info.getLines(), mStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont(), comparison);
+		RenderTooltipExtEvent.Pre event = new RenderTooltipExtEvent.Pre(stack, info.getLines(), matrixStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont(), comparison);
 		if (MinecraftForge.EVENT_BUS.post(event))
 		{
 			return;
@@ -123,6 +130,12 @@ public class Tooltips
 		RenderSystem.disableRescaleNormal();
 		RenderSystem.disableDepthTest();
 		int tooltipTextWidth = info.getMaxLineWidth();
+
+		// Constrain the minimum width to the rect.
+		if (constrain)
+		{
+			tooltipTextWidth = Math.max(info.getMaxLineWidth(), rect.getWidth() - 8);
+		}
 
 		boolean needsWrap = false;
 
@@ -179,14 +192,14 @@ public class Tooltips
 		}
 
 		final int zLevel = 400;
-		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), mStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd, comparison);
+		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd, comparison);
 		MinecraftForge.EVENT_BUS.post(colorEvent);
 		backgroundColor = colorEvent.getBackground();
 		borderColorStart = colorEvent.getBorderStart();
 		borderColorEnd = colorEvent.getBorderEnd();
 
-		mStack.pushPose();
-		Matrix4f mat = mStack.last().pose();
+		matrixStack.pushPose();
+		Matrix4f mat = matrixStack.last().pose();
 
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 4, tooltipX + tooltipTextWidth + 3, tooltipY - 3, backgroundColor, backgroundColor);
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY + tooltipHeight + 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 4, backgroundColor, backgroundColor);
@@ -198,10 +211,10 @@ public class Tooltips
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY - 3 + 1, borderColorStart, borderColorStart);
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY + tooltipHeight + 2, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, borderColorEnd, borderColorEnd);
 
-		MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostBackground(stack, info.getLines(), mStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight));
+		MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostBackground(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight));
 
 		IRenderTypeBuffer.Impl renderType = IRenderTypeBuffer.immediate(Tessellator.getInstance().getBuilder());
-		mStack.translate(0.0D, 0.0D, zLevel);
+		matrixStack.translate(0.0D, 0.0D, zLevel);
 
 		int tooltipTop = tooltipY;
 
@@ -222,15 +235,15 @@ public class Tooltips
 		}
 
 		renderType.endBatch();
-		mStack.popPose();
+		matrixStack.popPose();
 
-		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), mStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison));
+		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), matrixStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison));
 
 		RenderSystem.enableDepthTest();
 		RenderSystem.enableRescaleNormal();
 	}
 
-	public static Rectangle2d calculateRect(final ItemStack stack, MatrixStack mStack, List<? extends ITextProperties> textLines, int mouseX, int mouseY,
+	public static Rectangle2d calculateRect(final ItemStack stack, MatrixStack matrixStack, List<? extends ITextProperties> textLines, int mouseX, int mouseY,
 												int screenWidth, int screenHeight, int maxTextWidth, FontRenderer font)
 	{
 		Rectangle2d rect = new Rectangle2d(0, 0, 0, 0);
@@ -240,7 +253,7 @@ public class Tooltips
 		}
 
 		// Generate a tooltip event even though we aren't rendering anything in case the event handlers are modifying the input values.
-		RenderTooltipEvent.Pre event = new RenderTooltipEvent.Pre(stack, textLines, mStack, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font);
+		RenderTooltipEvent.Pre event = new RenderTooltipEvent.Pre(stack, textLines, matrixStack, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font);
 		if (MinecraftForge.EVENT_BUS.post(event))
 		{
 			return rect;
