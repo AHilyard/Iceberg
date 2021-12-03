@@ -5,13 +5,13 @@
 	"verbose": true,
 	"mixins": [
 		"EntityMixin",
-		"PlayerAdvancementsMixin",
-		"MinecraftMixin"
+		"PlayerAdvancementsMixin"
 	],
 	"client": [
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
-		"LivingEntityMixin"
+		"LivingEntityMixin",
+		"MinecraftMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

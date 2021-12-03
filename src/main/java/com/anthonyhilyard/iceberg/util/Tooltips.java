@@ -126,16 +126,23 @@ public class Tooltips
 		initialized = true;
 	}
 
-	public static void renderItemTooltip(final ItemStack stack, PoseStack mStack, TooltipInfo info,
-										Rect2i rect, int screenWidth, int screenHeight,
-										int backgroundColor, int borderColorStart, int borderColorEnd)
+	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
+										 Rect2i rect, int screenWidth, int screenHeight,
+										 int backgroundColor, int borderColorStart, int borderColorEnd)
 	{
-		renderItemTooltip(stack, mStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
+		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
 	}
 
 	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
+	{
+		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, comparison, false);
+	}
+
+	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
+										Rect2i rect, int screenWidth, int screenHeight,
+										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
 	{
 		// Initialize if needed.
 		if (!initialized)
@@ -162,6 +169,13 @@ public class Tooltips
 
 		int tooltipX = rectX + 12;
 		int tooltipTextWidth = info.getMaxLineWidth();
+
+		// Constrain the minimum width to the rect.
+		if (constrain)
+		{
+			tooltipTextWidth = Math.max(info.getMaxLineWidth(), rect.getWidth() - 8);
+		}
+
 		if (tooltipX + tooltipTextWidth + 4 > screenWidth)
 		{
 			tooltipX = rectX - 16 - tooltipTextWidth;
@@ -277,7 +291,7 @@ public class Tooltips
 		RenderTooltipEvents.POST.invoker().onPost(stack, info.getLines(), poseStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight, comparison);
 	}
 
-	public static Rect2i calculateRect(final ItemStack stack, PoseStack mStack, List<ClientTooltipComponent> textLines, int mouseX, int mouseY,
+	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> textLines, int mouseX, int mouseY,
 												int screenWidth, int screenHeight, int maxTextWidth, Font font)
 	{
 		Rect2i rect = new Rect2i(0, 0, 0, 0);
