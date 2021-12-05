@@ -2,11 +2,10 @@ package com.anthonyhilyard.iceberg.mixin;
 
 import java.util.List;
 
-import com.anthonyhilyard.iceberg.util.StringRecomposer;
+import com.anthonyhilyard.iceberg.events.RenderTooltipExtEvent;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,11 +36,9 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	@Shadow(remap = false)
 	private ItemStack tooltipStack = ItemStack.EMPTY;
 
-	@Final
 	@Shadow
 	private final List<GuiEventListener> children = Lists.newArrayList();
 
-	@SuppressWarnings("removal")
 	@Inject(method = "renderTooltipInternal",
 			at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/entity/ItemRenderer;blitOffset:F", ordinal = 2, shift = Shift.AFTER),
 			locals = LocalCapture.CAPTURE_FAILEXCEPTION)
@@ -49,7 +46,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	{
 		if (!components.isEmpty())
 		{
-			MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostText(tooltipStack, StringRecomposer.recompose(components), poseStack, postX, postY, ForgeHooksClient.getTooltipFont(tooltipFont, tooltipStack, font), tooltipWidth, tooltipHeight));
+			MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.Post(tooltipStack, poseStack, postX, postY, ForgeHooksClient.getTooltipFont(tooltipFont, tooltipStack, font), tooltipWidth, tooltipHeight, components, false));
 		}
 	}
 

@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -23,6 +24,7 @@ public class Loader
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
 			IcebergClient mod = new IcebergClient();
+			MinecraftForge.EVENT_BUS.register(IcebergClient.class);
 			FMLJavaModLoadingContext.get().getModEventBus().addListener(mod::onClientSetup);
 		}
 		else
@@ -38,29 +40,4 @@ public class Loader
 	{
 
 	}
-
-	// Event testing.
-	//
-	// @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.FORGE)
-	// public static class AdvancementEvents
-	// {
-	// 	@SubscribeEvent
-	// 	public static void onCriterion(final CriterionEvent event)
-	// 	{
-	// 		LOGGER.info("{} gained {} for {}!", event.getPlayer().getName().getString(), event.getCriterionKey(), event.getAdvancement().getId().toString());
-	// 	}
-
-	// 	@SubscribeEvent
-	// 	public static void onFluidEntered(final EntityFluidEvent.Entered event)
-	// 	{
-	// 		LOGGER.info("{} entered {}!", event.getEntity().getName().getString(), event.getFluid().getRegistryName().toString());
-	// 	}
-
-	// 	@SubscribeEvent
-	// 	public static void onFluidExited(final EntityFluidEvent.Exited event)
-	// 	{
-	// 		LOGGER.info("{} exited {}!", event.getEntity().getName().getString(), event.getFluid().getRegistryName().toString());
-	// 	}
-	// }
-
 }

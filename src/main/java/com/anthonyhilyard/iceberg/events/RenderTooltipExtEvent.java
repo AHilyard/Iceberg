@@ -5,60 +5,57 @@ import java.util.List;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.chat.FormattedText;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 
 public class RenderTooltipExtEvent
 {
 	public static class Pre extends RenderTooltipEvent.Pre
 	{
-		private boolean comparisonTooltip = false;
+		private final boolean comparisonTooltip;
 
-		@SuppressWarnings("removal")
-		public Pre(ItemStack stack, List<? extends FormattedText> lines, PoseStack PoseStack, int x, int y, int screenWidth, int screenHeight, int maxWidth, Font font, boolean comparison)
+		public Pre(ItemStack stack, PoseStack PoseStack, int x, int y, int screenWidth, int screenHeight, Font font, List<ClientTooltipComponent> components, boolean comparison)
 		{
-			super(stack, lines, PoseStack, x, y, screenWidth, screenHeight, maxWidth, font);
+			super(stack, PoseStack, x, y, screenWidth, screenHeight, font, components);
 			comparisonTooltip = comparison;
 		}
 		public boolean isComparison() { return comparisonTooltip; }
 	}
 
-	@SuppressWarnings("removal")
-	public static class PostBackground extends RenderTooltipEvent.PostBackground
+	public static class Post extends RenderTooltipEvent
 	{
-		private boolean comparisonTooltip = false;
+		private final boolean comparisonTooltip;
+		private final int width;
+		private final int height;
 
-		public PostBackground(ItemStack stack, List<? extends FormattedText> textLines, PoseStack PoseStack, int x, int y, Font font, int width, int height, boolean comparison)
+		public Post(ItemStack stack, PoseStack PoseStack, int x, int y, Font font, int width, int height, List<ClientTooltipComponent> components, boolean comparison)
 		{
-			super(stack, textLines, PoseStack, x, y, font, width, height);
+			super(stack, PoseStack, x, y, font, components);
+			this.width = width;
+			this.height = height;
+
 			comparisonTooltip = comparison;
 		}
 		public boolean isComparison() { return comparisonTooltip; }
-	}
-
-	@SuppressWarnings("removal")
-	public static class PostText extends RenderTooltipEvent.PostText
-	{
-		private boolean comparisonTooltip = false;
-
-		public PostText(ItemStack stack, List<? extends FormattedText> textLines, PoseStack PoseStack, int x, int y, Font font, int width, int height, boolean comparison)
-		{
-			super(stack, textLines, PoseStack, x, y, font, width, height);
-			comparisonTooltip = comparison;
-		}
-		public boolean isComparison() { return comparisonTooltip; }
+		public int getWidth() { return width; }
+		public int getHeight() { return height; }
 	}
 
 	public static class Color extends RenderTooltipEvent.Color
 	{
-		private boolean comparisonTooltip = false;
+		private final boolean comparisonTooltip;
 
-		@SuppressWarnings("removal")
-		public Color(ItemStack stack, List<? extends FormattedText> textLines, PoseStack PoseStack, int x, int y, Font font, int background, int borderStart, int borderEnd, boolean comparison)
+		public Color(ItemStack stack, PoseStack PoseStack, int x, int y, Font font, int background, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison)
 		{
-			super(stack, textLines, PoseStack, x, y, font, background, borderStart, borderEnd);
+			super(stack, PoseStack, x, y, font, background, borderStart, borderEnd, components);
 			comparisonTooltip = comparison;
+		}
+		public Color(ItemStack stack, PoseStack PoseStack, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison)
+		{
+			this(stack, PoseStack, x, y, font, backgroundStart, borderStart, borderEnd, components, comparison);
+			setBackgroundStart(backgroundStart);
+			setBackgroundEnd(backgroundEnd);
 		}
 		public boolean isComparison() { return comparisonTooltip; }
 	}
