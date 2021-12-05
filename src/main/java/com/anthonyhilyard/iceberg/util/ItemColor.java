@@ -2,9 +2,43 @@ package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.Color;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextFormatting;
 
 public class ItemColor
 {
+	public static Color findFirstColorCode(ITextComponent textComponent)
+	{
+		// This function finds the first specified color code in the given text component.
+		// It is intended to skip non-color formatting codes.
+		String rawTitle = textComponent.getString();
+		for (int i = 0; i < rawTitle.length(); i += 2)
+		{
+			// If we encounter a formatting code, check to see if it's a color.  If so, return it.
+			if (rawTitle.charAt(i) == '\u00a7')
+			{
+				try
+				{
+					TextFormatting format = TextFormatting.getByCode(rawTitle.charAt(i + 1));
+					if (format.isColor())
+					{
+						return Color.fromLegacyFormat(format);
+					}
+				}
+				catch (StringIndexOutOfBoundsException e)
+				{
+					return null;
+				}
+			}
+			// Otherwise, if we encounter a non-formatting character, bail.
+			else
+			{
+				return null;
+			}
+		}
+		return null;
+	}
+
 	public static Color getColorForItem(ItemStack item, Color defaultColor)
 	{
 		Color result = null;
@@ -21,10 +55,17 @@ public class ItemColor
 			result = item.getItem().getName(item).getStyle().getColor();
 		}
 
-		// Finally, if the item has a special hover name color (Stored in NBT), use that.
+		// If the item has a special hover name color (Stored in NBT), use that.
 		if (!item.getHoverName().getStyle().isEmpty() && item.getHoverName().getStyle().getColor() != null)
 		{
 			result = item.getHoverName().getStyle().getColor();
+		}
+
+		// Finally if there is a color code specified for the item name, use that.
+		Color formattingColor = findFirstColorCode(item.getItem().getName(item));
+		if (formattingColor != null)
+		{
+			result = formattingColor;
 		}
 
 		// Fallback to the default color if we somehow haven't found a single valid color.
