@@ -1,12 +1,32 @@
 package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ICharacterConsumer;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 
 public class ItemColor
 {
+	private static class ColorCollector implements ICharacterConsumer
+	{
+		private Color color = null;
+
+		@Override
+		public boolean accept(int index, Style style, int codePoint)
+		{
+			if (style.getColor() != null)
+			{
+				color = style.getColor();
+				return false;
+			}
+			return true;
+		}
+
+		public Color getColor() { return color; }
+	}
+
 	public static Color findFirstColorCode(ITextComponent textComponent)
 	{
 		// This function finds the first specified color code in the given text component.
@@ -36,6 +56,7 @@ public class ItemColor
 				return null;
 			}
 		}
+		
 		return null;
 	}
 
@@ -61,11 +82,19 @@ public class ItemColor
 			result = item.getHoverName().getStyle().getColor();
 		}
 
-		// Finally if there is a color code specified for the item name, use that.
-		Color formattingColor = findFirstColorCode(item.getItem().getName(item));
+		// If there is a color code specified for the item name, use that.
+		Color formattingColor = findFirstColorCode(item.getHoverName());
 		if (formattingColor != null)
 		{
 			result = formattingColor;
+		}
+
+		// Finally, if there is a color style stored per-character, use the first one found.
+		ColorCollector colorCollector = new ColorCollector();
+		item.getHoverName().getVisualOrderText().accept(colorCollector);
+		if (colorCollector.getColor() != null)
+		{
+			result = colorCollector.getColor();
 		}
 
 		// Fallback to the default color if we somehow haven't found a single valid color.
