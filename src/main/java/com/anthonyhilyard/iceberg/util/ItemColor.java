@@ -1,12 +1,32 @@
 package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.FormattedCharSink;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.ChatFormatting;
 
 public class ItemColor
 {
+	private static class ColorCollector implements FormattedCharSink
+	{
+		private TextColor color = null;
+
+		@Override
+		public boolean accept(int index, Style style, int codePoint)
+		{
+			if (style.getColor() != null)
+			{
+				color = style.getColor();
+				return false;
+			}
+			return true;
+		}
+
+		public TextColor getColor() { return color; }
+	}
+
 	public static TextColor findFirstColorCode(Component textComponent)
 	{
 		// This function finds the first specified color code in the given text component.
@@ -36,6 +56,7 @@ public class ItemColor
 				return null;
 			}
 		}
+
 		return null;
 	}
 
@@ -61,11 +82,19 @@ public class ItemColor
 			result = item.getHoverName().getStyle().getColor();
 		}
 
-		// Finally if there is a color code specified for the item name, use that.
-		TextColor formattingColor = findFirstColorCode(item.getItem().getName(item));
+		// If there is a color code specified for the item name, use that.
+		TextColor formattingColor = findFirstColorCode(item.getHoverName());
 		if (formattingColor != null)
 		{
 			result = formattingColor;
+		}
+
+		// Finally, if there is a color style stored per-character, use the first one found.
+		ColorCollector colorCollector = new ColorCollector();
+		item.getHoverName().getVisualOrderText().accept(colorCollector);
+		if (colorCollector.getColor() != null)
+		{
+			result = colorCollector.getColor();
 		}
 
 		// Fallback to the default TextColor if we somehow haven't found a single valid TextColor.
