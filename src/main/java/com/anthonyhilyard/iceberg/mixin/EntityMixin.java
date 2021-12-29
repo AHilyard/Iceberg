@@ -17,14 +17,12 @@ import net.minecraft.tags.Tag;
 import net.minecraftforge.common.MinecraftForge;
 
 @Mixin(Entity.class)
-public class EntityMixin extends net.minecraftforge.common.capabilities.CapabilityProvider<Entity>
+public class EntityMixin
 {
 	private Fluid previousFluidOnEyes = null;
 
 	@Shadow
 	protected Tag<Fluid> fluidOnEyes;
-
-	protected EntityMixin(Class<Entity> baseClass) { super(baseClass); }
 
 	@Inject(method = "updateFluidOnEyes", at = @At(value = "RETURN"))
 	public void onUpdateFluidOnEyes(CallbackInfo callbackInfo)

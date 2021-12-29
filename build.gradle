@@ -1,7 +1,7 @@
 buildscript {
 	repositories {
-		maven { url = 'https://files.minecraftforge.net/maven' }
-		maven { url = "https://repo.spongepowered.org/maven" }
+		maven { url = 'https://maven.minecraftforge.net' }
+		maven { url = 'https://repo.spongepowered.org/maven' }
 		jcenter()
 		mavenCentral()
 	}
@@ -34,9 +34,9 @@ minecraft {
 			workingDirectory project.file('run').canonicalPath
 			source sourceSets.main
 
-			arg "-mixin.debug=true"
-			arg "-mixin.checks.interfaces=true"
-			arg "-mixin.config=${project.name}.mixins.json".toLowerCase()
+			property 'mixin.debug', 'true'
+			property 'mixin.checks.interfaces', 'true'
+			property 'mixin.config', "${project.name}.mixins.json".toLowerCase()
 		}
 	}
 }
@@ -51,7 +51,7 @@ sourceSets {
 
 dependencies {
 	minecraft "net.minecraftforge:forge:${project.mcVersion}-${project.forgeVersion}"
-	annotationProcessor 'org.spongepowered:mixin:0.8.4:processor'
+	annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 jar {
