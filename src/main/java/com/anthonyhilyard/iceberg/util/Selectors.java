@@ -2,26 +2,28 @@ package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.item.ItemStack;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
+
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.NumberNBT;
 import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.item.Rarity;
 import net.minecraft.client.util.ITooltipFlag.TooltipFlags;
+import net.minecraftforge.common.util.Constants.NBT;
 
 public class Selectors
 {
-	private static final int TAG_COMPOUND = 10;
-
 	private static Map<String, Rarity> rarities = new HashMap<String, Rarity>() {{
 		put("common", Rarity.COMMON);
 		put("uncommon", Rarity.UNCOMMON);
@@ -73,6 +75,34 @@ public class Selectors
 			}
 		});
 	}};
+
+	public static class SelectorDocumentation
+	{
+		public final String name;
+		public final String description;
+		public final List<String> examples;
+
+		public SelectorDocumentation(String name, String description, String... examples)
+		{
+			this.name = name;
+			this.description = description;
+			this.examples = Arrays.asList(examples);
+		}
+	}
+
+	public static List<SelectorDocumentation> selectorDocumentation()
+	{
+		return Arrays.asList(
+			new SelectorDocumentation("Item name", "Use item name for vanilla items or include mod name for modded items.", "minecraft:stick", "iron_ore"),
+			new SelectorDocumentation("Tag", "$ followed by tag name.", "$forge:stone", "$planks"),
+			new SelectorDocumentation("Mod name", "@ followed by mod identifier.", "@spoiledeggs"),
+			new SelectorDocumentation("Rarity", "! followed by item's rarity.  This is ONLY vanilla rarities.", "!uncommon", "!rare", "!epic"),
+			new SelectorDocumentation("Item name color", "# followed by color hex code, the hex code must match exactly.", "#23F632"),
+			new SelectorDocumentation("Display name", "% followed by any text.  Will match any item with this text in its tooltip display name.", "%Netherite", "%[Uncommon]"),
+			new SelectorDocumentation("Tooltip text", "Will match any item with this text anywhere in the tooltip text (besides the name).", "^Legendary"),
+			new SelectorDocumentation("NBT tag", "& followed by tag name and optional comparator (=, >, <, or !=) and value, in the format <tag><comparator><value> or just <tag>.", "&Damage=0", "&Tier>1", "&map!=128", "&Enchantments")
+		);
+	}
 
 	/**
 	 * Returns true if this selector is syntactically valid.
@@ -214,24 +244,8 @@ public class Selectors
 				}
 			}
 
-			// Look for a tag matching the given name.
-			INBT matchedTag = getSubtag(item.getTag(), tagName);
-			if (matchedTag != null)
-			{
-				// A tag value of null means that we are just looking for the presence of this tag.
-				if (tagValue == null)
-				{
-					return true;
-				}
-				// Otherwise, we will use the provided comparator.
-				else
-				{
-					if (valueChecker != null)
-					{
-						return valueChecker.test(matchedTag, tagValue);
-					}
-				}
-			}
+			// Look for a tag matching the given name and value.
+			return findMatchingSubtag(item.getTag(), tagName, tagValue, valueChecker);
 		}
 
 		return false;
@@ -240,31 +254,59 @@ public class Selectors
 	/**
 	 * Retrieves the first inner tag with the given key, or null if there is no match.
 	 */
-	private static INBT getSubtag(CompoundNBT tag, String key)
+	private static boolean findMatchingSubtag(INBT tag, String key, String value, BiPredicate<INBT, String> valueChecker)
 	{
 		if (tag == null)
 		{
-			return null;
+			return false;
 		}
 
-		if (tag.contains(key))
+		if (tag.getId() == NBT.TAG_COMPOUND)
 		{
-			return tag.get(key);
-		}
-		else
-		{
-			for (String innerKey : tag.getAllKeys())
+			CompoundNBT compoundTag = (CompoundNBT)tag;
+
+			if (compoundTag.contains(key))
 			{
-				if (tag.getTagType(innerKey) == TAG_COMPOUND)
+				// Just checking presence.
+				if (value == null && valueChecker == null)
 				{
-					INBT innerTag = getSubtag(tag.getCompound(innerKey), key);
-					if (innerTag != null)
+					return true;
+				}
+				// Otherwise, we will use the provided comparator.
+				else
+				{
+					return valueChecker.test(compoundTag.get(key), value);
+				}
+			}
+			else
+			{
+				for (String innerKey : compoundTag.getAllKeys())
+				{
+					if (compoundTag.getTagType(innerKey) == NBT.TAG_LIST || compoundTag.getTagType(innerKey) == NBT.TAG_COMPOUND)
 					{
-						return innerTag;
+						if (findMatchingSubtag(compoundTag.get(innerKey), key, value, valueChecker))
+						{
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+		}
+		else if (tag.getId() == NBT.TAG_LIST)
+		{
+			ListNBT listTag = (ListNBT)tag;
+			for (INBT innerTag : listTag)
+			{
+				if (innerTag.getId() == NBT.TAG_LIST || innerTag.getId() == NBT.TAG_COMPOUND)
+				{
+					if (findMatchingSubtag(innerTag, key, value, valueChecker))
+					{
+						return true;
 					}
 				}
 			}
-			return null;
 		}
+		return false;
 	}
 }

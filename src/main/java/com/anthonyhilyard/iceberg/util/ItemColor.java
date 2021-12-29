@@ -40,7 +40,7 @@ public class ItemColor
 				try
 				{
 					TextFormatting format = TextFormatting.getByCode(rawTitle.charAt(i + 1));
-					if (format.isColor())
+					if (format != null && format.isColor())
 					{
 						return Color.fromLegacyFormat(format);
 					}
