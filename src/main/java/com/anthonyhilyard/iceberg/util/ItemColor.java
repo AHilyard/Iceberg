@@ -40,7 +40,7 @@ public class ItemColor
 				try
 				{
 					ChatFormatting format = ChatFormatting.getByCode(rawTitle.charAt(i + 1));
-					if (format.isColor())
+					if (format != null && format.isColor())
 					{
 						return TextColor.fromLegacyFormat(format);
 					}

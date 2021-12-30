@@ -9,7 +9,8 @@
 	],
 	"client": [
 		"ScreenMixin",
-		"ClientPacketListenerMixin"
+		"ClientPacketListenerMixin",
+		"TextColorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

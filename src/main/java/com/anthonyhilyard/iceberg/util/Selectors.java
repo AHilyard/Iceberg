@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.world.item.ItemStack;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -12,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
@@ -71,6 +73,25 @@ public class Selectors
 			}
 		});
 	}};
+
+	public static record SelectorDocumentation(String name, String description, List<String> examples)
+	{
+		public SelectorDocumentation(String name, String description, String... examples) { this(name, description, Arrays.asList(examples)); }
+	}
+
+	public static List<SelectorDocumentation> selectorDocumentation()
+	{
+		return Arrays.asList(
+			new SelectorDocumentation("Item name", "Use item name for vanilla items or include mod name for modded items.", "minecraft:stick", "iron_ore"),
+			new SelectorDocumentation("Tag", "$ followed by tag name.", "$forge:stone", "$planks"),
+			new SelectorDocumentation("Mod name", "@ followed by mod identifier.", "@spoiledeggs"),
+			new SelectorDocumentation("Rarity", "! followed by item's rarity.  This is ONLY vanilla rarities.", "!uncommon", "!rare", "!epic"),
+			new SelectorDocumentation("Item name color", "# followed by color hex code, the hex code must match exactly.", "#23F632"),
+			new SelectorDocumentation("Display name", "% followed by any text.  Will match any item with this text in its tooltip display name.", "%Netherite", "%[Uncommon]"),
+			new SelectorDocumentation("Tooltip text", "Will match any item with this text anywhere in the tooltip text (besides the name).", "^Legendary"),
+			new SelectorDocumentation("NBT tag", "& followed by tag name and optional comparator (=, >, <, or !=) and value, in the format <tag><comparator><value> or just <tag>.", "&Damage=0", "&Tier>1", "&map!=128", "&Enchantments")
+		);
+	}
 
 	/**
 	 * Returns true if this selector is syntactically valid.
@@ -212,24 +233,8 @@ public class Selectors
 				}
 			}
 
-			// Look for a tag matching the given name.
-			Tag matchedTag = getSubtag(item.getTag(), tagName);
-			if (matchedTag != null)
-			{
-				// A tag value of null means that we are just looking for the presence of this tag.
-				if (tagValue == null)
-				{
-					return true;
-				}
-				// Otherwise, we will use the provided comparator.
-				else
-				{
-					if (valueChecker != null)
-					{
-						return valueChecker.test(matchedTag, tagValue);
-					}
-				}
-			}
+			// Look for a tag matching the given name and value.
+			return findMatchingSubtag(item.getTag(), tagName, tagValue, valueChecker);
 		}
 
 		return false;
@@ -238,31 +243,59 @@ public class Selectors
 	/**
 	 * Retrieves the first inner tag with the given key, or null if there is no match.
 	 */
-	private static Tag getSubtag(CompoundTag tag, String key)
+	private static boolean findMatchingSubtag(Tag tag, String key, String value, BiPredicate<Tag, String> valueChecker)
 	{
 		if (tag == null)
 		{
-			return null;
+			return false;
 		}
 
-		if (tag.contains(key))
+		if (tag.getId() == Tag.TAG_COMPOUND)
 		{
-			return tag.get(key);
-		}
-		else
-		{
-			for (String innerKey : tag.getAllKeys())
+			CompoundTag compoundTag = (CompoundTag)tag;
+
+			if (compoundTag.contains(key))
 			{
-				if (tag.getTagType(innerKey) == Tag.TAG_COMPOUND)
+				// Just checking presence.
+				if (value == null && valueChecker == null)
 				{
-					Tag innerTag = getSubtag(tag.getCompound(innerKey), key);
-					if (innerTag != null)
+					return true;
+				}
+				// Otherwise, we will use the provided comparator.
+				else
+				{
+					return valueChecker.test(compoundTag.get(key), value);
+				}
+			}
+			else
+			{
+				for (String innerKey : compoundTag.getAllKeys())
+				{
+					if (compoundTag.getTagType(innerKey) == Tag.TAG_LIST || compoundTag.getTagType(innerKey) == Tag.TAG_COMPOUND)
 					{
-						return innerTag;
+						if (findMatchingSubtag(compoundTag.get(innerKey), key, value, valueChecker))
+						{
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+		}
+		else if (tag.getId() == Tag.TAG_LIST)
+		{
+			ListTag listTag = (ListTag)tag;
+			for (Tag innerTag : listTag)
+			{
+				if (innerTag.getId() == Tag.TAG_LIST || innerTag.getId() == Tag.TAG_COMPOUND)
+				{
+					if (findMatchingSubtag(innerTag, key, value, valueChecker))
+					{
+						return true;
 					}
 				}
 			}
-			return null;
 		}
+		return false;
 	}
 }

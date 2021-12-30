@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.anthonyhilyard.iceberg.events.GatherComponentsExtEvent;
 import com.anthonyhilyard.iceberg.events.RenderTooltipExtEvent;
 import com.mojang.blaze3d.vertex.PoseStack;
 
@@ -23,6 +24,8 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
 
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.datafixers.util.Either;
@@ -93,12 +96,13 @@ public class Tooltips
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
 	{
-		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, backgroundColor, borderColorStart, borderColorEnd, comparison, constrain);
+		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, backgroundColor, borderColorStart, borderColorEnd, comparison, constrain, false, 0);
 	}
 
 	public static void renderItemTooltip(@Nonnull final ItemStack stack, PoseStack poseStack, TooltipInfo info,
-									Rect2i rect, int screenWidth, int screenHeight,
-									int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
+										Rect2i rect, int screenWidth, int screenHeight,
+										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
+										boolean comparison, boolean constrain, boolean centeredTitle, int index)
 	{
 		if (info.getComponents().isEmpty())
 		{
@@ -111,10 +115,16 @@ public class Tooltips
 			itemRenderer = Minecraft.getInstance().getItemRenderer();
 		}
 
+		// Center the title now if needed.
+		if (centeredTitle)
+		{
+			info = new TooltipInfo(centerTitle(info.getComponents(), info.getFont(), rect.getWidth()), info.getFont());
+		}
+
 		int rectX = rect.getX() + 4;
 		int rectY = rect.getY() + 4;
 	
-		RenderTooltipExtEvent.Pre preEvent = new RenderTooltipExtEvent.Pre(stack, poseStack, rectX, rectY, screenWidth, screenHeight, info.getFont(), info.getComponents(), comparison);
+		RenderTooltipExtEvent.Pre preEvent = new RenderTooltipExtEvent.Pre(stack, poseStack, rectX, rectY, screenWidth, screenHeight, info.getFont(), info.getComponents(), comparison, index);
 		if (MinecraftForge.EVENT_BUS.post(preEvent))
 		{
 			return;
@@ -133,7 +143,7 @@ public class Tooltips
 		itemRenderer.blitOffset = zLevel;
 		Matrix4f mat = poseStack.last().pose();
 
-		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, poseStack, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, info.getComponents(), comparison);
+		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, poseStack, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, info.getComponents(), comparison, index);
 		MinecraftForge.EVENT_BUS.post(colorEvent);
 
 		backgroundColorStart = colorEvent.getBackgroundStart();
@@ -176,12 +186,18 @@ public class Tooltips
 
 		itemRenderer.blitOffset = f;
 
-		RenderTooltipExtEvent.Post postEvent = new RenderTooltipExtEvent.Post(stack, poseStack, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), info.getComponents(), comparison);
+		RenderTooltipExtEvent.Post postEvent = new RenderTooltipExtEvent.Post(stack, poseStack, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), info.getComponents(), comparison, index);
 		MinecraftForge.EVENT_BUS.post(postEvent);
 	}
 
 	public static List<ClientTooltipComponent> gatherTooltipComponents(ItemStack stack, List<? extends FormattedText> textElements, Optional<TooltipComponent> itemComponent,
-																	   int mouseX, int screenWidth, int screenHeight, @Nullable Font forcedFont, Font fallbackFont, int maxWidth)
+	int mouseX, int screenWidth, int screenHeight, @Nullable Font forcedFont, Font fallbackFont, int maxWidth)
+	{
+		return gatherTooltipComponents(stack, textElements, itemComponent, mouseX, screenWidth, screenHeight, forcedFont, fallbackFont, maxWidth, 0);
+	}
+
+	public static List<ClientTooltipComponent> gatherTooltipComponents(ItemStack stack, List<? extends FormattedText> textElements, Optional<TooltipComponent> itemComponent,
+																	   int mouseX, int screenWidth, int screenHeight, @Nullable Font forcedFont, Font fallbackFont, int maxWidth, int index)
 	{
 		Font font = ForgeHooksClient.getTooltipFont(forcedFont, stack, fallbackFont);
 		List<Either<FormattedText, TooltipComponent>> elements = textElements.stream()
@@ -190,7 +206,7 @@ public class Tooltips
 
 		itemComponent.ifPresent(c -> elements.add(1, Either.right(c)));
 
-		var event = new RenderTooltipEvent.GatherComponents(stack, screenWidth, screenHeight, elements, maxWidth);
+		var event = new GatherComponentsExtEvent(stack, screenWidth, screenHeight, elements, maxWidth, index);
 		if (MinecraftForge.EVENT_BUS.post(event))
 		{
 			return List.of();
@@ -244,6 +260,12 @@ public class Tooltips
 	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components,
 									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
 	{
+		return calculateRect(stack, poseStack, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+	}
+
+	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+	{
 		Rect2i rect = new Rect2i(0, 0, 0, 0);
 		if (components == null || components.isEmpty() || stack == null)
 		{
@@ -263,8 +285,13 @@ public class Tooltips
 		screenHeight = event.getScreenHeight();
 		font = event.getFont();
 
-		int tooltipTextWidth = 0;
+		int tooltipTextWidth = minWidth;
 		int tooltipHeight = components.size() == 1 ? -2 : 0;
+
+		if (centeredTitle)
+		{
+			components = centerTitle(components, font, minWidth);
+		}
 
 		for (ClientTooltipComponent component : components)
 		{
@@ -291,5 +318,47 @@ public class Tooltips
 
 		rect = new Rect2i(tooltipX - 2, tooltipY - 4, tooltipTextWidth, tooltipHeight);
 		return rect;
+	}
+
+	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int minWidth)
+	{
+		// Calculate tooltip width first.
+		int tooltipWidth = minWidth;
+
+		for (ClientTooltipComponent clienttooltipcomponent : components)
+		{
+			if (clienttooltipcomponent == null)
+			{
+				return components;
+			}
+			int componentWidth = clienttooltipcomponent.getWidth(font);
+			if (componentWidth > tooltipWidth)
+			{
+				tooltipWidth = componentWidth;
+			}
+		}
+
+		// TODO: If the title is multiple lines, we need to extend this for each one.
+
+		List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(components.get(0)));
+		if (recomposedLines.isEmpty())
+		{
+			return components;
+		}
+
+		List<ClientTooltipComponent> result = new ArrayList<>(components);
+
+		FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
+		FormattedCharSequence space = FormattedCharSequence.forward(" ", Style.EMPTY);
+		while (result.get(0).getWidth(font) < tooltipWidth)
+		{
+			title = FormattedCharSequence.fromList(List.of(space, title, space));
+			if (title == null)
+			{
+				break;
+			}
+			result.set(0, ClientTooltipComponent.create(title));
+		}
+		return result;
 	}
 }
