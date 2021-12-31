@@ -1,35 +1,26 @@
 package com.anthonyhilyard.iceberg.util;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents;
-import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorResult;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorExtResult;
+import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.PreExtResult;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.systems.RenderSystem;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 
 import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
 import com.mojang.math.Matrix4f;
-import net.minecraft.network.chat.FormattedText;
-import net.minecraft.locale.Language;
-import net.minecraft.network.chat.Style;
 
 public class Tooltips
 {
@@ -41,82 +32,33 @@ public class Tooltips
 		private int tooltipWidth = 0;
 		private int titleLines = 1;
 		private Font font;
-		private List<ClientTooltipComponent> lines = new ArrayList<>();
+		private List<ClientTooltipComponent> components = new ArrayList<>();
 
-		public TooltipInfo(List<ClientTooltipComponent> lines, Font font)
+		public TooltipInfo(List<ClientTooltipComponent> components, Font font)
 		{
-			this.lines = lines;
+			this.components = components;
 			this.font = font;
 		}
 
 		public int getTooltipWidth() { return tooltipWidth; }
 		public int getTitleLines() { return titleLines; }
 		public Font getFont() { return font; }
-		public List<ClientTooltipComponent> getLines() { return lines; }
+		public List<ClientTooltipComponent> getComponents() { return components; }
 
 		public void setFont(Font font) { this.font = font; }
 
 		public int getMaxLineWidth()
 		{
-			int textWidth = 0;
-			for (ClientTooltipComponent component : lines)
+			int width = 0;
+			for (ClientTooltipComponent component : components)
 			{
 				int textLineWidth = component.getWidth(font);
-				if (textLineWidth > textWidth)
+				if (textLineWidth > width)
 				{
-					textWidth = textLineWidth;
+					width = textLineWidth;
 				}
 			}
-			return textWidth;
-		}
-
-		private List<ClientTextTooltip> splitComponent(ClientTextTooltip component, int maxWidth, Font font)
-		{
-			FormattedText text = FormattedText.composite(StringRecomposer.recompose(Arrays.asList(component)));
-			List<FormattedText> wrappedLines = font.getSplitter().splitLines(text, maxWidth, Style.EMPTY);
-			List<ClientTextTooltip> result = new ArrayList<>();
-
-			for (FormattedText wrappedLine : wrappedLines)
-			{
-				result.add(new ClientTextTooltip(Language.getInstance().getVisualOrder(wrappedLine)));
-			}
-
-			return result;
-		}
-
-		public void wrap(int maxWidth)
-		{
-			tooltipWidth = 0;
-			List<ClientTooltipComponent> wrappedLines = new ArrayList<>();
-			for (int i = 0; i < lines.size(); i++)
-			{
-				ClientTooltipComponent textLine = lines.get(i);
-
-				// Only wrap text lines.
-				// TODO: What to do with images that are too big?
-				if (!(textLine instanceof ClientTextTooltip))
-				{
-					continue;
-				}
-
-				List<ClientTextTooltip> wrappedLine = splitComponent((ClientTextTooltip)textLine, maxWidth, font);
-				if (i == 0)
-				{
-					titleLines = wrappedLine.size();
-				}
-
-				for (ClientTooltipComponent line : wrappedLine)
-				{
-					int lineWidth = line.getWidth(font);
-					if (lineWidth > tooltipWidth)
-					{
-						tooltipWidth = lineWidth;
-					}
-					wrappedLines.add(line);
-				}
-			}
-
-			lines = wrappedLines;
+			return width;
 		}
 	}
 
@@ -127,12 +69,11 @@ public class Tooltips
 	}
 
 	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
-										 Rect2i rect, int screenWidth, int screenHeight,
-										 int backgroundColor, int borderColorStart, int borderColorEnd)
+										Rect2i rect, int screenWidth, int screenHeight,
+										int backgroundColor, int borderColorStart, int borderColorEnd)
 	{
 		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, false);
 	}
-
 	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison)
@@ -144,237 +85,138 @@ public class Tooltips
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
 	{
+		renderItemTooltip(stack, poseStack, info, rect, screenWidth, screenHeight, backgroundColor, backgroundColor, borderColorStart, borderColorEnd, comparison, constrain);
+	}
+
+	public static void renderItemTooltip(final ItemStack stack, PoseStack poseStack, TooltipInfo info,
+									Rect2i rect, int screenWidth, int screenHeight,
+									int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
+	{
+		if (info.components.isEmpty())
+		{
+			return;
+		}
+
 		// Initialize if needed.
 		if (!initialized)
 		{
 			init(Minecraft.getInstance());
 		}
 
-		if (info.lines.isEmpty())
-		{
-			return;
-		}
-
 		int rectX = rect.getX() - 8;
 		int rectY = rect.getY() + 18;
-		int maxTextWidth = rect.getWidth() - 8;
 
-		InteractionResult result = RenderTooltipEvents.PRE.invoker().onPre(stack, info.getLines(), poseStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont(), comparison);
-		if (result != InteractionResult.PASS)
+		PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, info.getComponents(), poseStack, rectX, rectY, screenWidth, screenHeight, info.getFont(), comparison);
+		if (preResult.result() != InteractionResult.PASS)
 		{
 			return;
 		}
 
-		boolean needsWrap = false;
-
-		int tooltipX = rectX + 12;
-		int tooltipTextWidth = info.getMaxLineWidth();
-
-		// Constrain the minimum width to the rect.
-		if (constrain)
-		{
-			tooltipTextWidth = Math.max(info.getMaxLineWidth(), rect.getWidth() - 8);
-		}
-
-		if (tooltipX + tooltipTextWidth + 4 > screenWidth)
-		{
-			tooltipX = rectX - 16 - tooltipTextWidth;
-			if (tooltipX < 4)
-			{
-				if (rectX > screenWidth / 2)
-				{
-					tooltipTextWidth = rectX - 20;
-				}
-				else
-				{
-					tooltipTextWidth = screenWidth - 16 - rectX;
-				}
-				needsWrap = true;
-			}
-		}
-
-		if (maxTextWidth > 0 && tooltipTextWidth > maxTextWidth)
-		{
-			tooltipTextWidth = maxTextWidth;
-			needsWrap = true;
-		}
-
-		if (needsWrap)
-		{
-			info.wrap(tooltipTextWidth);
-			tooltipTextWidth = info.getTooltipWidth();
-			tooltipX = rectX + 12;
-		}
-
-		int tooltipY = rectY - 12;
-		int tooltipHeight = 8;
-
-		if (info.getLines().size() > 1)
-		{
-			tooltipHeight += (info.getLines().size() - 1) * 10;
-			if (info.getLines().size() > info.getTitleLines())
-			{
-				tooltipHeight += 2; // gap between title lines and next lines
-			}
-		}
-
-		if (tooltipY < 4)
-		{
-			tooltipY = 4;
-		}
-		else if (tooltipY + tooltipHeight + 4 > screenHeight)
-		{
-			tooltipY = screenHeight - tooltipHeight - 4;
-		}
+		rectX = preResult.x();
+		rectY = preResult.y();
+		screenWidth = preResult.screenWidth();
+		screenHeight = preResult.screenHeight();
+		info.setFont(preResult.font());
 
 		poseStack.pushPose();
-		int bgColor = 0xF0100010;
-		int borderStart = 0x505000FF;
-		int borderEnd = 0x5028007F;
 
-		ColorResult colors = RenderTooltipEvents.COLOR.invoker().onColor(stack, info.lines, poseStack, tooltipX, tooltipY, info.getFont(), bgColor, borderStart, borderEnd, comparison);
-
-		bgColor = colors.background();
-		borderStart = colors.borderStart();
-		borderEnd = colors.borderEnd();
+		final int zLevel = 400;
 
 		float f = itemRenderer.blitOffset;
-		itemRenderer.blitOffset = 400.0F;
-		Tesselator tesselator = Tesselator.getInstance();
-		BufferBuilder bufferBuilder = tesselator.getBuilder();
-		RenderSystem.setShader(GameRenderer::getPositionColorShader);
-		bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+		itemRenderer.blitOffset = zLevel;
 		Matrix4f mat = poseStack.last().pose();
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 3, tooltipY - 4, tooltipX + tooltipTextWidth + 3, tooltipY - 3, 400, bgColor, bgColor);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 3, tooltipY + tooltipHeight + 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 4, 400, bgColor, bgColor);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, 400, bgColor, bgColor);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 4, tooltipY - 3, tooltipX - 3, tooltipY + tooltipHeight + 3, 400, bgColor, bgColor);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX + tooltipTextWidth + 3, tooltipY - 3, tooltipX + tooltipTextWidth + 4, tooltipY + tooltipHeight + 3, 400, bgColor, bgColor);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 3, tooltipY - 3 + 1, tooltipX - 3 + 1, tooltipY + tooltipHeight + 3 - 1, 400, borderStart, borderEnd);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX + tooltipTextWidth + 2, tooltipY - 3 + 1, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3 - 1, 400, borderStart, borderEnd);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY - 3 + 1, 400, borderStart, borderStart);
-		GuiHelper.drawGradientRect(mat, bufferBuilder, tooltipX - 3, tooltipY + tooltipHeight + 2, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, 400, borderEnd, borderEnd);
-		RenderSystem.enableDepthTest();
-		RenderSystem.disableTexture();
-		RenderSystem.enableBlend();
-		RenderSystem.defaultBlendFunc();
-		bufferBuilder.end();
-		BufferUploader.end(bufferBuilder);
-		RenderSystem.disableBlend();
-		RenderSystem.enableTexture();
 
-		MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-		poseStack.translate(0.0D, 0.0D, 400.0D);
-		int v = tooltipY;
+		ColorExtResult colors = RenderTooltipEvents.COLOREXT.invoker().onColor(stack, info.components, poseStack, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, comparison);
 
-		ClientTooltipComponent clientTooltipComponent3;
-		for (int i = 0; i < info.getLines().size(); ++i)
+		backgroundColorStart = colors.backgroundStart();
+		backgroundColorEnd = colors.backgroundEnd();
+		borderColorStart = colors.borderStart();
+		borderColorEnd = colors.borderEnd();
+
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 4, rectX + rect.getWidth() + 3, rectY - 3, backgroundColorStart, backgroundColorStart);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY + rect.getHeight() + 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 4, backgroundColorEnd, backgroundColorEnd);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 4, rectY - 3, rectX - 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX + rect.getWidth() + 3, rectY - 3, rectX + rect.getWidth() + 4, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 3 + 1, rectX - 3 + 1, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX + rect.getWidth() + 2, rectY - 3 + 1, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY - 3 + 1, borderColorStart, borderColorStart);
+		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY + rect.getHeight() + 2, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, borderColorEnd, borderColorEnd);
+
+		BufferSource renderType = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+		poseStack.translate(0.0D, 0.0D, zLevel);
+
+		int tooltipTop = rectY;
+
+		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
-			clientTooltipComponent3 = (ClientTooltipComponent)info.getLines().get(i);
-			clientTooltipComponent3.renderText(info.getFont(), tooltipX, v, mat, bufferSource);
-			v += clientTooltipComponent3.getHeight() + (i == 0 ? 2 : 0);
+			ClientTooltipComponent textComponent = (ClientTooltipComponent)info.getComponents().get(componentNumber);
+			textComponent.renderText(info.getFont(), rectX, tooltipTop, mat, renderType);
+			tooltipTop += textComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
 		}
 
-		bufferSource.endBatch();
+		renderType.endBatch();
 		poseStack.popPose();
-		v = tooltipY;
+		tooltipTop = rectY;
 
-		for (int i = 0; i < info.getLines().size(); ++i)
+		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
-			clientTooltipComponent3 = (ClientTooltipComponent)info.getLines().get(i);
-			clientTooltipComponent3.renderImage(info.getFont(), tooltipX, v, poseStack, itemRenderer, 400);
-			v += clientTooltipComponent3.getHeight() + (i == 0 ? 2 : 0);
+			ClientTooltipComponent imageComponent = (ClientTooltipComponent)info.getComponents().get(componentNumber);
+			imageComponent.renderImage(info.getFont(), rectX, tooltipTop, poseStack, itemRenderer, 400);
+			tooltipTop += imageComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
 		}
 
 		itemRenderer.blitOffset = f;
 
-		RenderTooltipEvents.POST.invoker().onPost(stack, info.getLines(), poseStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight, comparison);
+		RenderTooltipEvents.POST.invoker().onPost(stack, info.getComponents(), poseStack, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), comparison);
 	}
 
-	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> textLines, int mouseX, int mouseY,
+	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components, int mouseX, int mouseY,
 												int screenWidth, int screenHeight, int maxTextWidth, Font font)
 	{
 		Rect2i rect = new Rect2i(0, 0, 0, 0);
-		if (textLines == null || textLines.isEmpty() || stack == null)
+		if (components == null || components.isEmpty() || stack == null)
 		{
 			return rect;
 		}
 
+		// Generate a tooltip event even though we aren't rendering anything in case event handlers are modifying the input values.
+		PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, components, poseStack, mouseX, mouseY, screenWidth, screenHeight, font, false);
+		if (preResult.result() != InteractionResult.PASS)
+		{
+			return rect;
+		}
+
+		mouseX = preResult.x();
+		mouseY = preResult.y();
+		screenWidth = preResult.screenWidth();
+		screenHeight = preResult.screenHeight();
+		font = preResult.font();
+
 		int tooltipTextWidth = 0;
+		int tooltipHeight = components.size() == 1 ? -2 : 0;
 
-		for (ClientTooltipComponent textLine : textLines)
+		for (ClientTooltipComponent component : components)
 		{
-			int textLineWidth = textLine.getWidth(font);
-			if (textLineWidth > tooltipTextWidth)
+			int componentWidth = component.getWidth(font);
+			if (componentWidth > tooltipTextWidth)
 			{
-				tooltipTextWidth = textLineWidth;
+				tooltipTextWidth = componentWidth;
 			}
+
+			tooltipHeight += component.getHeight();
 		}
 
-		boolean needsWrap = false;
-
-		int titleLinesCount = 1;
-		int tooltipX = mouseX + 14;
-		if (tooltipX + tooltipTextWidth + 4 > screenWidth)
+		int tooltipX = mouseX + 12;
+		int tooltipY = mouseY - 12;
+		if (tooltipX + tooltipTextWidth > screenWidth)
 		{
-			tooltipX = mouseX - 16 - tooltipTextWidth;
-			if (tooltipX < 4) // if the tooltip doesn't fit on the screen
-			{
-				if (mouseX > screenWidth / 2)
-				{
-					tooltipTextWidth = mouseX - 14 - 8;
-				}
-				else
-				{
-					tooltipTextWidth = screenWidth - 16 - mouseX;
-				}
-				needsWrap = true;
-			}
+			tooltipX -= 28 + tooltipTextWidth;
 		}
 
-		if (maxTextWidth > 0 && tooltipTextWidth > maxTextWidth)
+		if (tooltipY + tooltipHeight + 6 > screenHeight)
 		{
-			tooltipTextWidth = maxTextWidth;
-			needsWrap = true;
-		}
-
-		if (needsWrap)
-		{
-			TooltipInfo info = new TooltipInfo(textLines, font);
-			info.wrap(tooltipTextWidth);
-			
-			tooltipTextWidth = info.tooltipWidth;
-			textLines = info.lines;
-
-			if (mouseX > screenWidth / 2)
-			{
-				tooltipX = mouseX - 16 - tooltipTextWidth;
-			}
-			else
-			{
-				tooltipX = mouseX + 14;
-			}
-		}
-
-		int tooltipY = mouseY - 14;
-		int tooltipHeight = 8;
-
-		if (textLines.size() > 1)
-		{
-			tooltipHeight += (textLines.size() - 1) * 10;
-			if (textLines.size() > titleLinesCount)
-			{
-				tooltipHeight += 2; // gap between title lines and next lines
-			}
-		}
-
-		if (tooltipY < 4)
-		{
-			tooltipY = 4;
-		}
-		else if (tooltipY + tooltipHeight + 4 > screenHeight)
-		{
-			tooltipY = screenHeight - tooltipHeight - 4;
+			tooltipY = screenHeight - tooltipHeight - 6;
 		}
 
 		rect = new Rect2i(tooltipX - 4, tooltipY - 4, tooltipTextWidth + 8, tooltipHeight + 8);

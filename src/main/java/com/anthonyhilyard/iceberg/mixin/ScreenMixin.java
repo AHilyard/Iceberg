@@ -3,6 +3,7 @@ package com.anthonyhilyard.iceberg.mixin;
 import java.util.List;
 
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents;
+import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorResult;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -10,7 +11,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.math.Matrix4f;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,11 +37,10 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	@Shadow
 	protected Font font = null;
 
-	@Final
 	@Shadow
-	private final List<GuiEventListener> children = Lists.newArrayList();
+	private List<GuiEventListener> children = Lists.newArrayList();
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "deprecation"})
 	@Inject(method = "renderTooltipInternal", at = @At(value = "HEAD"), cancellable = true)
 	private void preRenderTooltipInternal(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, CallbackInfo info)
 	{
@@ -54,7 +53,16 @@ public class ScreenMixin extends AbstractContainerEventHandler
 				if (hoveredSlot != null)
 				{
 					ItemStack tooltipStack = hoveredSlot.getItem();
-					if (RenderTooltipEvents.PRE.invoker().onPre(tooltipStack, components, poseStack, x, y, self.width, self.height, -1, font, false) != InteractionResult.PASS)
+					InteractionResult result = RenderTooltipEvents.PREEXT.invoker().onPre(tooltipStack, components, poseStack, x, y, self.width, self.height, font, false).result();
+
+					if (result != InteractionResult.PASS)
+					{
+						info.cancel();
+					}
+
+					// Fire a pre event as well for compatibility.
+					result = RenderTooltipEvents.PRE.invoker().onPre(tooltipStack, components, poseStack, x, y, self.width, self.height, -1, font, false);
+					if (result != InteractionResult.PASS)
 					{
 						info.cancel();
 					}
@@ -90,7 +98,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 		}
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "deprecation"})
 	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE",
 	target = "Lnet/minecraft/client/gui/screens/Screen;fillGradient(Lcom/mojang/math/Matrix4f;Lcom/mojang/blaze3d/vertex/BufferBuilder;IIIIIII)V", shift = Shift.BEFORE),
 	locals = LocalCapture.CAPTURE_FAILEXCEPTION)
@@ -112,20 +120,33 @@ public class ScreenMixin extends AbstractContainerEventHandler
 
 		if (tooltipStack != ItemStack.EMPTY)
 		{
+			int backgroundEnd = background;
+
 			// Do colors now, sure why not.
-			ColorResult result = RenderTooltipEvents.COLOR.invoker().onColor(tooltipStack, components, poseStack, x, y, font, background, borderStart, borderEnd, false);
+			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(tooltipStack, components, poseStack, x, y, font, background, background, borderStart, borderEnd, false);
 			if (result != null)
 			{
-				background = result.background();
+				background = result.backgroundStart();
+				backgroundEnd = result.backgroundEnd();
 				borderStart = result.borderStart();
 				borderEnd = result.borderEnd();
 			}
 
+			// Fire a colors event as well for compatibility.
+			ColorResult colorResult = RenderTooltipEvents.COLOR.invoker().onColor(tooltipStack, components, poseStack, x, y, font, background, borderStart, borderEnd, false);
+			if (colorResult != null)
+			{
+				background = colorResult.background();
+				borderStart = colorResult.borderStart();
+				borderEnd = colorResult.borderEnd();
+			}
+
+
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 4, left + width + 3, top - 3, zIndex, background, background);
-			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top + height + 3, left + width + 3, top + height + 4, zIndex, background, background);
-			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 3, left + width + 3, top + height + 3, zIndex, background, background);
-			Screen.fillGradient(matrix4f, bufferBuilder, left - 4, top - 3, left - 3, top + height + 3, zIndex, background, background);
-			Screen.fillGradient(matrix4f, bufferBuilder, left + width + 3, top - 3, left + width + 4, top + height + 3, zIndex, background, background);
+			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top + height + 3, left + width + 3, top + height + 4, zIndex, backgroundEnd, backgroundEnd);
+			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 3, left + width + 3, top + height + 3, zIndex, background, backgroundEnd);
+			Screen.fillGradient(matrix4f, bufferBuilder, left - 4, top - 3, left - 3, top + height + 3, zIndex, background, backgroundEnd);
+			Screen.fillGradient(matrix4f, bufferBuilder, left + width + 3, top - 3, left + width + 4, top + height + 3, zIndex, background, backgroundEnd);
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 3 + 1, left - 3 + 1, top + height + 3 - 1, zIndex, borderStart, borderEnd);
 			Screen.fillGradient(matrix4f, bufferBuilder, left + width + 2, top - 3 + 1, left + width + 3, top + height + 3 - 1, zIndex, borderStart, borderEnd);
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 3, left + width + 3, top - 3 + 1, zIndex, borderStart, borderStart);
