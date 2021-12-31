@@ -1,5 +1,11 @@
 package com.anthonyhilyard.iceberg.util;
 
+import java.util.List;
+
+import com.anthonyhilyard.iceberg.Loader;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ICharacterConsumer;
 import net.minecraft.util.text.Color;
@@ -62,6 +68,7 @@ public class ItemColor
 
 	public static Color getColorForItem(ItemStack item, Color defaultColor)
 	{
+		Loader.LOGGER.info("item: {}", item.getHoverName().getString());
 		Color result = null;
 
 		// Color based on rarity value.
@@ -95,6 +102,18 @@ public class ItemColor
 		if (colorCollector.getColor() != null)
 		{
 			result = colorCollector.getColor();
+		}
+
+		// If we haven't found a color or we're still using the rarity color, check the actual tooltip.
+		// This is slow, so it better get cached externally!
+		if (result == null || result.equals(item.getDisplayName().getStyle().getColor()))
+		{
+			Minecraft mc = Minecraft.getInstance();
+			List<ITextComponent> lines = item.getTooltipLines(mc.player, ITooltipFlag.TooltipFlags.ADVANCED);
+			if (!lines.isEmpty())
+			{
+				result = lines.get(0).getStyle().getColor();
+			}
 		}
 
 		// Fallback to the default color if we somehow haven't found a single valid color.

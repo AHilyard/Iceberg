@@ -15,8 +15,10 @@ import net.minecraft.client.renderer.Rectangle2d;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.ITextProperties;
 import net.minecraft.util.text.LanguageMap;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -100,21 +102,35 @@ public class Tooltips
 		renderItemTooltip(stack, matrixStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, comparison, false);
 	}
 
-	@SuppressWarnings("deprecation")
 	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack matrixStack, TooltipInfo info,
 										Rectangle2d rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
+	{
+		renderItemTooltip(stack, matrixStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, comparison, constrain, false, 0);
+	}
+
+	@SuppressWarnings("deprecation")
+	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack matrixStack, TooltipInfo info,
+										Rectangle2d rect, int screenWidth, int screenHeight,
+										int backgroundColor, int borderColorStart, int borderColorEnd,
+										boolean comparison, boolean constrain, boolean centeredTitle, int index)
 	{
 		if (info.getLines().isEmpty())
 		{
 			return;
 		}
 
+		// Center the title now if needed.
+		if (centeredTitle)
+		{
+			info = new TooltipInfo(centerTitle(info.getLines(), info.getFont(), rect.getWidth()), info.getFont());
+		}
+
 		int rectX = rect.getX() - 8;
 		int rectY = rect.getY() + 18;
 		int maxTextWidth = rect.getWidth() - 8;
 
-		RenderTooltipExtEvent.Pre event = new RenderTooltipExtEvent.Pre(stack, info.getLines(), matrixStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont(), comparison);
+		RenderTooltipExtEvent.Pre event = new RenderTooltipExtEvent.Pre(stack, info.getLines(), matrixStack, rectX, rectY, screenWidth, screenHeight, maxTextWidth, info.getFont(), comparison, index);
 		if (MinecraftForge.EVENT_BUS.post(event))
 		{
 			return;
@@ -192,7 +208,7 @@ public class Tooltips
 		}
 
 		final int zLevel = 400;
-		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd, comparison);
+		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd, comparison, index);
 		MinecraftForge.EVENT_BUS.post(colorEvent);
 		backgroundColor = colorEvent.getBackground();
 		borderColorStart = colorEvent.getBorderStart();
@@ -211,7 +227,7 @@ public class Tooltips
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY - 3 + 1, borderColorStart, borderColorStart);
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY + tooltipHeight + 2, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, borderColorEnd, borderColorEnd);
 
-		MinecraftForge.EVENT_BUS.post(new RenderTooltipEvent.PostBackground(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight));
+		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostBackground(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), tooltipTextWidth, tooltipHeight, comparison, index));
 
 		IRenderTypeBuffer.Impl renderType = IRenderTypeBuffer.immediate(Tessellator.getInstance().getBuilder());
 		matrixStack.translate(0.0D, 0.0D, zLevel);
@@ -237,7 +253,7 @@ public class Tooltips
 		renderType.endBatch();
 		matrixStack.popPose();
 
-		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), matrixStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison));
+		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), matrixStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison, index));
 
 		RenderSystem.enableDepthTest();
 		RenderSystem.enableRescaleNormal();
@@ -245,6 +261,12 @@ public class Tooltips
 
 	public static Rectangle2d calculateRect(final ItemStack stack, MatrixStack matrixStack, List<? extends ITextProperties> textLines, int mouseX, int mouseY,
 												int screenWidth, int screenHeight, int maxTextWidth, FontRenderer font)
+	{
+		return calculateRect(stack, matrixStack, textLines, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+	}
+
+	public static Rectangle2d calculateRect(final ItemStack stack, MatrixStack matrixStack, List<? extends ITextProperties> textLines, int mouseX, int mouseY,
+												int screenWidth, int screenHeight, int maxTextWidth, FontRenderer font, int minWidth, boolean centeredTitle)
 	{
 		Rectangle2d rect = new Rectangle2d(0, 0, 0, 0);
 		if (textLines == null || textLines.isEmpty() || stack == null)
@@ -266,7 +288,12 @@ public class Tooltips
 		maxTextWidth = event.getMaxWidth();
 		font = event.getFontRenderer();
 
-		int tooltipTextWidth = 0;
+		int tooltipTextWidth = minWidth;
+
+		if (centeredTitle)
+		{
+			textLines = centerTitle(textLines, font, minWidth);
+		}
 
 		for (ITextProperties textLine : textLines)
 		{
@@ -363,5 +390,45 @@ public class Tooltips
 
 		rect = new Rectangle2d(tooltipX - 4, tooltipY - 4, tooltipTextWidth + 8, tooltipHeight + 8);
 		return rect;
+	}
+
+	public static List<? extends ITextProperties> centerTitle(List<? extends ITextProperties> textLines, FontRenderer font, int minWidth)
+	{
+		// Calculate tooltip width first.
+		int tooltipWidth = minWidth;
+
+		for (ITextProperties textLine : textLines)
+		{
+			if (textLine == null)
+			{
+				return textLines;
+			}
+			int textLineWidth = font.width(textLine);
+			if (textLineWidth > tooltipWidth)
+			{
+				tooltipWidth = textLineWidth;
+			}
+		}
+
+		// TODO: If the title is multiple lines, we need to extend this for each one.
+
+		List<ITextProperties> result = new ArrayList<>(textLines);
+
+		ITextComponent title = (ITextComponent)textLines.get(0);
+
+		if (title != null)
+		{
+			while (font.width(result.get(0)) < tooltipWidth)
+			{
+				title = new StringTextComponent(" ").append(title).append(" ");
+				if (title == null)
+				{
+					break;
+				}
+				
+				result.set(0, new StringTextComponent("").append(title));
+			}
+		}
+		return result;
 	}
 }

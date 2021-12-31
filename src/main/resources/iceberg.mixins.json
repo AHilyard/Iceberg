@@ -8,7 +8,8 @@
 		"PlayerAdvancementsMixin"
 	],
 	"client": [
-		"ClientPlayNetHandlerMixin"
+		"ClientPlayNetHandlerMixin",
+		"ColorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
