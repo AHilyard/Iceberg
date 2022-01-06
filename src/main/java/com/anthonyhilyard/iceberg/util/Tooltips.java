@@ -254,7 +254,17 @@ public class Tooltips
 
 		return eventResult.tooltipElements().stream().map(either -> either.map(text ->
 							ClientTooltipComponent.create(text instanceof Component ? ((Component) text).getVisualOrderText() : Language.getInstance().getVisualOrder(text)),
-							ClientTooltipComponent::create)).toList();
+							x -> {
+								// First try using the create method, for vanilla and properly-implemented tooltip components.
+								try {
+									return ClientTooltipComponent.create(x);
+								}
+								// If that fails, attempt just casting it.
+								catch (IllegalArgumentException e)
+								{
+									return (ClientTooltipComponent)x;
+								}
+							})).toList();
 	}
 
 	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components,

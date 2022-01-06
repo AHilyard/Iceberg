@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.0.36
+- Fixed a crash issue with modded tooltip components that are not properly added to tooltip component factory.
+
 ### 1.0.35
 - Fixed an issue that could cause dependent client-side mods to crash when run on a dedicated server.
 - Fixed various warnings in latest.log file.
