@@ -1,10 +1,13 @@
 package com.anthonyhilyard.iceberg.mixin;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorResult;
+import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.PreExtResult;
+import com.anthonyhilyard.iceberg.util.Tooltips;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -26,9 +29,11 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(Screen.class)
@@ -40,10 +45,40 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	@Shadow
 	private List<GuiEventListener> children = Lists.newArrayList();
 
+	private ItemStack tooltipStack = ItemStack.EMPTY;
+
+	@Inject(method = "renderTooltip(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "HEAD"))
+	protected void renderTooltipHead(PoseStack poseStack, ItemStack itemStack, int x, int y, CallbackInfo info)
+	{
+		tooltipStack = itemStack;
+	}
+
+	@Inject(method = "renderTooltip(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "TAIL"))
+	protected void renderTooltipTail(PoseStack poseStack, ItemStack itemStack, int x, int y, CallbackInfo info)
+	{
+		tooltipStack = ItemStack.EMPTY;
+	}
+
+	@Inject(method = "renderTooltip(Lcom/mojang/blaze3d/vertex/PoseStack;Ljava/util/List;Ljava/util/Optional;II)V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderTooltipInternal(Lcom/mojang/blaze3d/vertex/PoseStack;Ljava/util/List;II)V"),
+			locals = LocalCapture.CAPTURE_FAILEXCEPTION)
+	public void renderTooltip(PoseStack poseStack, List<Component> textComponents, Optional<TooltipComponent> itemComponent, int x, int y, CallbackInfo info, List<ClientTooltipComponent> components)
+	{
+		Screen self = (Screen)(Object)this;
+
+		List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(tooltipStack, textComponents, itemComponent, x, self.width, self.height, null, font, -1);
+		if (newComponents != null && !newComponents.isEmpty())
+		{
+			components.clear();
+			components.addAll(newComponents);
+		}
+	}
+
 	@SuppressWarnings({"unchecked", "deprecation"})
 	@Inject(method = "renderTooltipInternal", at = @At(value = "HEAD"), cancellable = true)
 	private void preRenderTooltipInternal(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, CallbackInfo info)
 	{
+		PreExtResult eventResult = null;
 		Screen self = (Screen)(Object)this;
 		if (self instanceof AbstractContainerScreen)
 		{
@@ -53,7 +88,9 @@ public class ScreenMixin extends AbstractContainerEventHandler
 				if (hoveredSlot != null)
 				{
 					ItemStack tooltipStack = hoveredSlot.getItem();
-					InteractionResult result = RenderTooltipEvents.PREEXT.invoker().onPre(tooltipStack, components, poseStack, x, y, self.width, self.height, font, false).result();
+					InteractionResult result = InteractionResult.PASS;
+					eventResult = RenderTooltipEvents.PREEXT.invoker().onPre(tooltipStack, components, poseStack, x, y, self.width, self.height, font, false, 0);
+					result = eventResult.result();
 
 					if (result != InteractionResult.PASS)
 					{
@@ -100,7 +137,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 
 	@SuppressWarnings({"unchecked", "deprecation"})
 	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE",
-	target = "Lnet/minecraft/client/gui/screens/Screen;fillGradient(Lcom/mojang/math/Matrix4f;Lcom/mojang/blaze3d/vertex/BufferBuilder;IIIIIII)V", shift = Shift.BEFORE),
+	target = "Lnet/minecraft/client/gui/screens/Screen;fillGradient(Lcom/mojang/math/Matrix4f;Lcom/mojang/blaze3d/vertex/BufferBuilder;IIIIIII)V", ordinal = 0, shift = Shift.BEFORE),
 	locals = LocalCapture.CAPTURE_FAILEXCEPTION)
 	private void preFillGradient(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, CallbackInfo info,
 		int __, int ___, int left, int top, int width, int height, int background, int borderStart, int borderEnd,
@@ -123,7 +160,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 			int backgroundEnd = background;
 
 			// Do colors now, sure why not.
-			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(tooltipStack, components, poseStack, x, y, font, background, background, borderStart, borderEnd, false);
+			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(tooltipStack, components, poseStack, x, y, font, background, backgroundEnd, borderStart, borderEnd, false, 0);
 			if (result != null)
 			{
 				background = result.backgroundStart();
@@ -141,7 +178,6 @@ public class ScreenMixin extends AbstractContainerEventHandler
 				borderEnd = colorResult.borderEnd();
 			}
 
-
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 4, left + width + 3, top - 3, zIndex, background, background);
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top + height + 3, left + width + 3, top + height + 4, zIndex, backgroundEnd, backgroundEnd);
 			Screen.fillGradient(matrix4f, bufferBuilder, left - 3, top - 3, left + width + 3, top + height + 3, zIndex, background, backgroundEnd);
@@ -154,7 +190,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 		}
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({"unchecked", "deprecation"})
 	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
 	private void renderTooltipInternal(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, CallbackInfo info, int tooltipWidth, int tooltipHeight, int postX, int postY)
 	{
@@ -166,6 +202,7 @@ public class ScreenMixin extends AbstractContainerEventHandler
 				if (hoveredSlot != null)
 				{
 					ItemStack tooltipStack = hoveredSlot.getItem();
+					RenderTooltipEvents.POSTEXT.invoker().onPost(tooltipStack, components, poseStack, postX, postY, font, tooltipWidth, tooltipHeight, false, 0);
 					RenderTooltipEvents.POST.invoker().onPost(tooltipStack, components, poseStack, postX, postY, font, tooltipWidth, tooltipHeight, false);
 				}
 			}
