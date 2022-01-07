@@ -13,6 +13,7 @@ import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.GatherResult;
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.PreExtResult;
 import com.mojang.blaze3d.vertex.PoseStack;
 
+import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -190,6 +191,31 @@ public class Tooltips
 		RenderTooltipEvents.POSTEXT.invoker().onPost(stack, info.getComponents(), poseStack, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), comparison, index);
 	}
 
+	private static ClientTooltipComponent getClientComponent(TooltipComponent componentData)
+	{
+		ClientTooltipComponent result = null;
+
+		// First try using the create method, for vanilla and mixed-in tooltip components.
+		try { result = ClientTooltipComponent.create(componentData); }
+		catch (IllegalArgumentException e) { }
+
+		// If that fails, try using the Fabric API event.
+		if (result == null)
+		{
+			result = TooltipComponentCallback.EVENT.invoker().getComponent(componentData);
+		}
+
+		// Finally, if all else fails, try casting (some mods implement it this way).
+		try { result = (ClientTooltipComponent)componentData; }
+		catch (ClassCastException e) { }
+
+		if (result == null)
+		{
+			throw new IllegalArgumentException("Unknown TooltipComponent");
+		}
+		return result;
+	}
+
 	public static List<ClientTooltipComponent> gatherTooltipComponents(ItemStack stack, List<? extends FormattedText> textElements, Optional<TooltipComponent> itemComponent,
 	int mouseX, int screenWidth, int screenHeight, Font forcedFont, Font fallbackFont, int maxWidth)
 	{
@@ -249,22 +275,12 @@ public class Tooltips
 		{
 			return eventResult.tooltipElements().stream().flatMap(either -> either.map(text ->
 								font.split(text, tooltipTextWidthFinal).stream().map(ClientTooltipComponent::create),
-								component -> Stream.of(ClientTooltipComponent.create(component)))).toList();
+								component -> Stream.of(getClientComponent(component)))).toList();
 		}
 
 		return eventResult.tooltipElements().stream().map(either -> either.map(text ->
 							ClientTooltipComponent.create(text instanceof Component ? ((Component) text).getVisualOrderText() : Language.getInstance().getVisualOrder(text)),
-							x -> {
-								// First try using the create method, for vanilla and properly-implemented tooltip components.
-								try {
-									return ClientTooltipComponent.create(x);
-								}
-								// If that fails, attempt just casting it.
-								catch (IllegalArgumentException e)
-								{
-									return (ClientTooltipComponent)x;
-								}
-							})).toList();
+							Tooltips::getClientComponent)).toList();
 	}
 
 	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components,

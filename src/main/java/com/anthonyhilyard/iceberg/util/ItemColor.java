@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Style;
 import java.util.List;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 
 public class ItemColor
 {
@@ -105,7 +106,8 @@ public class ItemColor
 		// This is slow, so it better get cached externally!
 		if (result == null || result.equals(item.getDisplayName().getStyle().getColor()))
 		{
-			List<Component> lines = item.getTooltipLines(null, TooltipFlag.Default.ADVANCED);
+			Minecraft mc = Minecraft.getInstance();
+			List<Component> lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
 			if (!lines.isEmpty())
 			{
 				result = lines.get(0).getStyle().getColor();

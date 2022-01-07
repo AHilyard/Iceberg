@@ -1,5 +1,11 @@
 # Changelog
 
+### 1.0.38
+- Added support for tooltip components that use tooltip component generation event.
+
+### 1.0.37
+- Reverted first change from 1.0.35, as it was causing conflicts with other mod's tooltips.
+
 ### 1.0.36
 - Fixed a crash issue with modded tooltip components that are not properly added to tooltip component factory.
 

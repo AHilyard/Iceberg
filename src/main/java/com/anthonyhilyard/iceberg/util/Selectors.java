@@ -1,5 +1,6 @@
 package com.anthonyhilyard.iceberg.util;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.world.item.ItemStack;
 
@@ -194,7 +195,8 @@ public class Selectors
 		// Tooltip text
 		else if (selector.startsWith("^"))
 		{
-			List<Component> lines = item.getTooltipLines(null, TooltipFlag.Default.ADVANCED);
+			Minecraft mc = Minecraft.getInstance();
+			List<Component> lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
 			String tooltipText = "";
 			
 			// Skip title line.
