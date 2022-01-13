@@ -1,11 +1,16 @@
 package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.util.FormattedCharSink;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+
+import java.util.List;
+
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 
 public class ItemColor
 {
@@ -95,6 +100,18 @@ public class ItemColor
 		if (colorCollector.getColor() != null)
 		{
 			result = colorCollector.getColor();
+		}
+
+		// If we haven't found a color or we're still using the rarity color, check the actual tooltip.
+		// This is slow, so it better get cached externally!
+		if (result == null || result.equals(item.getDisplayName().getStyle().getColor()))
+		{
+			Minecraft mc = Minecraft.getInstance();
+			List<Component> lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
+			if (!lines.isEmpty())
+			{
+				result = lines.get(0).getStyle().getColor();
+			}
 		}
 
 		// Fallback to the default TextColor if we somehow haven't found a single valid TextColor.
