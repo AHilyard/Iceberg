@@ -68,7 +68,6 @@ public class ItemColor
 
 	public static Color getColorForItem(ItemStack item, Color defaultColor)
 	{
-		Loader.LOGGER.info("item: {}", item.getHoverName().getString());
 		Color result = null;
 
 		// Color based on rarity value.
