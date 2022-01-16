@@ -9,7 +9,8 @@
 	],
 	"client": [
 		"ClientPlayNetHandlerMixin",
-		"ColorMixin"
+		"ColorMixin",
+		"AbstractGuiMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

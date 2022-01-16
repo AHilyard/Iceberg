@@ -2,8 +2,6 @@ package com.anthonyhilyard.iceberg.util;
 
 import java.util.List;
 
-import com.anthonyhilyard.iceberg.Loader;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
@@ -68,7 +66,6 @@ public class ItemColor
 
 	public static Color getColorForItem(ItemStack item, Color defaultColor)
 	{
-		Loader.LOGGER.info("item: {}", item.getHoverName().getString());
 		Color result = null;
 
 		// Color based on rarity value.
