@@ -1,8 +1,5 @@
 # Changelog
 
-### 1.0.39
-- Fixed an issue in Forge's configuration system that prevented dynamic subconfigs from working properly.
-
 ### 1.0.38
 - Added support for tooltip components that use tooltip component generation event.
 

@@ -81,7 +81,7 @@ public abstract class AbstractGuiMixin
 					case 2:
 					case 3:
 						break;
-					default:
+					case 0:
 						GL11.glEnable(0x0BF2);
 						Consumer<Integer> consumeIndex = index.shortValue() % 001_2 < 001_0 ?
 							$ -> {
