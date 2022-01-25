@@ -49,9 +49,17 @@ sourceSets {
 	}
 }
 
+repositories {
+	maven {
+		name "CurseMaven"
+		url "https://www.cursemaven.com"
+	}
+}
+
 dependencies {
 	minecraft "net.minecraftforge:forge:${project.mcVersion}-${project.forgeVersion}"
 	annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+	compileClasspath fg.deobf('curse.maven:configmenusforge-544048:3570070')
 }
 
 jar {

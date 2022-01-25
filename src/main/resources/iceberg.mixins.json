@@ -3,15 +3,18 @@
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"refmap": "iceberg.refmap.json",
+	"plugin": "com.anthonyhilyard.iceberg.mixin.ForgeConfigMenusPlugin",
 	"mixins": [
 		"EntityMixin",
-		"PlayerAdvancementsMixin",
-		"ForgeConfigSpecMixin"
+		"PlayerAdvancementsMixin"
 	],
 	"client": [
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
-		"TextColorMixin"
+		"TextColorMixin",
+		"ConfigMenusForgeIEntryDataMixin",
+		"ConfigMenusForgeConfigScreenMixin",
+		"ConfigMenusForgeServerConfigUploaderMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
