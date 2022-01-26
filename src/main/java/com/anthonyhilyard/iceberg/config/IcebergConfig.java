@@ -9,12 +9,10 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
-@EventBusSubscriber(modid = Loader.MODID, bus = Bus.MOD)
 public abstract class IcebergConfig<T extends IcebergConfig<?>>
 {
 	private static IcebergConfigSpec SPEC = null;
@@ -32,7 +30,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 	}
 
 	@SubscribeEvent
-	private static void onLoadEvent(ModConfigEvent.Loading event)
+	protected final static void onLoadEvent(ModConfigEvent.Loading event)
 	{
 		if (modId != null && INSTANCE != null && event.getConfig().getModId().contentEquals(modId))
 		{
@@ -41,7 +39,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 	}
 
 	@SubscribeEvent
-	private static void onReloadEvent(ModConfigEvent.Reloading event)
+	protected final static void onReloadEvent(ModConfigEvent.Reloading event)
 	{
 		if (modId != null && INSTANCE != null && event.getConfig().getModId().contentEquals(modId))
 		{
@@ -57,6 +55,8 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 		}
 
 		IcebergConfig.modId = modId;
+
+		FMLJavaModLoadingContext.get().getModEventBus().register(superClass);
 
 		Pair<IcebergConfig<?>, IcebergConfigSpec> specPair = new IcebergConfigSpec.Builder().finish((builder) -> 
 		{

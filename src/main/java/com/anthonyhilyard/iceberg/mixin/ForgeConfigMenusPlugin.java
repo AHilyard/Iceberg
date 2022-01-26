@@ -3,6 +3,7 @@ package com.anthonyhilyard.iceberg.mixin;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -34,7 +35,8 @@ public class ForgeConfigMenusPlugin implements IMixinConfigPlugin
 			// Check if Config Menus for Forge is available.
 			for (ModInfo modInfo : loadingModList.getMods())
 			{
-				if (modInfo.getModId().equals("configmenusforge"))
+				// If config menus for forge is loaded AND it is version 3.1.0, load our mixins.
+				if (modInfo.getModId().equals("configmenusforge") && modInfo.getVersion().compareTo(new DefaultArtifactVersion("3.1.0")) == 0)
 				{
 					return true;
 				}
