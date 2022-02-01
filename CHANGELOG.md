@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.0.40
+- Fixed a bug in configuration system that caused mod configs to sometimes fail to register properly.
+
 ### 1.0.39
 - Added new config system that improves upon Forge's with subconfig support, improved reload reliability, and reduced boilerplate.
 

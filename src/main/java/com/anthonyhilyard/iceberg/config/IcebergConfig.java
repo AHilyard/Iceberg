@@ -1,9 +1,12 @@
 package com.anthonyhilyard.iceberg.config;
 
+import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 import com.anthonyhilyard.iceberg.Loader;
 import com.electronwill.nightconfig.core.Config;
+import com.google.common.collect.Sets;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -18,7 +21,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 	private static IcebergConfigSpec SPEC = null;
 	private static IcebergConfig<?> INSTANCE = null;
 	private static String modId = null;
-	private static boolean registered = false;
+	private static Set<Class<?>> registeredClasses = Sets.newHashSet();
 
 	protected abstract <I extends IcebergConfig<?>> void setInstance(I instance);
 	protected void onLoad() {}
@@ -49,8 +52,9 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 
 	public static final boolean register(Class<? extends IcebergConfig<?>> superClass, @Nonnull String modId)
 	{
-		if (registered)
+		if (registeredClasses.contains(superClass))
 		{
+			Loader.LOGGER.warn("Failed to register configuration: {} is already registered!", superClass.getName());
 			return false;
 		}
 
@@ -72,8 +76,15 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 			return result;
 		});
 
-		if (specPair.getRight() == null || specPair.getLeft() == null)
+		if (specPair.getRight() == null)
 		{
+			Loader.LOGGER.warn("Failed to register configuration: Generated spec was null!");
+			return false;
+		}
+
+		if (specPair.getLeft() == null)
+		{
+			Loader.LOGGER.warn("Failed to register configuration: Generated configuration instance was null!");
 			return false;
 		}
 
@@ -83,7 +94,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 
 		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC);
 
-		registered = true;
+		registeredClasses.add(superClass);
 		return true;
 	}
 }
