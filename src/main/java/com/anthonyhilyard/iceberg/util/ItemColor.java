@@ -5,6 +5,7 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.ICharacterConsumer;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.ITextComponent;
@@ -101,9 +102,12 @@ public class ItemColor
 			result = colorCollector.getColor();
 		}
 
+		// Only check tooltip lines if tags are bound to prevent a crash with other mods.
+		boolean tagsBounds = ItemTags.getAllTags().getAvailableTags().size() > 0;
+
 		// If we haven't found a color or we're still using the rarity color, check the actual tooltip.
 		// This is slow, so it better get cached externally!
-		if (result == null || result.equals(item.getDisplayName().getStyle().getColor()))
+		if (tagsBounds && (result == null || result.equals(item.getDisplayName().getStyle().getColor())))
 		{
 			Minecraft mc = Minecraft.getInstance();
 			List<ITextComponent> lines = item.getTooltipLines(mc.player, ITooltipFlag.TooltipFlags.ADVANCED);

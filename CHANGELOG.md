@@ -1,5 +1,14 @@
 # Changelog
 
+### 1.0.41
+- Fixed a crash bug when pressing shift in the keybinds or mods menus when certain other mods are installed.
+
+### 1.0.40
+- Fixed a bug in configuration system that caused mod configs to sometimes fail to register properly. (1.18 only)
+
+### 1.0.39
+- Added new config system that improves upon Forge's with subconfig support, improved reload reliability, and reduced boilerplate. (1.18 only)
+
 ### 1.0.38
 - Added support for tooltip components that use tooltip component generation event.
 
