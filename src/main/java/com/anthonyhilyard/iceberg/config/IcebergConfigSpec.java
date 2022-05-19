@@ -3,7 +3,6 @@ package com.anthonyhilyard.iceberg.config;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +22,7 @@ import net.minecraftforge.fml.Logging;
 import net.minecraftforge.fml.config.IConfigSpec;
 import net.minecraftforge.fml.unsafe.UnsafeHacks;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 
@@ -48,18 +48,20 @@ import com.google.common.collect.Lists;
  */
 public class IcebergConfigSpec extends UnmodifiableConfigWrapper<UnmodifiableConfig> implements IConfigSpec<IcebergConfigSpec>
 {
-	private Map<List<String>, String> levelComments = new HashMap<>();
+	private Map<List<String>, String> levelComments;
+	private Map<List<String>, String> levelTranslationKeys;
 
 	private UnmodifiableConfig values;
 	private Config childConfig;
 
 	private boolean isCorrecting = false;
 
-	private IcebergConfigSpec(UnmodifiableConfig storage, UnmodifiableConfig values, Map<List<String>, String> levelComments)
+	private IcebergConfigSpec(UnmodifiableConfig storage, UnmodifiableConfig values, Map<List<String>, String> levelComments, Map<List<String>, String> levelTranslationKeys)
 	{
 		super(storage);
 		this.values = values;
 		this.levelComments = levelComments;
+		this.levelTranslationKeys = levelTranslationKeys;
 
 		// Update the filewatcher's default instance to have a more sensible exception handler.
 		try
@@ -70,6 +72,16 @@ public class IcebergConfigSpec extends UnmodifiableConfigWrapper<UnmodifiableCon
 			});
 		}
 		catch (Exception e) {}
+	}
+
+	public String getLevelComment(List<String> path)
+	{
+		return levelComments.get(path);
+	}
+
+	public String getLevelTranslationKey(List<String> path)
+	{
+		return levelTranslationKeys.get(path);
 	}
 
 	public void setConfig(CommentedConfig config)
@@ -391,7 +403,10 @@ public class IcebergConfigSpec extends UnmodifiableConfigWrapper<UnmodifiableCon
 			UnsafeHacks.setField(supplierField, result, defaultSupplier);
 			UnsafeHacks.setField(validatorField, result, validator);
 		}
-		catch (Exception e) { }
+		catch (Exception e) {
+			Loader.LOGGER.warn("Failed to instantiate ValueSpec!");
+			Loader.LOGGER.warn(ExceptionUtils.getStackTrace(e));
+		 }
 
 		return result;
 	}
@@ -476,26 +491,34 @@ public class IcebergConfigSpec extends UnmodifiableConfigWrapper<UnmodifiableCon
 				Field valuesField = ForgeConfigSpec.Builder.class.getDeclaredField("values");
 				Field storageField = ForgeConfigSpec.Builder.class.getDeclaredField("storage");
 				Field levelCommentsField = ForgeConfigSpec.Builder.class.getDeclaredField("levelComments");
+				Field levelTranslationKeysField = ForgeConfigSpec.Builder.class.getDeclaredField("levelTranslationKeys");
 
 				List<ConfigValue<?>> values = UnsafeHacks.<List<ConfigValue<?>>>getField(valuesField, this);
 				Config storage = UnsafeHacks.<Config>getField(storageField, this);
 				Map<List<String>, String> levelComments = UnsafeHacks.<Map<List<String>, String>>getField(levelCommentsField, this);
+				Map<List<String>, String> levelTranslationKeys = UnsafeHacks.<Map<List<String>, String>>getField(levelTranslationKeysField, this);
 
 				Config valueCfg = Config.of(Config.getDefaultMapCreator(true, true), InMemoryFormat.withSupport(ConfigValue.class::isAssignableFrom));
 				values.forEach(v -> valueCfg.set(v.getPath(), v));
 
-				final IcebergConfigSpec ret = new IcebergConfigSpec(storage, valueCfg, levelComments);
+				final IcebergConfigSpec ret = new IcebergConfigSpec(storage, valueCfg, levelComments, levelTranslationKeys);
 				values.forEach(v -> {
 					try
 					{
 						Field specField = ConfigValue.class.getDeclaredField("spec");
 						UnsafeHacks.setField(specField, v, ret);
 					}
-					catch (Exception e) { }
+					catch (Exception e) {
+						Loader.LOGGER.warn("Failed to create spec field {}!", v.toString());
+						Loader.LOGGER.warn(ExceptionUtils.getStackTrace(e));
+					 }
 				});
 				result = ret;
 			}
-			catch (Exception e) { }
+			catch (Exception e) {
+				Loader.LOGGER.warn("Failed to build IcebergConfigSpec!");
+				Loader.LOGGER.warn(ExceptionUtils.getStackTrace(e));
+			 }
 			return result;
 		}
 

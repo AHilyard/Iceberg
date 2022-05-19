@@ -5,7 +5,6 @@
 	"refmap": "iceberg.refmap.json",
 	"plugin": "com.anthonyhilyard.iceberg.mixin.ForgeConfigMenusPlugin",
 	"mixins": [
-		"EntityMixin",
 		"PlayerAdvancementsMixin"
 	],
 	"client": [
