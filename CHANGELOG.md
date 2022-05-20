@@ -1,5 +1,12 @@
 # Changelog
 
+### 1.0.42
+- Increased required Forge version to 40.1.6 to prevent a crash.
+
+### 1.0.41
+- Fixed crash in IcebergConfig system.
+- Bumped required Forge version to 40.1.
+
 ### 1.0.40
 - Fixed a bug in configuration system that caused mod configs to sometimes fail to register properly.
 

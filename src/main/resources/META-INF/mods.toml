@@ -15,7 +15,7 @@ description="A library containing events, helpers, and utilities to make modding
 [[dependencies.iceberg]]
 	modId="forge"
 	mandatory=true
-	versionRange="[40.1,)"
+	versionRange="[40.1.6,)"
 	ordering="NONE"
 	side="BOTH"
 
