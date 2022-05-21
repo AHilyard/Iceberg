@@ -13,7 +13,11 @@
 		"TextColorMixin",
 		"ConfigMenusForgeIEntryDataMixin",
 		"ConfigMenusForgeConfigScreenMixin",
-		"ConfigMenusForgeServerConfigUploaderMixin"
+		"ConfigMenusForgeServerConfigUploaderMixin",
+		"MinecraftMixin"
+	],
+	"server": [
+		"MainMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
