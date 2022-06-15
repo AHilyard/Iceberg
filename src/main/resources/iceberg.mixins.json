@@ -3,7 +3,6 @@
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"refmap": "iceberg.refmap.json",
-	"plugin": "com.anthonyhilyard.iceberg.mixin.ForgeConfigMenusPlugin",
 	"mixins": [
 		"PlayerAdvancementsMixin"
 	],
@@ -11,9 +10,6 @@
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
 		"TextColorMixin",
-		"ConfigMenusForgeIEntryDataMixin",
-		"ConfigMenusForgeConfigScreenMixin",
-		"ConfigMenusForgeServerConfigUploaderMixin",
 		"MinecraftMixin"
 	],
 	"server": [

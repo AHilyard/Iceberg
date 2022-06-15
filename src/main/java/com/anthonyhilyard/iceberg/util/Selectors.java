@@ -20,6 +20,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -150,7 +151,7 @@ public class Selectors
 	@SuppressWarnings("deprecation")
 	public static boolean itemMatches(ItemStack item, String selector)
 	{
-		String itemResourceLocation = item.getItem().getRegistryName().toString();
+		String itemResourceLocation = ForgeRegistries.ITEMS.getKey(item.getItem()).toString();
 		// Item ID
 		if (selector.equals(itemResourceLocation) || selector.equals(itemResourceLocation.replace("minecraft:", "")))
 		{

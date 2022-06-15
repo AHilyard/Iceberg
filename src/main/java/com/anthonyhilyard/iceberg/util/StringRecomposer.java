@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSink;
 
 public class StringRecomposer
@@ -31,7 +31,7 @@ public class StringRecomposer
 	private static class RecomposerSink implements FormattedCharSink
 	{
 		private StringBuilder builder = new StringBuilder();
-		private MutableComponent text = new TextComponent("").withStyle(Style.EMPTY);
+		private MutableComponent text = Component.literal("").withStyle(Style.EMPTY);
 
 		@Override
 		public boolean accept(int index, Style style, int charCode)
@@ -40,7 +40,7 @@ public class StringRecomposer
 
 			if (!style.equals(text.getStyle()))
 			{
-				text.append(new TextComponent(builder.toString()).withStyle(style));
+				text.append(Component.literal(builder.toString()).withStyle(style));
 				builder.setLength(0);
 			}
 			return true;
@@ -48,7 +48,7 @@ public class StringRecomposer
 
 		public FormattedText getFormattedText()
 		{
-			text.append(new TextComponent(builder.toString()).withStyle(text.getStyle()));
+			text.append(Component.literal(builder.toString()).withStyle(text.getStyle()));
 			return text;
 		}
 	}
