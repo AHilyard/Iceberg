@@ -23,8 +23,7 @@ public class GuiHelper
 		BufferBuilder bufferBuilder = tessellator.getBuilder();
 		bufferBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 		drawGradientRect(mat, bufferBuilder, left, top, right, bottom, zLevel, startColor, endColor);
-		bufferBuilder.end();
-		BufferUploader.end(bufferBuilder);
+		BufferUploader.drawWithShader(bufferBuilder.end());
 
 		RenderSystem.disableBlend();
 		RenderSystem.enableTexture();

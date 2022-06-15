@@ -99,13 +99,13 @@ public class DynamicResourcePack implements PackResources
 	}
 
 	@Override
-	public Collection<ResourceLocation> getResources(PackType type, String namespace, String path, int maxDepth, Predicate<String> filter)
+	public Collection<ResourceLocation> getResources(PackType type, String namespace, String path, Predicate<ResourceLocation> filter)
 	{
 		return dynamicResourceMap.entrySet().stream()
 		.filter(entry -> entry.getKey().namespace.contentEquals(namespace))
 		.filter(entry -> entry.getKey().path.startsWith(path))
 		.filter(entry -> entry.getKey().type.contentEquals(type.getDirectory()))
-		.filter(entry -> filter.test(entry.getKey().path))
+		.filter(entry -> filter.test(new ResourceLocation(entry.getKey().namespace, entry.getKey().path)))
 		.map(entry -> new ResourceLocation(namespace, entry.getKey().path))
 		.collect(Collectors.toList());
 	}

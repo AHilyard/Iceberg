@@ -2,6 +2,7 @@
 
 ### 1.0.38
 - Added support for tooltip components that use tooltip component generation event.
+- First Forge/Fabric 1.19 release.
 
 ### 1.0.37
 - Reverted first change from 1.0.35, as it was causing conflicts with other mod's tooltips.
