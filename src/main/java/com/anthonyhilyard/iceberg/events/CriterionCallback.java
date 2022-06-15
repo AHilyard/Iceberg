@@ -1,7 +1,5 @@
 package com.anthonyhilyard.iceberg.events;
 
-import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.world.entity.player.Player;
 
@@ -10,7 +8,7 @@ import net.minecraft.world.entity.player.Player;
  */
 public interface CriterionCallback
 {
-	Event<CriterionCallback> EVENT = EventFactory.createArrayBacked(CriterionCallback.class,
+	ToggleableEvent<CriterionCallback> EVENT = ToggleableEvent.create(CriterionCallback.class,
 		(listeners) -> (player, advancement, criterionKey) -> {
 			for (CriterionCallback listener : listeners)
 			{

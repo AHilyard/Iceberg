@@ -1,15 +1,14 @@
 package com.anthonyhilyard.iceberg.util;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.Registry;
-import net.minecraft.world.item.ItemStack;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.List;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
@@ -17,9 +16,11 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 public class Selectors
 {
@@ -179,7 +180,8 @@ public class Selectors
 		// Item tag
 		else if (selector.startsWith("$"))
 		{
-			if (ItemTags.getAllTags().getTagOrEmpty(new ResourceLocation(selector.substring(1))).getValues().contains(item.getItem()))
+			Optional<TagKey<Item>> matchingTag = Registry.ITEM.getTagNames().filter(tagKey -> tagKey.location().equals(new ResourceLocation(selector.substring(1)))).findFirst();
+			if (matchingTag.isPresent() && item.is(matchingTag.get()))
 			{
 				return true;
 			}

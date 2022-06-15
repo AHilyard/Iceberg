@@ -3,7 +3,6 @@
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"EntityMixin",
 		"PlayerAdvancementsMixin"
 	],
 	"client": [
