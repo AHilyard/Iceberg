@@ -68,7 +68,6 @@ public class MinecraftMixin
 					Loader.LOGGER.debug(ExceptionUtils.getStackTrace(e));
 				}
 			}
-
 		}
 		renderTarget.clear(onOSX);
 	}

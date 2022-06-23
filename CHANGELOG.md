@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.0.45
+- Added support for Configured configuration menus to IcebergConfig.
+
 ### 1.0.44
 - Fixed incompatibility with some mods causing a crash at startup.
 

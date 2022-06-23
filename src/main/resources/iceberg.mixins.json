@@ -3,6 +3,8 @@
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"refmap": "iceberg.refmap.json",
+	"plugin": "com.anthonyhilyard.iceberg.mixin.MixinConfig",
+	"verbose": true,
 	"mixins": [
 		"PlayerAdvancementsMixin"
 	],
@@ -10,7 +12,9 @@
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
 		"TextColorMixin",
-		"MinecraftMixin"
+		"MinecraftMixin",
+		"ConfiguredConfigHelperMixin",
+		"ConfiguredModConfigSelectionScreenMixin"
 	],
 	"server": [
 		"MainMixin"

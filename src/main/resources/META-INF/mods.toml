@@ -25,3 +25,10 @@ description="A library containing events, helpers, and utilities to make modding
 	versionRange="[1.19,)"
 	ordering="NONE"
 	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="configured"
+	mandatory=false
+	versionRange="[1.5.3]"
+	ordering="NONE"
+	side="BOTH"
