@@ -25,7 +25,7 @@ import com.mrcrayfish.configured.util.ConfigHelper;
 public class ConfiguredConfigHelperMixin
 {
 	@Inject(method = "gatherAllConfigValues(Lnet/minecraftforge/fml/config/ModConfig;)Ljava/util/List;",
-			at = @At(value = "HEAD"), cancellable = true, remap = false)
+			at = @At(value = "HEAD"), cancellable = true, remap = false, require = 0)
 	private static void gatherAllConfigValuesIcebergSupport(ModConfig config, CallbackInfoReturnable<List<?>> info)
 	{
 		if (config.getSpec() instanceof IcebergConfigSpec icebergConfigSpec)

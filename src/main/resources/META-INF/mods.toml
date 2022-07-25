@@ -29,6 +29,6 @@ description="A library containing events, helpers, and utilities to make modding
 [[dependencies.iceberg]]
 	modId="configured"
 	mandatory=false
-	versionRange="[1.5.3]"
+	versionRange="[1.5.5,1.6.0)"
 	ordering="NONE"
 	side="BOTH"

@@ -148,7 +148,7 @@ public class Selectors
 	 * @param selector A selector string to check against.
 	 * @return True if the item matches, false otherwise.
 	 */
-	@SuppressWarnings("deprecation")
+	@SuppressWarnings({"deprecation", "removal"})
 	public static boolean itemMatches(ItemStack item, String selector)
 	{
 		String itemResourceLocation = ForgeRegistries.ITEMS.getKey(item.getItem()).toString();

@@ -1,6 +1,8 @@
 package com.anthonyhilyard.iceberg.mixin;
 
 import java.lang.reflect.Field;
+import java.util.List;
+import java.util.ArrayList;
 
 import com.anthonyhilyard.iceberg.Loader;
 import com.anthonyhilyard.iceberg.config.IcebergConfigSpec;
@@ -56,7 +58,7 @@ public class ConfiguredModConfigSelectionScreenMixin
 	@Shadow(remap = false)
 	private boolean hasRequiredPermission() { return true; }
 
-	@Inject(method = "createModifyButton", at = @At(value = "HEAD"), remap = false, cancellable = true)
+	@Inject(method = "createModifyButton", at = @At(value = "HEAD"), remap = false, cancellable = true, require = 0)
 	private void createModifyButton(ModConfig config, CallbackInfoReturnable<Button> info)
 	{
 		if (config.getSpec() instanceof IcebergConfigSpec)
@@ -125,7 +127,7 @@ public class ConfiguredModConfigSelectionScreenMixin
 							itemHeightField.set(configScreen, 24);
 
 							ForgeConfigSpec dummySpec = new ForgeConfigSpec.Builder().build();
-							FieldUtils.writeDeclaredField(configScreen, "folderEntry", new IcebergFolderEntry(configScreen, "Root", ((IcebergConfigSpec) config.getSpec()).getValues(), dummySpec, true, (IcebergConfigSpec) config.getSpec()), true);
+							FieldUtils.writeDeclaredField(configScreen, "folderEntry", new IcebergFolderEntry(configScreen, List.of(), ((IcebergConfigSpec) config.getSpec()).getValues(), dummySpec, (IcebergConfigSpec) config.getSpec()), true);
 							FieldUtils.writeDeclaredField(configScreen, "config", config, true);
 
 							minecraft.setScreen(configScreen);
@@ -159,13 +161,15 @@ public class ConfiguredModConfigSelectionScreenMixin
 		private ForgeConfigSpec spec;
 		private ConfigScreen configScreen;
 		private UnmodifiableConfig config;
-		public IcebergFolderEntry(ConfigScreen configScreen, String label, UnmodifiableConfig config, ForgeConfigSpec spec, boolean root, IcebergConfigSpec icebergSpec)
+		private final List<String> path;
+		public IcebergFolderEntry(ConfigScreen configScreen, List<String> path, UnmodifiableConfig config, ForgeConfigSpec spec, IcebergConfigSpec icebergSpec)
 		{
-			configScreen.super(label, config, spec, root);
+			configScreen.super(path, config, spec);
 			icebergConfigSpec = icebergSpec;
 			this.spec = spec;
 			this.configScreen = configScreen;
 			this.config = config;
+			this.path = path;
 			init();
 		}
 
@@ -186,12 +190,13 @@ public class ConfiguredModConfigSelectionScreenMixin
 
 					if (value instanceof UnmodifiableConfig)
 					{
-						builder.add(new IcebergFolderEntry(configScreen, key, (UnmodifiableConfig) value, spec, false, icebergConfigSpec));
+						List<String> path = new ArrayList<>(this.path);
+						path.add(key);
+						builder.add(new IcebergFolderEntry(configScreen, path, (UnmodifiableConfig) value, spec, icebergConfigSpec));
 					}
 					else if (value instanceof ForgeConfigSpec.ConfigValue<?>)
 					{
 						ForgeConfigSpec.ConfigValue<?> configValue = (ForgeConfigSpec.ConfigValue<?>) value;
-						Loader.LOGGER.info(configValue.getPath());
 						ForgeConfigSpec.ValueSpec valueSpec = icebergConfigSpec.getRaw(configValue.getPath());
 						if (valueSpec != null)
 						{
@@ -207,6 +212,5 @@ public class ConfiguredModConfigSelectionScreenMixin
 				return;
 			}
 		}
-
 	}
 }
