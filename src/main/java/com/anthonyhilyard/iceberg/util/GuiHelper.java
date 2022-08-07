@@ -1,7 +1,9 @@
 package com.anthonyhilyard.iceberg.util;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+
 import net.minecraft.client.renderer.GameRenderer;
+
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;

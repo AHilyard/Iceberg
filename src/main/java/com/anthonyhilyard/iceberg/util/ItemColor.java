@@ -12,6 +12,7 @@ import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 
+@Deprecated(forRemoval = true)
 public class ItemColor
 {
 	private static class ColorCollector implements FormattedCharSink
