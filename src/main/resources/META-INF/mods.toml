@@ -7,7 +7,7 @@ modId="iceberg"
 version="${file.jarVersion}"
 displayName="Iceberg"
 displayURL="https://anthonyhilyard.com/"
-updateJSONURL="https://mc-curse-update-checker.herokuapp.com/520110"
+updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
 logoFile="icon.png"
 authors="Grend"
 description="A library containing events, helpers, and utilities to make modding easier."
@@ -15,7 +15,7 @@ description="A library containing events, helpers, and utilities to make modding
 [[dependencies.iceberg]]
 	modId="forge"
 	mandatory=true
-	versionRange="[36,)"
+	versionRange="[36.2,)"
 	ordering="NONE"
 	side="BOTH"
 

@@ -4,16 +4,19 @@
 	"compatibilityLevel": "JAVA_8",
 	"refmap": "iceberg.refmap.json",
 	"mixins": [
-		"EntityMixin",
 		"PlayerAdvancementsMixin"
 	],
 	"client": [
 		"ClientPlayNetHandlerMixin",
-		"ColorMixin"
+		"ColorMixin",
+		"MinecraftMixin"
+	],
+	"server": [
+		"MainMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	},
-	"minVersion": "0.8",
+	"minVersion": "0.8.4",
 	"target": "@env(DEFAULT)"
 }

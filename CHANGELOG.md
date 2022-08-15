@@ -1,5 +1,14 @@
 # Changelog
 
+### 1.0.44
+- Fixed incompatibility with some mods causing a crash at startup.
+
+### 1.0.43
+- Fixed update checking not working for multiple dependent mods.
+
+### 1.0.42
+- Increased required Forge version to 40.1.6 to prevent a crash. (1.18 only)
+
 ### 1.0.41
 - Fixed a crash bug when pressing shift in the keybinds or mods menus when certain other mods are installed.
 
