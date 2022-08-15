@@ -106,13 +106,12 @@ public class Tooltips
 										Rectangle2d rect, int screenWidth, int screenHeight,
 										int backgroundColor, int borderColorStart, int borderColorEnd, boolean comparison, boolean constrain)
 	{
-		renderItemTooltip(stack, matrixStack, info, rect, screenWidth, screenHeight, backgroundColor, borderColorStart, borderColorEnd, comparison, constrain, false, 0);
+		renderItemTooltip(stack, matrixStack, info, rect, screenWidth, screenHeight, backgroundColor, backgroundColor, borderColorStart, borderColorEnd, comparison, constrain, false, 0);
 	}
 
-	@SuppressWarnings("deprecation")
 	public static void renderItemTooltip(@Nonnull final ItemStack stack, MatrixStack matrixStack, TooltipInfo info,
 										Rectangle2d rect, int screenWidth, int screenHeight,
-										int backgroundColor, int borderColorStart, int borderColorEnd,
+										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index)
 	{
 		if (info.getLines().isEmpty())
@@ -143,7 +142,6 @@ public class Tooltips
 		maxTextWidth = event.getMaxWidth();
 		info.setFont(event.getFontRenderer());
 
-		RenderSystem.disableRescaleNormal();
 		RenderSystem.disableDepthTest();
 		int tooltipTextWidth = info.getMaxLineWidth();
 
@@ -208,20 +206,22 @@ public class Tooltips
 		}
 
 		final int zLevel = 400;
-		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), backgroundColor, borderColorStart, borderColorEnd, comparison, index);
+		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, info.getLines(), matrixStack, tooltipX, tooltipY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, comparison, index);
 		MinecraftForge.EVENT_BUS.post(colorEvent);
-		backgroundColor = colorEvent.getBackground();
+
+		backgroundColorStart = colorEvent.getBackgroundStart();
+		backgroundColorEnd = colorEvent.getBackgroundEnd();
 		borderColorStart = colorEvent.getBorderStart();
 		borderColorEnd = colorEvent.getBorderEnd();
 
 		matrixStack.pushPose();
 		Matrix4f mat = matrixStack.last().pose();
 
-		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 4, tooltipX + tooltipTextWidth + 3, tooltipY - 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY + tooltipHeight + 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 4, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 4, tooltipY - 3, tooltipX - 3, tooltipY + tooltipHeight + 3, backgroundColor, backgroundColor);
-		GuiUtils.drawGradientRect(mat, zLevel, tooltipX + tooltipTextWidth + 3, tooltipY - 3, tooltipX + tooltipTextWidth + 4, tooltipY + tooltipHeight + 3, backgroundColor, backgroundColor);
+		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 4, tooltipX + tooltipTextWidth + 3, tooltipY - 3, backgroundColorStart, backgroundColorStart);
+		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY + tooltipHeight + 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 4, backgroundColorEnd, backgroundColorEnd);
+		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3, backgroundColorStart, backgroundColorEnd);
+		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 4, tooltipY - 3, tooltipX - 3, tooltipY + tooltipHeight + 3, backgroundColorStart, backgroundColorEnd);
+		GuiUtils.drawGradientRect(mat, zLevel, tooltipX + tooltipTextWidth + 3, tooltipY - 3, tooltipX + tooltipTextWidth + 4, tooltipY + tooltipHeight + 3, backgroundColorStart, backgroundColorEnd);
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 3 + 1, tooltipX - 3 + 1, tooltipY + tooltipHeight + 3 - 1, borderColorStart, borderColorEnd);
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX + tooltipTextWidth + 2, tooltipY - 3 + 1, tooltipX + tooltipTextWidth + 3, tooltipY + tooltipHeight + 3 - 1, borderColorStart, borderColorEnd);
 		GuiUtils.drawGradientRect(mat, zLevel, tooltipX - 3, tooltipY - 3, tooltipX + tooltipTextWidth + 3, tooltipY - 3 + 1, borderColorStart, borderColorStart);
@@ -256,7 +256,6 @@ public class Tooltips
 		MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.PostText(stack, info.getLines(), matrixStack, tooltipX, tooltipTop, info.getFont(), tooltipTextWidth, tooltipHeight, comparison, index));
 
 		RenderSystem.enableDepthTest();
-		RenderSystem.enableRescaleNormal();
 	}
 
 	public static Rectangle2d calculateRect(final ItemStack stack, MatrixStack matrixStack, List<? extends ITextProperties> textLines, int mouseX, int mouseY,

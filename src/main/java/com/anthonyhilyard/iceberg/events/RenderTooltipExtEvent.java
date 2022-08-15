@@ -75,6 +75,7 @@ public class RenderTooltipExtEvent
 	{
 		private boolean comparisonTooltip = false;
 		private int index = 0;
+		private int backgroundEnd = 0;
 
 		public Color(ItemStack stack, List<? extends ITextProperties> textLines, MatrixStack matrixStack, int x, int y, FontRenderer font, int background, int borderStart, int borderEnd, boolean comparison, int index)
 		{
@@ -87,7 +88,19 @@ public class RenderTooltipExtEvent
 		{
 			this(stack, textLines, matrixStack, x, y, font, background, borderStart, borderEnd, comparison, 0);
 		}
+
+		public Color(ItemStack stack, List<? extends ITextProperties> textLines, MatrixStack matrixStack, int x, int y, FontRenderer font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, boolean comparison, int index)
+		{
+			this(stack, textLines, matrixStack, x, y, font, backgroundStart, borderStart, borderEnd, comparison, index);
+			setBackgroundStart(backgroundStart);
+			setBackgroundEnd(backgroundEnd);
+		}
+
 		public boolean isComparison() { return comparisonTooltip; }
 		public int getIndex() { return index; }
+		public void setBackgroundStart(int backgroundStart) { setBackground(backgroundStart); }
+		public void setBackgroundEnd(int backgroundEnd) { this.backgroundEnd = backgroundEnd; }
+		public int getBackgroundStart() { return getBackground(); }
+		public int getBackgroundEnd() { return backgroundEnd; }
 	}
 }
