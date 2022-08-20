@@ -51,18 +51,6 @@ public class Loader
 	// 	{
 	// 		LOGGER.info("{} gained {} for {}!", event.getPlayer().getName().getString(), event.getCriterionKey(), event.getAdvancement().getId().toString());
 	// 	}
-
-	// 	@SubscribeEvent
-	// 	public static void onFluidEntered(final EntityFluidEvent.Entered event)
-	// 	{
-	// 		LOGGER.info("{} entered {}!", event.getEntity().getName().getString(), event.getFluid().getRegistryName().toString());
-	// 	}
-
-	// 	@SubscribeEvent
-	// 	public static void onFluidExited(final EntityFluidEvent.Exited event)
-	// 	{
-	// 		LOGGER.info("{} exited {}!", event.getEntity().getName().getString(), event.getFluid().getRegistryName().toString());
-	// 	}
 	// }
 
 }

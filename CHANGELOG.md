@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.0.45
+- Fixed several custom tooltip alignment and sizing issues.
+- Fixed a bug that caused tooltips with long titles to center improperly.
+
 ### 1.0.44
 - Fixed incompatibility with some mods causing a crash at startup.
 
