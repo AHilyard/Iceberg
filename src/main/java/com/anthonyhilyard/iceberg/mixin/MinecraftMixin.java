@@ -2,7 +2,7 @@ package com.anthonyhilyard.iceberg.mixin;
 
 import java.lang.reflect.Field;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import com.anthonyhilyard.iceberg.Loader;
@@ -38,7 +38,7 @@ public class MinecraftMixin
 			{
 				madeByGrend = author.contentEquals("Grend");
 			}
-			else if (authors.get() instanceof ArrayList<?> authorList)
+			else if (authors.get() instanceof List<?> authorList)
 			{
 				madeByGrend = authorList.contains("Grend");
 			}
@@ -68,7 +68,6 @@ public class MinecraftMixin
 					Loader.LOGGER.debug(ExceptionUtils.getStackTrace(e));
 				}
 			}
-
 		}
 		renderTarget.clear(onOSX);
 	}

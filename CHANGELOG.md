@@ -1,7 +1,19 @@
 # Changelog
 
+### 1.0.47
+- Added support for Configured 2.0.0.
+
+### 1.0.46
+- Added support for Minecraft 1.19.1 and 1.19.2.
+- Added support for latest version of Forge.
+- Added support for Configured 1.5.5.
+
+### 1.0.45
+- Added support for Configured configuration menus to IcebergConfig.
+
 ### 1.0.44
 - Fixed incompatibility with some mods causing a crash at startup.
+- First Forge 1.19 release.
 
 ### 1.0.43
 - Fixed update checking not working for multiple dependent mods.

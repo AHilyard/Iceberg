@@ -12,7 +12,7 @@ import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.LoadingModList;
 import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 
-public class ForgeConfigMenusPlugin implements IMixinConfigPlugin
+public class MixinConfig implements IMixinConfigPlugin
 {
 	private LoadingModList loadingModList = null;
 

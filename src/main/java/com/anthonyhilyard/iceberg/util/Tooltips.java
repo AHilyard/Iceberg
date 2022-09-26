@@ -41,6 +41,7 @@ import net.minecraftforge.client.gui.GuiUtils;
 
 public class Tooltips
 {
+	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
 	private static ItemRenderer itemRenderer = null;
 
 	public static class TooltipInfo
@@ -57,6 +58,7 @@ public class Tooltips
 		}
 
 		public int getTooltipWidth() { return tooltipWidth; }
+		public int getTooltipHeight() { return components.size() > titleLines ? components.size() * 10 + 2 : 8; }
 		public int getTitleLines() { return titleLines; }
 		public Font getFont() { return font; }
 		public List<ClientTooltipComponent> getComponents() { return components; }
@@ -65,16 +67,21 @@ public class Tooltips
 
 		public int getMaxLineWidth()
 		{
-			int width = 0;
+			return getMaxLineWidth(0);
+		}
+
+		public int getMaxLineWidth(int minWidth)
+		{
+			int textWidth = minWidth;
 			for (ClientTooltipComponent component : components)
 			{
 				int componentWidth = component.getWidth(font);
-				if (componentWidth > width)
+				if (componentWidth > textWidth)
 				{
-					width = componentWidth;
+					textWidth = componentWidth;
 				}
 			}
-			return width;
+			return textWidth;
 		}
 	}
 
@@ -180,7 +187,7 @@ public class Tooltips
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent imageComponent = info.getComponents().get(componentNumber);
-			imageComponent.renderImage(preEvent.getFont(), rectX, tooltipTop, poseStack, itemRenderer, 400);
+			imageComponent.renderImage(preEvent.getFont(), rectX, tooltipTop, poseStack, itemRenderer, zLevel);
 			tooltipTop += imageComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
 		}
 
@@ -349,10 +356,9 @@ public class Tooltips
 		List<ClientTooltipComponent> result = new ArrayList<>(components);
 
 		FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
-		FormattedCharSequence space = FormattedCharSequence.forward(" ", Style.EMPTY);
 		while (result.get(0).getWidth(font) < tooltipWidth)
 		{
-			title = FormattedCharSequence.fromList(List.of(space, title, space));
+			title = FormattedCharSequence.fromList(List.of(SPACE, title, SPACE));
 			if (title == null)
 			{
 				break;

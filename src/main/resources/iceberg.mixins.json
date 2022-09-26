@@ -3,7 +3,7 @@
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"refmap": "iceberg.refmap.json",
-	"plugin": "com.anthonyhilyard.iceberg.mixin.ForgeConfigMenusPlugin",
+	"plugin": "com.anthonyhilyard.iceberg.mixin.MixinConfig",
 	"mixins": [
 		"PlayerAdvancementsMixin"
 	],
