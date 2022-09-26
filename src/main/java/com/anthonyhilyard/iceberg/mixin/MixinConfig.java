@@ -7,12 +7,11 @@ import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
-import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.LoadingModList;
-import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 
 public class MixinConfig implements IMixinConfigPlugin
 {
+	@SuppressWarnings("unused")
 	private LoadingModList loadingModList = null;
 
 	@Override
@@ -24,25 +23,6 @@ public class MixinConfig implements IMixinConfigPlugin
 	@Override
 	public boolean shouldApplyMixin(String targetClassName, String mixinClassName)
 	{
-		if (mixinClassName.toLowerCase().contains("configured"))
-		{
-			if (loadingModList == null)
-			{
-				loadingModList = FMLLoader.getLoadingModList();
-			}
-
-			// Check if Config Menus for Forge is available.
-			for (ModInfo modInfo : loadingModList.getMods())
-			{
-				// If configured is present, load the mixin.
-				if (modInfo.getModId().equals("configured"))
-				{
-					return true;
-				}
-			}
-			
-			return false;
-		}
 		return true;
 	}
 

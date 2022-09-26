@@ -12,9 +12,7 @@
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
 		"TextColorMixin",
-		"MinecraftMixin",
-		"ConfiguredConfigHelperMixin",
-		"ConfiguredModConfigSelectionScreenMixin"
+		"MinecraftMixin"
 	],
 	"server": [
 		"MainMixin"
