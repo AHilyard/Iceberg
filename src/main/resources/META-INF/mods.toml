@@ -26,13 +26,6 @@ description="A library containing events, helpers, and utilities to make modding
 	ordering="NONE"
 	side="BOTH"
 
-[[dependencies.iceberg]]
-	modId="configured"
-	mandatory=false
-	versionRange="[2.0.0,)"
-	ordering="NONE"
-	side="BOTH"
-
 [modproperties.iceberg]
 	configuredProviders=[
 		"com.anthonyhilyard.iceberg.compat.configured.IcebergConfigProvider"

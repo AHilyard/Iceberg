@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.0.48
+- Removed explicit Configured version requirement.
+
 ### 1.0.47
 - Added support for Configured 2.0.0.
 
