@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 
+@SuppressWarnings("null")
 public class RenderTooltipExtEvent
 {
 	public static class Pre extends RenderTooltipEvent.Pre

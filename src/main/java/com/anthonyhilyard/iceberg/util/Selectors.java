@@ -147,7 +147,7 @@ public class Selectors
 	 * @param selector A selector string to check against.
 	 * @return True if the item matches, false otherwise.
 	 */
-	@SuppressWarnings({"deprecation", "removal"})
+	@SuppressWarnings({"deprecation", "removal", "null"})
 	public static boolean itemMatches(ItemStack item, String selector)
 	{
 		String itemResourceLocation = item.getItem().getRegistryName().toString();

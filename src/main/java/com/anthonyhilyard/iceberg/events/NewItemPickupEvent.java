@@ -18,6 +18,7 @@ import net.minecraftforge.common.MinecraftForge;
  * <br>
  * This event is fired on the {@link MinecraftForge#EVENT_BUS}.
  */
+@SuppressWarnings("null")
 public class NewItemPickupEvent extends PlayerEvent
 {
 	private final ItemStack itemStack;

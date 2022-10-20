@@ -24,6 +24,7 @@ import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.common.MinecraftForge;
 
+@SuppressWarnings("null")
 @Mixin(Screen.class)
 public class ScreenMixin extends AbstractContainerEventHandler
 {
