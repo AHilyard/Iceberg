@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.0.49
+- Added support for tooltips with non-text components placed above the title.
+
 ### 1.0.48
 - Removed explicit Configured version requirement.
 

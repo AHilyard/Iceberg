@@ -16,6 +16,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
@@ -171,12 +172,18 @@ public class Tooltips
 		poseStack.translate(0.0D, 0.0D, zLevel);
 
 		int tooltipTop = rectY;
+		boolean titleRendered = false;
 
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent textComponent = info.getComponents().get(componentNumber);
 			textComponent.renderText(preEvent.getFont(), rectX, tooltipTop, mat, renderType);
-			tooltipTop += textComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
+			tooltipTop += textComponent.getHeight();
+			if (!titleRendered && textComponent instanceof ClientTextTooltip)
+			{
+				tooltipTop += 2;
+				titleRendered = true;
+			}
 		}
 
 		renderType.endBatch();
@@ -345,8 +352,23 @@ public class Tooltips
 		}
 
 		// TODO: If the title is multiple lines, we need to extend this for each one.
+		// Find the title component, which is the first text component.
+		int titleIndex = 0;
+		for (ClientTooltipComponent clienttooltipcomponent : components)
+		{
+			if (clienttooltipcomponent instanceof ClientTextTooltip)
+			{
+				break;
+			}
+			titleIndex++;
+		}
 
-		List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(components.get(0)));
+		if (titleIndex >= components.size())
+		{
+			titleIndex = 0;
+		}
+
+		List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(components.get(titleIndex)));
 		if (recomposedLines.isEmpty())
 		{
 			return components;
@@ -355,14 +377,15 @@ public class Tooltips
 		List<ClientTooltipComponent> result = new ArrayList<>(components);
 
 		FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
-		while (result.get(0).getWidth(font) < tooltipWidth)
+		while (result.get(titleIndex).getWidth(font) < tooltipWidth)
 		{
 			title = FormattedCharSequence.fromList(List.of(SPACE, title, SPACE));
 			if (title == null)
 			{
 				break;
 			}
-			result.set(0, ClientTooltipComponent.create(title));
+
+			result.set(titleIndex, ClientTooltipComponent.create(title));
 		}
 		return result;
 	}
