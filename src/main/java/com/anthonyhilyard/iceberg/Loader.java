@@ -3,6 +3,8 @@ package com.anthonyhilyard.iceberg;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.anthonyhilyard.iceberg.util.Tooltips.TitleBreakComponent;
+
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -23,6 +25,7 @@ public class Loader
 	{
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
+			TitleBreakComponent.registerFactory();
 			IcebergClient mod = new IcebergClient();
 			MinecraftForge.EVENT_BUS.register(IcebergClient.class);
 			FMLJavaModLoadingContext.get().getModEventBus().addListener(mod::onClientSetup);

@@ -1,5 +1,17 @@
 # Changelog
 
+### 1.1.1
+- Fixed a bug that could cause tooltip titles to be positioned incorrectly for explicitly-positioned tooltips.
+
+### 1.1.0
+- Added wildcard selector.
+- Added selector negation.
+- Added selector combination.
+- Added detail model renderer to custom item renderer.
+- Added vertex collector and checked buffer source helpers.
+- Fixed a bug that could cause tooltip titles to be incorrectly identified.
+- Added support for Minecraft 1.19.3.
+
 ### 1.0.49
 - Added support for tooltips with non-text components placed above the title.
 

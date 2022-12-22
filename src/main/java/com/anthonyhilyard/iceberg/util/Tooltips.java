@@ -10,14 +10,25 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.anthonyhilyard.iceberg.Loader;
 import com.anthonyhilyard.iceberg.events.GatherComponentsExtEvent;
 import com.anthonyhilyard.iceberg.events.RenderTooltipExtEvent;
+
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.datafixers.util.Either;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
@@ -26,23 +37,52 @@ import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSequence;
-
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.datafixers.util.Either;
 
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import com.mojang.math.Matrix4f;
 
 import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.event.RenderTooltipEvent;
+import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.joml.Matrix4f;
 
 public class Tooltips
 {
+	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
+	private static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0x505000FF), TextColor.fromRgb(0x5028007F));
+
 	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
 	private static ItemRenderer itemRenderer = null;
+	private static boolean tooltipWidthWarningShown = false;
+
+	public static TooltipColors currentColors = DEFAULT_COLORS;
+
+	public static class TitleBreakComponent implements TooltipComponent, ClientTooltipComponent
+	{
+		@Override
+		public int getHeight() { return 0; }
+
+		@Override
+		public int getWidth(Font font) { return 0; }
+		
+		public static void registerFactory()
+		{
+			FMLJavaModLoadingContext.get().getModEventBus().addListener(TitleBreakComponent::onRegisterTooltipEvent);
+		}
+
+		private static void onRegisterTooltipEvent(RegisterClientTooltipComponentFactoriesEvent event)
+		{
+			event.register(TitleBreakComponent.class, x -> x);
+		}
+	}
+
+	public static interface InlineComponent { }
 
 	public static class TooltipInfo
 	{
@@ -51,10 +91,12 @@ public class Tooltips
 		private Font font;
 		private List<ClientTooltipComponent> components = new ArrayList<>();
 
-		public TooltipInfo(List<ClientTooltipComponent> components, Font font)
+		public TooltipInfo(List<ClientTooltipComponent> components, Font font, int titleLines)
 		{
 			this.components = components;
 			this.font = font;
+			this.titleLines = titleLines;
+			this.tooltipWidth = getMaxLineWidth();
 		}
 
 		public int getTooltipWidth() { return tooltipWidth; }
@@ -83,6 +125,39 @@ public class Tooltips
 			}
 			return textWidth;
 		}
+	}
+
+	public static int calculateTitleLines(List<ClientTooltipComponent> components)
+	{
+		if (components == null || components.isEmpty())
+		{
+			return 0;
+		}
+
+		// Determine the number of "title lines".  This will be the number of text components before the first TitleBreakComponent.
+		// If for some reason there is no TitleBreakComponent, we'll default to 1.
+		int titleLines = 0;
+		boolean foundTitleBreak = false;
+		for (ClientTooltipComponent component : components)
+		{
+			if (component instanceof ClientTextTooltip)
+			{
+				titleLines++;
+			}
+			else if (component instanceof TitleBreakComponent)
+			{
+				foundTitleBreak = true;
+				break;
+			}
+		}
+
+		// We didn't find a title break (shouldn't happen normally), so default to 1.
+		if (!foundTitleBreak)
+		{
+			titleLines = 1;
+		}
+
+		return titleLines;
 	}
 
 	public static void renderItemTooltip(@Nonnull final ItemStack stack, PoseStack poseStack, TooltipInfo info,
@@ -125,7 +200,7 @@ public class Tooltips
 		// Center the title now if needed.
 		if (centeredTitle)
 		{
-			info = new TooltipInfo(centerTitle(info.getComponents(), info.getFont(), rect.getWidth()), info.getFont());
+			info = new TooltipInfo(centerTitle(info.getComponents(), info.getFont(), info.getMaxLineWidth(), info.getTitleLines()), info.getFont(), info.getTitleLines());
 		}
 
 		int rectX = rect.getX() + 4;
@@ -148,7 +223,12 @@ public class Tooltips
 		final int zLevel = 400;
 		float f = itemRenderer.blitOffset;
 		itemRenderer.blitOffset = zLevel;
-		Matrix4f mat = poseStack.last().pose();
+
+		Tesselator tesselator = Tesselator.getInstance();
+		BufferBuilder bufferbuilder = tesselator.getBuilder();
+		RenderSystem.setShader(GameRenderer::getPositionColorShader);
+		bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+		Matrix4f matrix4f = poseStack.last().pose();
 
 		RenderTooltipExtEvent.Color colorEvent = new RenderTooltipExtEvent.Color(stack, poseStack, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, info.getComponents(), comparison, index);
 		MinecraftForge.EVENT_BUS.post(colorEvent);
@@ -158,35 +238,41 @@ public class Tooltips
 		borderColorStart = colorEvent.getBorderStart();
 		borderColorEnd = colorEvent.getBorderEnd();
 
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 4, rectX + rect.getWidth() + 3, rectY - 3, backgroundColorStart, backgroundColorStart);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY + rect.getHeight() + 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 4, backgroundColorEnd, backgroundColorEnd);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 4, rectY - 3, rectX - 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX + rect.getWidth() + 3, rectY - 3, rectX + rect.getWidth() + 4, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 3 + 1, rectX - 3 + 1, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX + rect.getWidth() + 2, rectY - 3 + 1, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY - 3 + 1, borderColorStart, borderColorStart);
-		GuiHelper.drawGradientRect(mat, zLevel, rectX - 3, rectY + rect.getHeight() + 2, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, borderColorEnd, borderColorEnd);
+		currentColors = new TooltipColors(TextColor.fromRgb(backgroundColorStart), TextColor.fromRgb(backgroundColorEnd), TextColor.fromRgb(borderColorStart), TextColor.fromRgb(borderColorEnd));
 
-		BufferSource renderType = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-		poseStack.translate(0.0D, 0.0D, zLevel);
+		TooltipRenderUtil.renderTooltipBackground((matrix, bufferBuilder, left, top, right, bottom, z, startColor, endColor) -> {
+			GuiHelper.drawGradientRect(matrix, bufferBuilder, left, top, right, bottom, z, startColor, endColor);
+		}, matrix4f, bufferbuilder, rectX, rectY, rect.getWidth(), rect.getHeight(), zLevel);
+
+		RenderSystem.enableDepthTest();
+		RenderSystem.disableTexture();
+		RenderSystem.enableBlend();
+		RenderSystem.defaultBlendFunc();
+		BufferUploader.drawWithShader(bufferbuilder.end());
+		RenderSystem.disableBlend();
+		RenderSystem.enableTexture();
+		BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+		poseStack.translate(0.0f, 0.0f, zLevel);
 
 		int tooltipTop = rectY;
-		boolean titleRendered = false;
+		int titleLines = info.getTitleLines();
 
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent textComponent = info.getComponents().get(componentNumber);
-			textComponent.renderText(preEvent.getFont(), rectX, tooltipTop, mat, renderType);
+			textComponent.renderText(preEvent.getFont(), rectX, tooltipTop, matrix4f, bufferSource);
 			tooltipTop += textComponent.getHeight();
-			if (!titleRendered && textComponent instanceof ClientTextTooltip)
+			if ((textComponent instanceof ClientTextTooltip || textComponent instanceof InlineComponent) && titleLines > 0)
 			{
-				tooltipTop += 2;
-				titleRendered = true;
+				titleLines -= (textComponent instanceof InlineComponent) ? 2 : 1;
+				if (titleLines <= 0)
+				{
+					tooltipTop += 2;
+				}
 			}
 		}
 
-		renderType.endBatch();
+		bufferSource.endBatch();
 		poseStack.popPose();
 		tooltipTop = rectY;
 
@@ -226,7 +312,22 @@ public class Tooltips
 		}
 
 		int tooltipTextWidth = event.getTooltipElements().stream()
-				.mapToInt(either -> either.map(font::width, component -> 0))
+				.mapToInt(either -> either.map(component -> {
+					try
+					{
+						return font.width(component);
+					}
+					catch (Exception e)
+					{
+						// Log this exception, but only once.
+						if (!tooltipWidthWarningShown)
+						{
+							Loader.LOGGER.error("Error rendering tooltip component: \n" + ExceptionUtils.getStackTrace(e));
+							tooltipWidthWarningShown = true;
+						}
+						return 0;
+					}
+				}, component -> 0))
 				.max()
 				.orElse(0);
 
@@ -239,9 +340,13 @@ public class Tooltips
 			if (tooltipX < 4) // if the tooltip doesn't fit on the screen
 			{
 				if (mouseX > screenWidth / 2)
+				{
 					tooltipTextWidth = mouseX - 12 - 8;
+				}
 				else
+				{
 					tooltipTextWidth = screenWidth - 16 - mouseX;
+				}
 				needsWrap = true;
 			}
 		}
@@ -300,11 +405,23 @@ public class Tooltips
 
 		int tooltipTextWidth = minWidth;
 		int tooltipHeight = components.size() == 1 ? -2 : 0;
+		int titleLines = calculateTitleLines(components);
 
 		if (centeredTitle)
 		{
-			components = centerTitle(components, font, minWidth);
+			// Calculate the current tooltip width prior to centering.
+			for (ClientTooltipComponent component : components)
+			{
+				int componentWidth = component.getWidth(event.getFont());
+				if (componentWidth > tooltipTextWidth)
+				{
+					tooltipTextWidth = componentWidth;
+				}
+			}
+			components = centerTitle(components, font, tooltipTextWidth, titleLines);
 		}
+
+		tooltipTextWidth = minWidth;
 
 		for (ClientTooltipComponent component : components)
 		{
@@ -333,25 +450,20 @@ public class Tooltips
 		return rect;
 	}
 
-	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int minWidth)
+	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width)
 	{
-		// Calculate tooltip width first.
-		int tooltipWidth = minWidth;
+		return centerTitle(components, font, width, 1);
+	}
 
-		for (ClientTooltipComponent clienttooltipcomponent : components)
+	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width, int titleLines)
+	{
+		List<ClientTooltipComponent> result = new ArrayList<>(components);
+
+		if (components.isEmpty() || titleLines <= 0 || titleLines >= components.size())
 		{
-			if (clienttooltipcomponent == null)
-			{
-				return components;
-			}
-			int componentWidth = clienttooltipcomponent.getWidth(font);
-			if (componentWidth > tooltipWidth)
-			{
-				tooltipWidth = componentWidth;
-			}
+			return result;
 		}
 
-		// TODO: If the title is multiple lines, we need to extend this for each one.
 		// Find the title component, which is the first text component.
 		int titleIndex = 0;
 		for (ClientTooltipComponent clienttooltipcomponent : components)
@@ -363,29 +475,30 @@ public class Tooltips
 			titleIndex++;
 		}
 
-		if (titleIndex >= components.size())
+		for (int i = 0; i < titleLines; i++)
 		{
-			titleIndex = 0;
-		}
+			ClientTooltipComponent titleComponent = components.get(titleIndex + i);
 
-		List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(components.get(titleIndex)));
-		if (recomposedLines.isEmpty())
-		{
-			return components;
-		}
-
-		List<ClientTooltipComponent> result = new ArrayList<>(components);
-
-		FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
-		while (result.get(titleIndex).getWidth(font) < tooltipWidth)
-		{
-			title = FormattedCharSequence.fromList(List.of(SPACE, title, SPACE));
-			if (title == null)
+			if (titleComponent != null)
 			{
-				break;
-			}
+				List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(titleComponent));
+				if (recomposedLines.isEmpty())
+				{
+					return components;
+				}
 
-			result.set(titleIndex, ClientTooltipComponent.create(title));
+				FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
+
+				while (ClientTooltipComponent.create(title).getWidth(font) < width)
+				{
+					title = FormattedCharSequence.fromList(List.of(SPACE, title, SPACE));
+					if (title == null)
+					{
+						break;
+					}
+				}
+				result.set(titleIndex + i, ClientTooltipComponent.create(title));
+			}
 		}
 		return result;
 	}

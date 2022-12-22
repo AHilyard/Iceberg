@@ -11,7 +11,8 @@
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
 		"TextColorMixin",
-		"MinecraftMixin"
+		"MinecraftMixin",
+		"TooltipRenderUtilMixin"
 	],
 	"server": [
 		"MainMixin"
