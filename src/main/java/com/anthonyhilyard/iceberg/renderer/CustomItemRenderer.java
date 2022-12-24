@@ -640,10 +640,9 @@ public class CustomItemRenderer extends ItemRenderer
 		RenderSystem.backupProjectionMatrix();
 		RenderSystem.setProjectionMatrix(matrix);
 
-		Lighting.setupFor3DItems();
-
 		mc.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
 		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
+		RenderSystem.disableCull();
 		RenderSystem.enableBlend();
 		RenderSystem.blendFuncSeparate(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA);
 		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -655,14 +654,21 @@ public class CustomItemRenderer extends ItemRenderer
 		modelViewStack.scale(96.0f, 96.0f, 96.0f);
 		RenderSystem.applyModelViewMatrix();
 		PoseStack poseStack = new PoseStack();
-		BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+		BufferSource bufferSource = mc.renderBuffers().bufferSource();
+
 		boolean flatLighting = !bakedModel.usesBlockLight();
-		if (flatLighting) { Lighting.setupForFlatItems(); }
+		if (flatLighting)
+		{
+			Lighting.setupForFlatItems();
+		}
 
 		render(stack, ItemTransforms.TransformType.GUI, false, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
 		bufferSource.endBatch();
 		RenderSystem.enableDepthTest();
-		if (flatLighting) { Lighting.setupFor3DItems(); }
+		if (flatLighting)
+		{
+			Lighting.setupFor3DItems();
+		}
 
 		modelViewStack.popPose();
 		RenderSystem.applyModelViewMatrix();
@@ -679,13 +685,12 @@ public class CustomItemRenderer extends ItemRenderer
 			RenderSystem.disableCull();
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
 			modelViewStack.pushPose();
-			modelViewStack.scale(1.0f, -1.0f, 1.0f);
 			modelViewStack.translate(0.0f, 0.0f, 50.0f + this.blitOffset);
 			RenderSystem.applyModelViewMatrix();
 
 			RenderSystem.setShaderTexture(0, iconFrameBuffer.getColorTextureId());
 
-			GuiComponent.blit(new PoseStack(), x, y - 18, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
+			GuiComponent.blit(new PoseStack(), x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
 			modelViewStack.popPose();
 			RenderSystem.applyModelViewMatrix();
 			iconFrameBuffer.unbindRead();
