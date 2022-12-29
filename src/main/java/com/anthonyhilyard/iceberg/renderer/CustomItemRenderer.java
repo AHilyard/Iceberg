@@ -8,16 +8,14 @@ import java.util.function.Predicate;
 
 import com.google.common.collect.Maps;
 
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
-
 import org.lwjgl.opengl.GL11;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Pair;
-import com.mojang.math.MatrixUtil;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Quaternion;
+import com.mojang.math.Vector3f;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.pipeline.MainTarget;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -121,7 +119,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternionf rotation, BakedModel bakedModel)
+	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternion rotation, BakedModel bakedModel)
 	{
 		mc.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
 		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
@@ -178,12 +176,12 @@ public class CustomItemRenderer extends ItemRenderer
 	}
 
 	private <T extends MultiBufferSource> void renderModelInternal(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack,
-																   Quaternionf rotation, T bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel,
+																   Quaternion rotation, T bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel,
 																   Predicate<T> bufferSourceReady)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 
-		if (Player.getEquipmentSlotForItem(itemStack).isArmor())
+		if (Player.getEquipmentSlotForItem(itemStack).getType() == EquipmentSlot.Type.ARMOR)
 		{
 			if (updateArmorStand(itemStack))
 			{
@@ -295,7 +293,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	private void renderModel(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack, Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+	private void renderModel(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack, Quaternion rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
 		if (!itemStack.isEmpty())
 		{
@@ -309,7 +307,7 @@ public class CustomItemRenderer extends ItemRenderer
 				spawnsEntity = true;
 			}
 
-			if (Player.getEquipmentSlotForItem(itemStack).isArmor())
+			if (Player.getEquipmentSlotForItem(itemStack).getType() == EquipmentSlot.Type.ARMOR)
 			{
 				isArmor = true;
 			}
@@ -319,7 +317,7 @@ public class CustomItemRenderer extends ItemRenderer
 			if (isBlockItem || spawnsEntity)
 			{
 				// Apply the standard block rotation so block entities match other blocks.
-				poseStack.mulPose(new Quaternionf().rotationXYZ((float)Math.toRadians(30.0f), (float)Math.toRadians(225.0f), 0.0f));
+				poseStack.mulPose(Quaternion.fromXYZDegrees(new Vector3f((float)Math.toRadians(30.0f), (float)Math.toRadians(225.0f), 0.0f)));
 			}
 			else
 			{
@@ -364,7 +362,7 @@ public class CustomItemRenderer extends ItemRenderer
 			if (isBlockItem || spawnsEntity)
 			{
 				// Apply the standard block rotation so block entities match other blocks.
-				poseStack.mulPose(new Quaternionf().rotationXYZ((float)Math.toRadians(30.0f), (float)Math.toRadians(225.0f), 0.0f));
+				poseStack.mulPose(Quaternion.fromXYZDegrees(new Vector3f((float)Math.toRadians(30.0f), (float)Math.toRadians(225.0f), 0.0f)));
 			}
 			else
 			{
@@ -412,11 +410,11 @@ public class CustomItemRenderer extends ItemRenderer
 					PoseStack.Pose posestack$pose = poseStack.last();
 					if (transformType == ItemTransforms.TransformType.GUI)
 					{
-						MatrixUtil.mulComponentWise(posestack$pose.pose(), 0.5F);
+						posestack$pose.pose().multiply(0.5F);
 					}
 					else if (transformType.firstPerson())
 					{
-						MatrixUtil.mulComponentWise(posestack$pose.pose(), 0.75F);
+						posestack$pose.pose().multiply(0.75F);
 					}
 
 					if (fabulous)
@@ -447,7 +445,7 @@ public class CustomItemRenderer extends ItemRenderer
 	private boolean updateArmorStand(ItemStack itemStack)
 	{
 		EquipmentSlot equipmentSlot = Player.getEquipmentSlotForItem(itemStack);
-		if (!equipmentSlot.isArmor())
+		if (equipmentSlot.getType() != EquipmentSlot.Type.ARMOR)
 		{
 			// This isn't armor, so don't render anything.
 			return false;
@@ -497,11 +495,11 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private boolean updateBoat(BoatItem item)
 	{
-		if (boat == null || boat.getVariant() != item.type || (boat instanceof ChestBoat) != item.hasChest)
+		if (boat == null || boat.getBoatType() != item.type || (boat instanceof ChestBoat) != item.hasChest)
 		{
 			Minecraft minecraft = Minecraft.getInstance();
 			boat = item.hasChest ? new ChestBoat(minecraft.level, 0, 0, 0) : new Boat(minecraft.level, 0, 0, 0);
-			boat.setVariant(item.type);
+			boat.setType(item.type);
 		}
 
 		// If somehow the boat is still null, then we can't render anything.
@@ -556,12 +554,12 @@ public class CustomItemRenderer extends ItemRenderer
 
 		for (Vector3f vertex : vertices)
 		{
-			minX = Math.min(minX, vertex.x);
-			minY = Math.min(minY, vertex.y);
-			minZ = Math.min(minZ, vertex.z);
-			maxX = Math.max(maxX, vertex.x);
-			maxY = Math.max(maxY, vertex.y);
-			maxZ = Math.max(maxZ, vertex.z);
+			minX = Math.min(minX, vertex.x());
+			minY = Math.min(minY, vertex.y());
+			minZ = Math.min(minZ, vertex.z());
+			maxX = Math.max(maxX, vertex.x());
+			maxY = Math.max(maxY, vertex.y());
+			maxZ = Math.max(maxZ, vertex.z());
 		}
 
 		center = new Vector3f((minX + maxX) / 2.0F, (minY + maxY) / 2.0F, (minZ + maxZ) / 2.0F);
@@ -569,14 +567,14 @@ public class CustomItemRenderer extends ItemRenderer
 
 		for (Vector3f vertex : vertices)
 		{
-			radius = Math.max(radius, (float) Math.sqrt((vertex.x - center.x) * (vertex.x - center.x) + (vertex.y - center.y) * (vertex.y - center.y)));
+			radius = Math.max(radius, (float) Math.sqrt((vertex.x() - center.x()) * (vertex.x() - center.x()) + (vertex.y() - center.y()) * (vertex.y() - center.y())));
 		}
 
 		return new ModelBounds(center, height, radius);
 	}
 
 	private ModelBounds getModelBounds(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack,
-									   Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+									   Quaternion rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
 		if (!modelBoundsCache.containsKey(itemStack.getItem()))
 		{
@@ -590,7 +588,7 @@ public class CustomItemRenderer extends ItemRenderer
 		return modelBoundsCache.get(itemStack.getItem());
 	}
 
-	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation)
+	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternion rotation)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 		BakedModel bakedModel = minecraft.getItemRenderer().getModel(stack, minecraft.level, minecraft.player, 0);
@@ -633,8 +631,7 @@ public class CustomItemRenderer extends ItemRenderer
 		iconFrameBuffer.clear(Minecraft.ON_OSX);
 		iconFrameBuffer.bindWrite(true);
 
-		Matrix4f matrix = new Matrix4f();
-		matrix.setOrtho(0.0f, iconFrameBuffer.width, iconFrameBuffer.height, 0.0f, 1000.0f, 3000.0f);
+		Matrix4f matrix = Matrix4f.orthographic(0.0f, iconFrameBuffer.width, iconFrameBuffer.height, 0.0f, 1000.0f, 3000.0f);
 
 		RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 		RenderSystem.backupProjectionMatrix();
@@ -685,12 +682,13 @@ public class CustomItemRenderer extends ItemRenderer
 			RenderSystem.disableCull();
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
 			modelViewStack.pushPose();
+			modelViewStack.scale(1.0f, -1.0f, 1.0f);
 			modelViewStack.translate(0.0f, 0.0f, 50.0f + this.blitOffset);
 			RenderSystem.applyModelViewMatrix();
 
 			RenderSystem.setShaderTexture(0, iconFrameBuffer.getColorTextureId());
 
-			GuiComponent.blit(new PoseStack(), x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
+			GuiComponent.blit(new PoseStack(), x, y - 18, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
 			modelViewStack.popPose();
 			RenderSystem.applyModelViewMatrix();
 			iconFrameBuffer.unbindRead();

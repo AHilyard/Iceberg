@@ -3,9 +3,9 @@ package com.anthonyhilyard.iceberg.renderer;
 import java.util.List;
 
 import org.apache.commons.compress.utils.Lists;
-import org.joml.Vector3f;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Vector3f;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -54,7 +54,7 @@ public class VertexCollector implements MultiBufferSource
 			{
 				if (currentAlpha >= 25)
 				{
-					vertices.add(new Vector3f(currentVertex));
+					vertices.add(currentVertex.copy());
 				}
 			}
 

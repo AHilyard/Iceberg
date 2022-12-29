@@ -3,18 +3,19 @@ package com.anthonyhilyard.iceberg.util;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
-import net.minecraft.server.packs.resources.IoSupplier;
 
 /**
  * DynamicResourcePack allows resources that are defined arbitrarily to do cool things with resources.
@@ -25,7 +26,7 @@ public class DynamicResourcePack implements PackResources
 	private record DynamicResourceKey(String type, String namespace, String path) {}
 
 	private final String packName;
-	private Map<DynamicResourceKey, IoSupplier<InputStream>> dynamicResourceMap = new HashMap<DynamicResourceKey, IoSupplier<InputStream>>();
+	private Map<DynamicResourceKey, Supplier<InputStream>> dynamicResourceMap = new HashMap<DynamicResourceKey, Supplier<InputStream>>();
 
 	public DynamicResourcePack(String packName)
 	{
@@ -51,17 +52,17 @@ public class DynamicResourcePack implements PackResources
 		}
 	}
 
-	public boolean registerResource(PackType type, ResourceLocation location, IoSupplier<InputStream> resourceSupplier)
+	public boolean registerResource(PackType type, ResourceLocation location, Supplier<InputStream> resourceSupplier)
 	{
 		return register(type.getDirectory(), location.getNamespace(), location.getPath(), resourceSupplier);
 	}
 
-	public boolean registerRootResource(String path, IoSupplier<InputStream> resourceSupplier)
+	public boolean registerRootResource(String path, Supplier<InputStream> resourceSupplier)
 	{
 		return register("root", "", path, resourceSupplier);
 	}
 
-	private boolean register(String directory, String namespace, String path, IoSupplier<InputStream> resourceSupplier)
+	private boolean register(String directory, String namespace, String path, Supplier<InputStream> resourceSupplier)
 	{
 		DynamicResourceKey key = new DynamicResourceKey(directory, namespace, path);
 		if (!dynamicResourceMap.containsKey(key))
@@ -73,39 +74,23 @@ public class DynamicResourcePack implements PackResources
 	}
 
 	@Override
-	@Nullable
-	public IoSupplier<InputStream> getRootResource(String... path)
+	public InputStream getRootResource(String path) throws IOException
 	{
-		try
-		{
-			return getResource("root", "", String.join("/", path));
-		}
-		catch (IOException e)
-		{
-			return null;
-		}
+		return getResource("root", "", path);
 	}
 
 	@Override
-	@Nullable
-	public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location)
+	public InputStream getResource(PackType type, ResourceLocation location) throws IOException
 	{
-		try
-		{
-			return getResource(type.getDirectory(), location.getNamespace(), location.getPath());
-		}
-		catch (IOException e)
-		{
-			return null;
-		}
+		return getResource(type.getDirectory(), location.getNamespace(), location.getPath());
 	}
 
-	private IoSupplier<InputStream> getResource(String directory, String namespace, String path) throws IOException
+	private InputStream getResource(String directory, String namespace, String path) throws IOException
 	{
 		DynamicResourceKey key = new DynamicResourceKey(directory, namespace, path);
 		if (dynamicResourceMap.containsKey(key))
 		{
-			return dynamicResourceMap.get(key);
+			return dynamicResourceMap.get(key).get();
 		}
 		else
 		{
@@ -114,13 +99,21 @@ public class DynamicResourcePack implements PackResources
 	}
 
 	@Override
-	public void listResources(PackType type, String namespace, String path, ResourceOutput output)
+	public Collection<ResourceLocation> getResources(PackType type, String namespace, String path, Predicate<ResourceLocation> filter)
 	{
-		dynamicResourceMap.entrySet().stream()
+		return dynamicResourceMap.entrySet().stream()
 		.filter(entry -> entry.getKey().namespace.contentEquals(namespace))
 		.filter(entry -> entry.getKey().path.startsWith(path))
 		.filter(entry -> entry.getKey().type.contentEquals(type.getDirectory()))
-		.forEach(entry -> output.accept(new ResourceLocation(namespace, entry.getKey().path), entry.getValue()));
+		.filter(entry -> filter.test(new ResourceLocation(entry.getKey().namespace, entry.getKey().path)))
+		.map(entry -> new ResourceLocation(namespace, entry.getKey().path))
+		.collect(Collectors.toList());
+	}
+
+	@Override
+	public boolean hasResource(PackType type, ResourceLocation location)
+	{
+		return dynamicResourceMap.containsKey(new DynamicResourceKey(type.getDirectory(), location.getNamespace(), location.getPath()));
 	}
 
 	@Override
@@ -146,7 +139,7 @@ public class DynamicResourcePack implements PackResources
 	}
 
 	@Override
-	public String packId()
+	public String getName()
 	{
 		return packName;
 	}

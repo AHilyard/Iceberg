@@ -22,12 +22,12 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.datafixers.util.Either;
+import com.mojang.math.Matrix4f;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
@@ -37,7 +37,6 @@ import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSequence;
 
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -50,18 +49,12 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.joml.Matrix4f;
 
 public class Tooltips
 {
-	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
-	private static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0x505000FF), TextColor.fromRgb(0x5028007F));
-
 	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
 	private static ItemRenderer itemRenderer = null;
 	private static boolean tooltipWidthWarningShown = false;
-
-	public static TooltipColors currentColors = DEFAULT_COLORS;
 
 	public static class TitleBreakComponent implements TooltipComponent, ClientTooltipComponent
 	{
@@ -238,11 +231,15 @@ public class Tooltips
 		borderColorStart = colorEvent.getBorderStart();
 		borderColorEnd = colorEvent.getBorderEnd();
 
-		currentColors = new TooltipColors(TextColor.fromRgb(backgroundColorStart), TextColor.fromRgb(backgroundColorEnd), TextColor.fromRgb(borderColorStart), TextColor.fromRgb(borderColorEnd));
-
-		TooltipRenderUtil.renderTooltipBackground((matrix, bufferBuilder, left, top, right, bottom, z, startColor, endColor) -> {
-			GuiHelper.drawGradientRect(matrix, bufferBuilder, left, top, right, bottom, z, startColor, endColor);
-		}, matrix4f, bufferbuilder, rectX, rectY, rect.getWidth(), rect.getHeight(), zLevel);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 4, rectX + rect.getWidth() + 3, rectY - 3, backgroundColorStart, backgroundColorStart);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY + rect.getHeight() + 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 4, backgroundColorEnd, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 4, rectY - 3, rectX - 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX + rect.getWidth() + 3, rectY - 3, rectX + rect.getWidth() + 4, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 3 + 1, rectX - 3 + 1, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX + rect.getWidth() + 2, rectY - 3 + 1, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY - 3 + 1, borderColorStart, borderColorStart);
+		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY + rect.getHeight() + 2, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, borderColorEnd, borderColorEnd);
 
 		RenderSystem.enableDepthTest();
 		RenderSystem.disableTexture();

@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.1.2
+- Fixed a bug with custom item renderer causing items rendered with alpha to be upside down and with incorrect lighting.
+
 ### 1.1.1
 - Fixed a bug that could cause tooltip titles to be positioned incorrectly for explicitly-positioned tooltips.
 
