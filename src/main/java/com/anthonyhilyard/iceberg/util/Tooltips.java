@@ -84,6 +84,11 @@ public class Tooltips
 		private Font font;
 		private List<ClientTooltipComponent> components = new ArrayList<>();
 
+		public TooltipInfo(List<ClientTooltipComponent> components, Font font)
+		{
+			this(components, font, calculateTitleLines(components));
+		}
+
 		public TooltipInfo(List<ClientTooltipComponent> components, Font font, int titleLines)
 		{
 			this.components = components;
@@ -231,15 +236,15 @@ public class Tooltips
 		borderColorStart = colorEvent.getBorderStart();
 		borderColorEnd = colorEvent.getBorderEnd();
 
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 4, rectX + rect.getWidth() + 3, rectY - 3, backgroundColorStart, backgroundColorStart);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY + rect.getHeight() + 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 4, backgroundColorEnd, backgroundColorEnd);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 4, rectY - 3, rectX - 3, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX + rect.getWidth() + 3, rectY - 3, rectX + rect.getWidth() + 4, rectY + rect.getHeight() + 3, backgroundColorStart, backgroundColorEnd);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 3 + 1, rectX - 3 + 1, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX + rect.getWidth() + 2, rectY - 3 + 1, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3 - 1, borderColorStart, borderColorEnd);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY - 3 + 1, borderColorStart, borderColorStart);
-		GuiHelper.drawGradientRect(matrix4f, zLevel, rectX - 3, rectY + rect.getHeight() + 2, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, borderColorEnd, borderColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 3, rectY - 4, rectX + rect.getWidth() + 3, rectY - 3, zLevel, backgroundColorStart, backgroundColorStart);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 3, rectY + rect.getHeight() + 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 4, zLevel, backgroundColorEnd, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, zLevel, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 4, rectY - 3, rectX - 3, rectY + rect.getHeight() + 3, zLevel, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX + rect.getWidth() + 3, rectY - 3, rectX + rect.getWidth() + 4, rectY + rect.getHeight() + 3, zLevel, backgroundColorStart, backgroundColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 3, rectY - 3 + 1, rectX - 3 + 1, rectY + rect.getHeight() + 3 - 1, zLevel, borderColorStart, borderColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX + rect.getWidth() + 2, rectY - 3 + 1, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3 - 1, zLevel, borderColorStart, borderColorEnd);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 3, rectY - 3, rectX + rect.getWidth() + 3, rectY - 3 + 1, zLevel, borderColorStart, borderColorStart);
+		GuiHelper.drawGradientRect(matrix4f, bufferbuilder, rectX - 3, rectY + rect.getHeight() + 2, rectX + rect.getWidth() + 3, rectY + rect.getHeight() + 3, zLevel, borderColorEnd, borderColorEnd);
 
 		RenderSystem.enableDepthTest();
 		RenderSystem.disableTexture();
@@ -449,7 +454,7 @@ public class Tooltips
 
 	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width)
 	{
-		return centerTitle(components, font, width, 1);
+		return centerTitle(components, font, width, calculateTitleLines(components));
 	}
 
 	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width, int titleLines)

@@ -38,12 +38,15 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
+import net.minecraft.client.renderer.block.model.ItemTransforms.TransformType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.packs.resources.ReloadableResourceManager;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -108,6 +111,10 @@ public class CustomItemRenderer extends ItemRenderer
 		mc = mcIn;
 		modelManager = modelManagerIn;
 		blockEntityRenderer = blockEntityRendererIn;
+		if (mc.getResourceManager() instanceof ReloadableResourceManager resourceManager)
+		{
+			resourceManager.registerReloadListener(this);
+		}
 
 		// Initialize the icon framebuffer if needed.
 		if (iconFrameBuffer == null)
@@ -293,10 +300,18 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	private void renderModel(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack, Quaternion rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+	@SuppressWarnings("deprecation")
+	private void renderModel(ItemStack itemStack, TransformType transformType, boolean leftHanded, PoseStack poseStack, Quaternion rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
 		if (!itemStack.isEmpty())
 		{
+			// If this model doesn't have a special transform for the given transform type (most likely GUI), default to first-person right handed instead.
+			TransformType previewTransform = transformType;
+			if (!bakedModel.getTransforms().hasTransform(transformType))
+			{
+				previewTransform = TransformType.GROUND;
+			}
+
 			boolean isBlockItem = false, spawnsEntity = false, isArmor = false;
 			if (itemStack.getItem() instanceof BlockItem blockItem)
 			{
@@ -317,15 +332,15 @@ public class CustomItemRenderer extends ItemRenderer
 			if (isBlockItem || spawnsEntity)
 			{
 				// Apply the standard block rotation so block entities match other blocks.
-				poseStack.mulPose(Quaternion.fromXYZDegrees(new Vector3f((float)Math.toRadians(30.0f), (float)Math.toRadians(225.0f), 0.0f)));
+				poseStack.mulPose(Quaternion.fromXYZDegrees(new Vector3f(30.0f, 225.0f, 0.0f)));
 			}
 			else
 			{
-				ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, transformType, leftHanded);
+				ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, previewTransform, leftHanded);
 			}
 
 			// Get the model bounds.
-			ModelBounds modelBounds = getModelBounds(itemStack, transformType, leftHanded, poseStack, rotation, bufferSource, packedLight, packedOverlay, bakedModel);
+			ModelBounds modelBounds = getModelBounds(itemStack, previewTransform, leftHanded, poseStack, rotation, bufferSource, packedLight, packedOverlay, bakedModel);
 
 			// Undo the camera transforms now that we have the model bounds.
 			poseStack.popPose();
@@ -362,15 +377,15 @@ public class CustomItemRenderer extends ItemRenderer
 			if (isBlockItem || spawnsEntity)
 			{
 				// Apply the standard block rotation so block entities match other blocks.
-				poseStack.mulPose(Quaternion.fromXYZDegrees(new Vector3f((float)Math.toRadians(30.0f), (float)Math.toRadians(225.0f), 0.0f)));
+				poseStack.mulPose(Quaternion.fromXYZDegrees(new Vector3f(30.0f, 225.0f, 0.0f)));
 			}
 			else
 			{
-				bakedModel = ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, transformType, leftHanded);
+				bakedModel = ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, previewTransform, leftHanded);
 			}
 
 			CheckedBufferSource checkedBufferSource = new CheckedBufferSource(bufferSource);
-			renderModelInternal(itemStack, transformType, leftHanded, poseStack, rotation, checkedBufferSource, packedLight, packedOverlay, bakedModel, b -> !b.hasRendered());
+			renderModelInternal(itemStack, previewTransform, leftHanded, poseStack, rotation, checkedBufferSource, packedLight, packedOverlay, bakedModel, b -> !b.hasRendered());
 
 			poseStack.popPose();
 		}
@@ -697,5 +712,14 @@ public class CustomItemRenderer extends ItemRenderer
 		{
 			iconFrameBuffer.unbindWrite();
 		}
-	 }
+	}
+
+	@Override
+	public void onResourceManagerReload(ResourceManager resourceManager)
+	{
+		super.onResourceManagerReload(resourceManager);
+
+		// Clear the model bounds cache.
+		modelBoundsCache.clear();
+	}
 }

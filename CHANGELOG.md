@@ -1,5 +1,13 @@
 # Changelog
 
+### 1.1.4
+- Fixed a bug that caused resource-pack defined item models with custom scaling to render improperly with custom item renderer.
+- Fixed a bug that caused custom item renderer 3D models to have incorrect rotations.
+
+### 1.1.3
+- Fixed regression causing missing method crashes with some mods.
+- Fixed a crash that could occur when rendering custom tooltips.
+
 ### 1.1.2
 - Fixed a bug with custom item renderer causing items rendered with alpha to be upside down and with incorrect lighting.
 
