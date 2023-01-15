@@ -5,10 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiPredicate;
+
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
@@ -32,7 +33,9 @@ public class Selectors
 	}};
 
 	private static Map<String, BiPredicate<Tag, String>> nbtComparators = new HashMap<String, BiPredicate<Tag, String>>() {{
-		put("=",  (tag, value) -> tag.getAsString().contentEquals(value));
+		put("=",  (tag, value) -> {
+			return tag.getAsString().contentEquals(value);
+		});
 
 		put("!=", (tag, value) -> !tag.getAsString().contentEquals(value));
 
@@ -83,14 +86,17 @@ public class Selectors
 	public static List<SelectorDocumentation> selectorDocumentation()
 	{
 		return Arrays.asList(
-			new SelectorDocumentation("Item name", "Use item name for vanilla items or include mod name for modded items.", "minecraft:stick", "iron_ore"),
-			new SelectorDocumentation("Tag", "$ followed by tag name.", "$forge:stone", "$planks"),
-			new SelectorDocumentation("Mod name", "@ followed by mod identifier.", "@spoiledeggs"),
-			new SelectorDocumentation("Rarity", "! followed by item's rarity.  This is ONLY vanilla rarities.", "!uncommon", "!rare", "!epic"),
-			new SelectorDocumentation("Item name color", "# followed by color hex code, the hex code must match exactly.", "#23F632"),
-			new SelectorDocumentation("Display name", "% followed by any text.  Will match any item with this text in its tooltip display name.", "%Netherite", "%[Uncommon]"),
-			new SelectorDocumentation("Tooltip text", "Will match any item with this text anywhere in the tooltip text (besides the name).", "^Legendary"),
-			new SelectorDocumentation("NBT tag", "& followed by tag name and optional comparator (=, >, <, or !=) and value, in the format <tag><comparator><value> or just <tag>.", "&Damage=0", "&Tier>1", "&map!=128", "&Enchantments")
+			new SelectorDocumentation("Match all", "Specifying just an asterisk (*) will match all items.", "*"),
+			new SelectorDocumentation("Item ID", "Use item ID to match single items.  Must include mod name for modded items.", "minecraft:stick", "iron_ore", "spoiledeggs:spoiled_egg"),
+			new SelectorDocumentation("Tag", "$ followed by tag name to match all items with that tag.", "$forge:stone", "$planks"),
+			new SelectorDocumentation("Mod name", "@ followed by mod identifier to match all items from that mod.", "@spoiledeggs"),
+			new SelectorDocumentation("Rarity", "! followed by item's rarity to match all items with that rarity.  This is ONLY vanilla rarities.", "!uncommon", "!rare", "!epic"),
+			new SelectorDocumentation("Item name color", "# followed by color hex code, to match all items with that exact color item name.", "#23F632"),
+			new SelectorDocumentation("Display name", "% followed by any text.  Will match any item with this text (case-sensitive) in its tooltip display name.", "%Netherite", "%Uncommon"),
+			new SelectorDocumentation("Tooltip text", "^ followed by any text.  Will match any item with this text (case-sensitive) anywhere in the tooltip text (besides the name).", "^Legendary"),
+			new SelectorDocumentation("NBT tag", "& followed by tag name and optional comparator (=, >, <, or !=) and value, in the format <tag><comparator><value> or just <tag>.", "&Damage=0", "&Tier>1", "&map!=128", "&Enchantments"),
+			new SelectorDocumentation("Negation", "~ followed by any selector above.  This selector will be negated, matching every item that does NOT match the selector.", "~minecraft:stick", "~!uncommon", "~@minecraft"),
+			new SelectorDocumentation("Combining selectors", "Any number of selectors can be combined by separating them with a plus sign.", "minecraft:diamond_sword+&Enchantments", "minecraft:stick+~!common+&Damage=0")
 		);
 	}
 
@@ -101,6 +107,25 @@ public class Selectors
 	 */
 	public static boolean validateSelector(String value)
 	{
+		// First check if this is a combination of selectors.
+		if (value.contains("+"))
+		{
+			for (String selector : value.split("\\+"))
+			{
+				if (!validateSelector(selector))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// If this is a negation, remove the ~ and validate the rest.
+		if (value.startsWith("~"))
+		{
+			return validateSelector(value.substring(1));
+		}
+
 		// This is a tag, which should be a resource location.
 		if (value.startsWith("$"))
 		{
@@ -144,14 +169,47 @@ public class Selectors
 	 * @param selector A selector string to check against.
 	 * @return True if the item matches, false otherwise.
 	 */
-	@SuppressWarnings({"removal"})
+	@SuppressWarnings("removal")
 	public static boolean itemMatches(ItemStack item, String selector)
 	{
-		String itemResourceLocation = Registry.ITEM.getKey(item.getItem()).toString();
+		// If this is a combination of selectors, check each one.
+		if (selector.contains("+"))
+		{
+			for (String subSelector : selector.split("\\+"))
+			{
+				if (!itemMatches(item, subSelector))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// If this is a negation, remove the ~ and check the rest.
+		if (selector.startsWith("~"))
+		{
+			return !itemMatches(item, selector.substring(1));
+		}
+		
+		// Wildcard
+		if (selector.contentEquals("*"))
+		{
+			return true;
+		}
+
 		// Item ID
+		String itemResourceLocation = BuiltInRegistries.ITEM.getKey(item.getItem()).toString();
 		if (selector.equals(itemResourceLocation) || selector.equals(itemResourceLocation.replace("minecraft:", "")))
 		{
 			return true;
+		}
+		// Mod ID
+		else if (selector.startsWith("@"))
+		{
+			if (itemResourceLocation.startsWith(selector.substring(1) + ":"))
+			{
+				return true;
+			}
 		}
 		// Item name color
 		else if (selector.startsWith("#"))
@@ -170,18 +228,10 @@ public class Selectors
 				return true;
 			}
 		}
-		// Mod ID
-		else if (selector.startsWith("@"))
-		{
-			if (itemResourceLocation.startsWith(selector.substring(1) + ":"))
-			{
-				return true;
-			}
-		}
 		// Item tag
 		else if (selector.startsWith("$"))
 		{
-			Optional<TagKey<Item>> matchingTag = Registry.ITEM.getTagNames().filter(tagKey -> tagKey.location().equals(new ResourceLocation(selector.substring(1)))).findFirst();
+			Optional<TagKey<Item>> matchingTag = BuiltInRegistries.ITEM.getTagNames().filter(tagKey -> tagKey.location().equals(new ResourceLocation(selector.substring(1)))).findFirst();
 			if (matchingTag.isPresent() && item.is(matchingTag.get()))
 			{
 				return true;
@@ -201,7 +251,7 @@ public class Selectors
 			Minecraft mc = Minecraft.getInstance();
 			List<Component> lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
 			String tooltipText = "";
-			
+
 			// Skip title line.
 			for (int n = 1; n < lines.size(); n++)
 			{
@@ -243,6 +293,9 @@ public class Selectors
 		return false;
 	}
 
+	/**
+	 * Retrieves the first inner tag with the given key, or null if there is no match.
+	 */
 	private static boolean findMatchingSubtag(Tag tag, String key, String value, BiPredicate<Tag, String> valueChecker)
 	{
 		if (tag == null)

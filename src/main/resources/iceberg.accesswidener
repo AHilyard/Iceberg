@@ -1,3 +1,10 @@
 accessWidener	v1 named
 accessible    field    net/minecraft/client/gui/screens/inventory/tooltip/ClientTextTooltip    text    Lnet/minecraft/util/FormattedCharSequence;
 accessible    field    net/minecraft/client/gui/screens/inventory/AbstractContainerScreen    hoveredSlot    Lnet/minecraft/world/inventory/Slot;
+accessible    field    net/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil    BACKGROUND_COLOR    I
+accessible    field    net/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil    BORDER_COLOR_TOP    I
+accessible    field    net/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil    BORDER_COLOR_BOTTOM    I
+accessible    field    net/minecraft/world/item/MinecartItem    type    Lnet/minecraft/world/entity/vehicle/AbstractMinecart$Type;
+accessible    field    net/minecraft/world/item/BoatItem    type    Lnet/minecraft/world/entity/vehicle/Boat$Type;
+accessible    field    net/minecraft/world/item/BoatItem    hasChest    Z
+accessible    method    net/minecraft/client/renderer/entity/ItemRenderer    renderModelLists    (Lnet/minecraft/client/resources/model/BakedModel;Lnet/minecraft/world/item/ItemStack;IILcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V

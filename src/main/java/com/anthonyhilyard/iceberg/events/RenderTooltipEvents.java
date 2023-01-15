@@ -23,7 +23,7 @@ public final class RenderTooltipEvents
 			GatherResult result = new GatherResult(InteractionResult.PASS, maxWidth, tooltipElements);
 			for (RenderTooltipEvents.Gather callback : callbacks)
 			{
-				result = callback.onGather(itemStack, screenWidth, screenHeight, tooltipElements, maxWidth, index);
+				result = callback.onGather(itemStack, screenWidth, screenHeight, result.tooltipElements, result.maxWidth, index);
 
 				if (result.result != InteractionResult.PASS)
 				{
@@ -38,7 +38,7 @@ public final class RenderTooltipEvents
 			PreExtResult result = new PreExtResult(InteractionResult.PASS, x, y, screenWidth, screenHeight, font);
 			for (RenderTooltipEvents.PreExt callback : callbacks)
 			{
-				result = callback.onPre(stack, components, poseStack, x, y, screenWidth, screenHeight, font, comparison, index);
+				result = callback.onPre(stack, components, poseStack, result.x, result.y, screenWidth, screenHeight, result.font, comparison, index);
 
 				if (result.result != InteractionResult.PASS)
 				{

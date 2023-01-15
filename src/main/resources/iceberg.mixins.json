@@ -9,12 +9,13 @@
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
 		"LivingEntityMixin",
+		"TextColorMixin",
 		"MinecraftMixin",
-		"TextColorMixin"
+		"TooltipRenderUtilMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	},
-	"minVersion": "0.8.4",
+	"minVersion": "0.8.5",
 	"target": "@env(DEFAULT)"
 }

@@ -1,5 +1,57 @@
 # Changelog
 
+### 1.1.2
+- Fixed a bug with custom item renderer causing items rendered with alpha to be upside down and with incorrect lighting.
+- Fixed a bug with stacking multiple Iceberg events (Fabric only).
+
+### 1.1.1
+- Fixed a bug that could cause tooltip titles to be positioned incorrectly for explicitly-positioned tooltips.
+
+### 1.1.0
+- Added wildcard selector.
+- Added selector negation.
+- Added selector combination.
+- Added detail model renderer to custom item renderer.
+- Added vertex collector and checked buffer source helpers.
+- Fixed a bug that could cause tooltip titles to be incorrectly identified.
+- Added support for Minecraft 1.19.3.
+
+### 1.0.49
+- Added support for tooltips with non-text components placed above the title.
+
+### 1.0.48
+- Removed explicit Configured version requirement.
+
+### 1.0.47
+- Added support for Configured 2.0.0.
+
+### 1.0.46
+- Added support for Minecraft 1.19.1 and 1.19.2.
+- Added support for latest version of Forge.
+- Added support for Configured 1.5.5.
+
+### 1.0.45
+- Added support for Configured configuration menus to IcebergConfig.
+
+### 1.0.44
+- Fixed incompatibility with some mods causing a crash at startup.
+
+### 1.0.43
+- Fixed update checking not working for multiple dependent mods.
+
+### 1.0.42
+- Increased required Forge version to 40.1.6 to prevent a crash.
+
+### 1.0.41
+- Fixed crash in IcebergConfig system.
+- Bumped required Forge version to 40.1.
+
+### 1.0.40
+- Fixed a bug in configuration system that caused mod configs to sometimes fail to register properly.
+
+### 1.0.39
+- Added new config system that improves upon Forge's with subconfig support, improved reload reliability, and reduced boilerplate.
+
 ### 1.0.38
 - Added support for tooltip components that use tooltip component generation event.
 - First Forge/Fabric 1.19 release.
