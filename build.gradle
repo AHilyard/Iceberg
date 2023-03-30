@@ -18,19 +18,12 @@ repositories {
 	}
 }
 
-sourceSets {
-	main {
-		resources {
-			srcDir 'src/generated/resources'
-		}
-	}
-}
-
 dependencies {
 	minecraft "com.mojang:minecraft:${project.mcVersion}"
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loaderVersion}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabricVersion}"
+	modImplementation "curse.maven:sodium-394468:4381988"
 }
 
 loom {

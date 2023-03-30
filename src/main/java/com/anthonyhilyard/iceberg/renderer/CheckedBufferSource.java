@@ -1,18 +1,56 @@
 package com.anthonyhilyard.iceberg.renderer;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
+import com.anthonyhilyard.iceberg.Loader;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.impl.util.version.VersionPredicateParser;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 
-public final class CheckedBufferSource implements MultiBufferSource
+public class CheckedBufferSource implements MultiBufferSource
 {
-	private boolean hasRendered = false;
-	private final MultiBufferSource bufferSource;
+	protected boolean hasRendered = false;
+	protected final MultiBufferSource bufferSource;
 
-	public CheckedBufferSource(MultiBufferSource bufferSource)
+	private static Boolean useSodiumVersion = null;
+
+	protected CheckedBufferSource(MultiBufferSource bufferSource)
 	{
 		this.bufferSource = bufferSource;
+	}
+
+	public static CheckedBufferSource create(MultiBufferSource bufferSource)
+	{
+		if (useSodiumVersion == null)
+		{
+			try
+			{
+				// If Sodium 0.4.9 is installed, use the Sodium implementation.
+				useSodiumVersion = FabricLoader.getInstance().isModLoaded("sodium") && VersionPredicateParser.parse("0.4.9").test(FabricLoader.getInstance().getModContainer("sodium").get().getMetadata().getVersion());
+			}
+			catch (Exception e)
+			{
+				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		if (useSodiumVersion)
+		{
+			// Instantiate the Sodium implementation using reflection.
+			try
+			{
+				return (CheckedBufferSource) Class.forName("com.anthonyhilyard.iceberg.renderer.CheckedBufferSourceSodium").getDeclaredConstructor(MultiBufferSource.class).newInstance(bufferSource);
+			}
+			catch (Exception e)
+			{
+				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return new CheckedBufferSource(bufferSource);
 	}
 
 	@Override
