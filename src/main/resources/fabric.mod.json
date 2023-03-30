@@ -30,8 +30,11 @@
 	"depends": {
 		"fabricloader": ">=0.12.8",
 		"fabric": "*",
-		"minecraft": "~1.19.3",
+		"minecraft": "1.19.3",
 		"java": ">=17"
+	},
+	"suggests": {
+		"sodium": "<=0.4.9"
 	},
 	"custom": {
 		"modupdater": {

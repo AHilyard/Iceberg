@@ -1,9 +1,7 @@
 package com.anthonyhilyard.iceberg.renderer;
 
-import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.joml.Vector3f;
 
