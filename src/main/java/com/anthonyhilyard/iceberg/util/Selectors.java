@@ -126,6 +126,12 @@ public class Selectors
 			return validateSelector(value.substring(1));
 		}
 
+		// If this is a wildcard selector, it is valid.
+		if (value.contentEquals("*"))
+		{
+			return true;
+		}
+
 		// This is a tag, which should be a resource location.
 		if (value.startsWith("$"))
 		{
