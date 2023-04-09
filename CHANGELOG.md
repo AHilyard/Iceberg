@@ -1,5 +1,27 @@
 # Changelog
 
+### 1.1.6
+- Fixed crash with some mods when rendering custom 3D models.
+- Added support to 3D item previews for most items that spawn entities (boats, minecarts, spawn eggs, etc).
+- Fixed bug that caused wildcard item selectors to be removed from config files.
+
+### 1.1.5
+- Fixed crash when trying to view 3D item previews while installed with Sodium version 0.4.9.
+- Fixed crash when trying to view 3D item previews for modded boats.
+- Fixed various item sizing and alignment issues with 3D item previews.
+
+### 1.1.4
+- Fixed a bug that caused resource-pack defined item models with custom scaling to render improperly with custom item renderer.
+- Fixed a bug that caused custom item renderer 3D models to have incorrect rotations.
+
+### 1.1.3
+- Fixed regression causing missing method crashes with some mods.
+- Fixed a crash that could occur when rendering custom tooltips.
+
+### 1.1.2
+- Fixed a bug with custom item renderer causing items rendered with alpha to be upside down and with incorrect lighting.
+- Fixed dependency information to correctly only work on 1.19.3.
+
 ### 1.1.1
 - Fixed a bug that could cause tooltip titles to be positioned incorrectly for explicitly-positioned tooltips.
 

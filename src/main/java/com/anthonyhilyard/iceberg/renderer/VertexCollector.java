@@ -1,21 +1,62 @@
 package com.anthonyhilyard.iceberg.renderer;
 
-import java.util.List;
+import java.util.Set;
 
-import org.apache.commons.compress.utils.Lists;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.joml.Vector3f;
 
+import com.anthonyhilyard.iceberg.Loader;
+import com.google.common.collect.Sets;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraftforge.fml.ModList;
 
 public class VertexCollector implements MultiBufferSource
 {
-	private final List<Vector3f> vertices = Lists.newArrayList();
-	private final Vector3f currentVertex = new Vector3f();
-	private int currentAlpha = 255;
-	private int defaultAlpha = 255;
+	protected final Set<Vector3f> vertices = Sets.newHashSet();
+	protected final Vector3f currentVertex = new Vector3f();
+	protected int currentAlpha = 255;
+	protected int defaultAlpha = 255;
+
+	private static Boolean useSodiumVersion = null;
+
+	protected VertexCollector()
+	{
+		super();
+	}
+
+	public static VertexCollector create()
+	{
+		if (useSodiumVersion == null)
+		{
+			try
+			{
+				// Check if Rubidium 0.6.4 is installed using Forge API.
+				useSodiumVersion = ModList.get().isLoaded("rubidium") && ModList.get().getModContainerById("rubidium").get().getModInfo().getVersion().equals(new DefaultArtifactVersion("0.6.4"));
+			}
+			catch (Exception e)
+			{
+				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		if (useSodiumVersion)
+		{
+			// Instantiate the Sodium implementation using reflection.
+			try
+			{
+				return (VertexCollector) Class.forName("com.anthonyhilyard.iceberg.renderer.VertexCollectorSodium").getDeclaredConstructor().newInstance();
+			}
+			catch (Exception e)
+			{
+				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return new VertexCollector();
+	}
 
 	@Override
 	public VertexConsumer getBuffer(RenderType renderType)
@@ -72,7 +113,7 @@ public class VertexCollector implements MultiBufferSource
 		};
 	}
 
-	public List<Vector3f> getVertices()
+	public Set<Vector3f> getVertices()
 	{
 		return vertices;
 	}

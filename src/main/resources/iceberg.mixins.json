@@ -5,7 +5,8 @@
 	"refmap": "iceberg.refmap.json",
 	"plugin": "com.anthonyhilyard.iceberg.mixin.MixinConfig",
 	"mixins": [
-		"PlayerAdvancementsMixin"
+		"PlayerAdvancementsMixin",
+		"ItemMixin"
 	],
 	"client": [
 		"ScreenMixin",

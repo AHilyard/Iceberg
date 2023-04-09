@@ -41,6 +41,5 @@ public class Loader
 	@SubscribeEvent
 	public void onCommonSetup(FMLCommonSetupEvent event)
 	{
-
 	}
 }

@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
+import com.anthonyhilyard.iceberg.util.EntityCollector;
 import com.google.common.collect.Maps;
 
 import org.joml.Matrix4f;
@@ -38,7 +40,9 @@ import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.resources.model.BakedModel;
@@ -53,17 +57,12 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.Boat;
-import net.minecraft.world.entity.vehicle.ChestBoat;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BoatItem;
 import net.minecraft.world.item.HorseArmorItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.MinecartItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
@@ -77,7 +76,7 @@ import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 
 /**
- * An extended ItemRenderer with extended functionality, such as allowing items to be rendered to a RenderTarget
+ * An extended ItemRenderer with extra functionality, such as allowing items to be rendered to a RenderTarget
  * before drawing to screen for alpha support, and allowing handheld item models to be rendered into the gui.
  */
 public class CustomItemRenderer extends ItemRenderer
@@ -87,15 +86,17 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private static RenderTarget iconFrameBuffer = null;
 	private static ArmorStand armorStand = null;
-	private static AbstractMinecart minecart = null;
-	private static Boat boat = null;
 	private static Horse horse = null;
+	private static Entity entity = null;
 	private static Pair<Item, CompoundTag> cachedArmorStandItem = null;
 	private static Pair<Item, CompoundTag> cachedHorseArmorItem = null;
+	private static Item cachedEntityItem = null;
 	private static Map<Item, ModelBounds> modelBoundsCache = Maps.newHashMap();
 
 	private static final List<Direction> quadDirections;
-	static {
+
+	static
+	{
 		quadDirections = new ArrayList<>(Arrays.asList(Direction.values()));
 		quadDirections.add(null);
 	}
@@ -166,9 +167,9 @@ public class CustomItemRenderer extends ItemRenderer
 
 		RenderSystem.runAsFancy(() -> entityRenderDispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, bufferSource, packedLight));
 		
-		if (bufferSource instanceof BufferSource)
+		if (bufferSource instanceof BufferSource source)
 		{
-			((BufferSource)bufferSource).endBatch();
+			source.endBatch();
 		}
 
 		entityRenderDispatcher.setRenderShadow(true);
@@ -194,9 +195,9 @@ public class CustomItemRenderer extends ItemRenderer
 		if (!bakedModel.isCustomRenderer() && !itemStack.is(Items.TRIDENT))
 		{
 			boolean fabulous;
-			if (transformType != ItemTransforms.TransformType.GUI && !transformType.firstPerson() && itemStack.getItem() instanceof BlockItem)
+			if (transformType != ItemTransforms.TransformType.GUI && !transformType.firstPerson() && itemStack.getItem() instanceof BlockItem blockItem)
 			{
-				Block block = ((BlockItem)itemStack.getItem()).getBlock();
+				Block block = blockItem.getBlock();
 				fabulous = !(block instanceof HalfTransparentBlock) && !(block instanceof StainedGlassPaneBlock);
 			}
 			else
@@ -206,33 +207,42 @@ public class CustomItemRenderer extends ItemRenderer
 
 			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof BlockItem blockItem)
 			{
+				Block block = blockItem.getBlock();
 				BakedModel blockModel = null;
+				BlockModelShaper blockModelShaper = minecraft.getBlockRenderer().getBlockModelShaper();
 				boolean isBlockEntity = false;
 
-				blockModel = minecraft.getBlockRenderer().getBlockModelShaper().getBlockModel(blockItem.getBlock().defaultBlockState());
+				blockModel = blockModelShaper.getBlockModel(block.defaultBlockState());
 				if (blockModel != modelManager.getMissingModel())
 				{
 					// First try rendering via the BlockEntityWithoutLevelRenderer.
-					blockEntityRenderer.renderByItem(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay);
+					try
+					{
+						blockEntityRenderer.renderByItem(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay);
+					}
+					catch (Exception e)
+					{
+						// Do nothing if an exception occurs.
+					}
 				}
 				else
 				{
 					blockModel = null;
 				}
 
-				if (blockItem.getBlock().defaultBlockState().hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
+				if (block.defaultBlockState().hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
 				{
 					// This is a double block, so we'll need to render both halves.
 					// First render the bottom half.
-					BlockState bottomState = blockItem.getBlock().defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER);
-					BakedModel bottomModel = minecraft.getBlockRenderer().getBlockModelShaper().getBlockModel(bottomState);
+					BlockState bottomState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER);
+					BakedModel bottomModel = blockModelShaper.getBlockModel(bottomState);
 					renderBakedModel(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay, bottomModel, fabulous);
 
 					// Then render the top half.
 					poseStack.pushPose();
 					poseStack.translate(0.0f, 1.0f, 0.0f);
-					BlockState topState = blockItem.getBlock().defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER);
-					BakedModel topModel = minecraft.getBlockRenderer().getBlockModelShaper().getBlockModel(topState);
+					BlockState topState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER);
+					BakedModel topModel = blockModelShaper.getBlockModel(topState);
 					renderBakedModel(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay, topModel, fabulous);
 					poseStack.popPose();
 				}
@@ -257,27 +267,19 @@ public class CustomItemRenderer extends ItemRenderer
 				}
 			}
 
-			// Now try rendering entity models for items that spawn minecarts or boats.
-			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof MinecartItem minecartItem)
+			// Now try rendering entity models for items that spawn entities.
+			if (bufferSourceReady.test(bufferSource) && EntityCollector.itemCreatesEntity(itemStack.getItem(), Entity.class))
 			{
-				if (updateMinecart(minecartItem))
+				if (updateEntity(itemStack.getItem()))
 				{
-					renderEntityModel(minecart, poseStack, bufferSource, packedLight);
-				}
-			}
-
-			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof BoatItem boatItem)
-			{
-				if (updateBoat(boatItem))
-				{
-					renderEntityModel(boat, poseStack, bufferSource, packedLight);
+					renderEntityModel(entity, poseStack, bufferSource, packedLight);
 				}
 			}
 
 			// If this is horse armor, render it here.
 			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof HorseArmorItem)
 			{
-				if (updateHorse(itemStack))
+				if (updateHorseArmor(itemStack))
 				{
 					renderEntityModel(horse, poseStack, bufferSource, packedLight);
 				}
@@ -304,7 +306,7 @@ public class CustomItemRenderer extends ItemRenderer
 			{
 				isBlockItem = true;
 			}
-			else if (itemStack.getItem() instanceof MinecartItem || itemStack.getItem() instanceof BoatItem)
+			else if (EntityCollector.itemCreatesEntity(itemStack.getItem(), Entity.class))
 			{
 				spawnsEntity = true;
 			}
@@ -316,6 +318,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 			poseStack.pushPose();
 
+			poseStack.translate(0.5f, 0.5f, 0.5f);
 			if (isBlockItem || spawnsEntity)
 			{
 				// Apply the standard block rotation so block entities match other blocks.
@@ -325,6 +328,7 @@ public class CustomItemRenderer extends ItemRenderer
 			{
 				ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, transformType, leftHanded);
 			}
+			poseStack.translate(-0.5f, -0.5f, -0.5f);
 
 			// Get the model bounds.
 			ModelBounds modelBounds = getModelBounds(itemStack, transformType, leftHanded, poseStack, rotation, bufferSource, packedLight, packedOverlay, bakedModel);
@@ -337,8 +341,7 @@ public class CustomItemRenderer extends ItemRenderer
 			poseStack.mulPose(rotation);
 
 			// Scale the model to fit.
-			float scale = 1.0f / Math.max(modelBounds.height, modelBounds.radius * 2.0f);
-			scale *= isBlockItem ? 0.8f : 1.0f;
+			float scale = 0.8f / Math.max(modelBounds.height, modelBounds.radius * 2.0f);
 
 			// Adjust the scale based on the armor type.
 			if (isArmor)
@@ -349,7 +352,10 @@ public class CustomItemRenderer extends ItemRenderer
 						scale *= 0.75f;
 						break;
 					case LEGS:
-						scale *= 1.1f;
+						scale *= 1.3f;
+						break;
+					case FEET:
+						scale *= 0.85f;
 						break;
 					default:
 						break;
@@ -360,6 +366,7 @@ public class CustomItemRenderer extends ItemRenderer
 			// Translate the model to the center of the item.
 			poseStack.translate(-modelBounds.center.x(), -modelBounds.center.y(), -modelBounds.center.z());
 
+			poseStack.translate(0.5f, 0.5f, 0.5f);
 			// Reapply the camera transforms.
 			if (isBlockItem || spawnsEntity)
 			{
@@ -370,8 +377,9 @@ public class CustomItemRenderer extends ItemRenderer
 			{
 				bakedModel = ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, transformType, leftHanded);
 			}
+			poseStack.translate(-0.5f, -0.5f, -0.5f);
 
-			CheckedBufferSource checkedBufferSource = new CheckedBufferSource(bufferSource);
+			CheckedBufferSource checkedBufferSource = CheckedBufferSource.create(bufferSource);
 			renderModelInternal(itemStack, transformType, leftHanded, poseStack, rotation, checkedBufferSource, packedLight, packedOverlay, bakedModel, b -> !b.hasRendered());
 
 			poseStack.popPose();
@@ -401,11 +409,11 @@ public class CustomItemRenderer extends ItemRenderer
 	private void renderBakedModel(ItemStack itemStack, ItemTransforms.TransformType transformType, PoseStack poseStack,
 								  MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel, boolean fabulous)
 	{
-		for (var model : bakedModel.getRenderPasses(itemStack, fabulous))
+		for (BakedModel model : bakedModel.getRenderPasses(itemStack, fabulous))
 		{
-			for (var rendertype : model.getRenderTypes(itemStack, fabulous))
+			for (RenderType renderType : model.getRenderTypes(itemStack, fabulous))
 			{
-				VertexConsumer vertexconsumer;
+				VertexConsumer vertexConsumer;
 				if (itemStack.is(ItemTags.COMPASSES) && itemStack.hasFoil())
 				{
 					poseStack.pushPose();
@@ -421,25 +429,25 @@ public class CustomItemRenderer extends ItemRenderer
 
 					if (fabulous)
 					{
-						vertexconsumer = getCompassFoilBufferDirect(bufferSource, rendertype, posestack$pose);
+						vertexConsumer = getCompassFoilBufferDirect(bufferSource, renderType, posestack$pose);
 					}
 					else
 					{
-						vertexconsumer = getCompassFoilBuffer(bufferSource, rendertype, posestack$pose);
+						vertexConsumer = getCompassFoilBuffer(bufferSource, renderType, posestack$pose);
 					}
 
 					poseStack.popPose();
 				}
 				else if (fabulous)
 				{
-					vertexconsumer = getFoilBufferDirect(bufferSource, rendertype, true, itemStack.hasFoil());
+					vertexConsumer = getFoilBufferDirect(bufferSource, renderType, true, itemStack.hasFoil());
 				}
 				else
 				{
-					vertexconsumer = getFoilBuffer(bufferSource, rendertype, true, itemStack.hasFoil());
+					vertexConsumer = getFoilBuffer(bufferSource, renderType, true, itemStack.hasFoil());
 				}
 
-				renderModelLists(model, itemStack, packedLight, packedOverlay, poseStack, vertexconsumer);
+				renderModelLists(model, itemStack, packedLight, packedOverlay, poseStack, vertexConsumer);
 			}
 		}
 	}
@@ -483,32 +491,33 @@ public class CustomItemRenderer extends ItemRenderer
 		return true;
 	}
 
-	private boolean updateMinecart(MinecartItem item)
+	private Entity getEntityFromItem(Item item)
 	{
-		if (minecart == null || minecart.getMinecartType() != item.type)
+		Entity collectedEntity = null;
+		List<Entity> collectedEntities = EntityCollector.collectEntitiesFromItem(item);
+		if (!collectedEntities.isEmpty())
 		{
-			Minecraft minecraft = Minecraft.getInstance();
-			minecart = AbstractMinecart.createMinecart(minecraft.level, 0, 0, 0, item.type);
+			// Just return the first entity collected.
+			// TODO: Should all entities be considered for weird items that spawn multiple?
+			collectedEntity = collectedEntities.get(0);
 		}
 
-		// If somehow the minecart is still null, then we can't render anything.
-		return minecart != null;
+		return collectedEntity;
 	}
 
-	private boolean updateBoat(BoatItem item)
+	private boolean updateEntity(Item item)
 	{
-		if (boat == null || boat.getVariant() != item.type || (boat instanceof ChestBoat) != item.hasChest)
+		if (entity == null || cachedEntityItem != item)
 		{
-			Minecraft minecraft = Minecraft.getInstance();
-			boat = item.hasChest ? new ChestBoat(minecraft.level, 0, 0, 0) : new Boat(minecraft.level, 0, 0, 0);
-			boat.setVariant(item.type);
+			entity = getEntityFromItem(item);
+			cachedEntityItem = item;
 		}
 
-		// If somehow the boat is still null, then we can't render anything.
-		return boat != null;
+		// If somehow the entity is still null, then we can't render anything.
+		return entity != null;
 	}
 
-	private boolean updateHorse(ItemStack horseArmorItem)
+	private boolean updateHorseArmor(ItemStack horseArmorItem)
 	{
 		// If this isn't a horse armor item, we can't render anything.
 		if (!(horseArmorItem.getItem() instanceof HorseArmorItem))
@@ -541,11 +550,11 @@ public class CustomItemRenderer extends ItemRenderer
 		return true;
 	}
 
-	private ModelBounds boundsFromVertices(List<Vector3f> vertices)
+	private ModelBounds boundsFromVertices(Set<Vector3f> vertices)
 	{
 		Vector3f center = new Vector3f();
-		float radius = 0.0F;
-		float height = 0.0F;
+		float radius = 0.0f;
+		float height = 0.0f;
 
 		float minX = Float.MAX_VALUE;
 		float minY = Float.MAX_VALUE;
@@ -564,12 +573,12 @@ public class CustomItemRenderer extends ItemRenderer
 			maxZ = Math.max(maxZ, vertex.z);
 		}
 
-		center = new Vector3f((minX + maxX) / 2.0F, (minY + maxY) / 2.0F, (minZ + maxZ) / 2.0F);
+		center = new Vector3f((minX + maxX) / 2.0f, (minY + maxY) / 2.0f, (minZ + maxZ) / 2.0f);
 		height = maxY - minY;
 
 		for (Vector3f vertex : vertices)
 		{
-			radius = Math.max(radius, (float) Math.sqrt((vertex.x - center.x) * (vertex.x - center.x) + (vertex.y - center.y) * (vertex.y - center.y)));
+			radius = Math.max(radius, (float) Math.sqrt((vertex.x - center.x) * (vertex.x - center.x) + (vertex.z - center.z) * (vertex.z - center.z)));
 		}
 
 		return new ModelBounds(center, height, radius);
@@ -580,7 +589,7 @@ public class CustomItemRenderer extends ItemRenderer
 	{
 		if (!modelBoundsCache.containsKey(itemStack.getItem()))
 		{
-			VertexCollector vertexCollector = new VertexCollector();
+			VertexCollector vertexCollector = VertexCollector.create();
 			renderModelInternal(itemStack, transformType, leftHanded, poseStack, rotation, vertexCollector, packedLight, packedOverlay, bakedModel, b -> b.getVertices().isEmpty());
 
 			// Now store the bounds in the cache.
