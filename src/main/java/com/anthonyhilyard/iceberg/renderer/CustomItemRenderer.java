@@ -1,19 +1,15 @@
 package com.anthonyhilyard.iceberg.renderer;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
-import com.anthonyhilyard.iceberg.Loader;
+import com.anthonyhilyard.iceberg.util.EntityCollector;
 import com.google.common.collect.Maps;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -66,18 +62,12 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.entity.vehicle.Boat;
-import net.minecraft.world.entity.vehicle.ChestBoat;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BoatItem;
 import net.minecraft.world.item.HorseArmorItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.MinecartItem;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
@@ -86,13 +76,10 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
 
 
 /**
- * An extended ItemRenderer with extended functionality, such as allowing items to be rendered to a RenderTarget
+ * An extended ItemRenderer with extra functionality, such as allowing items to be rendered to a RenderTarget
  * before drawing to screen for alpha support, and allowing handheld item models to be rendered into the gui.
  */
 public class CustomItemRenderer extends ItemRenderer
@@ -102,16 +89,16 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private static RenderTarget iconFrameBuffer = null;
 	private static ArmorStand armorStand = null;
-	private static AbstractMinecart minecart = null;
-	private static Boat boat = null;
 	private static Horse horse = null;
+	private static Entity entity = null;
 	private static Pair<Item, CompoundTag> cachedArmorStandItem = null;
-	private static Item cachedBoatItem = null;
 	private static Pair<Item, CompoundTag> cachedHorseArmorItem = null;
+	private static Item cachedEntityItem = null;
 	private static Map<Item, ModelBounds> modelBoundsCache = Maps.newHashMap();
 
 	private static final List<Direction> quadDirections;
-	static {
+	static
+	{
 		quadDirections = new ArrayList<>(Arrays.asList(Direction.values()));
 		quadDirections.add(null);
 	}
@@ -235,7 +222,14 @@ public class CustomItemRenderer extends ItemRenderer
 				if (blockModel != modelManager.getMissingModel())
 				{
 					// First try rendering via the BlockEntityWithoutLevelRenderer.
-					blockEntityRenderer.renderByItem(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay);
+					try
+					{
+						blockEntityRenderer.renderByItem(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay);
+					}
+					catch (Exception e)
+					{
+						// Do nothing if an exception occurs.
+					}
 				}
 				else
 				{
@@ -279,27 +273,19 @@ public class CustomItemRenderer extends ItemRenderer
 				}
 			}
 
-			// Now try rendering entity models for items that spawn minecarts or boats.
-			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof MinecartItem minecartItem)
+			// Now try rendering entity models for items that spawn entities.
+			if (bufferSourceReady.test(bufferSource) && EntityCollector.itemCreatesEntity(itemStack.getItem(), Entity.class))
 			{
-				if (updateMinecart(minecartItem))
+				if (updateEntity(itemStack.getItem()))
 				{
-					renderEntityModel(minecart, poseStack, bufferSource, packedLight);
-				}
-			}
-
-			if (bufferSourceReady.test(bufferSource) && itemCreatesBoat(itemStack.getItem()))
-			{
-				if (updateBoat(itemStack.getItem()))
-				{
-					renderEntityModel(boat, poseStack, bufferSource, packedLight);
+					renderEntityModel(entity, poseStack, bufferSource, packedLight);
 				}
 			}
 
 			// If this is horse armor, render it here.
 			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof HorseArmorItem)
 			{
-				if (updateHorse(itemStack))
+				if (updateHorseArmor(itemStack))
 				{
 					renderEntityModel(horse, poseStack, bufferSource, packedLight);
 				}
@@ -333,7 +319,7 @@ public class CustomItemRenderer extends ItemRenderer
 			{
 				isBlockItem = true;
 			}
-			else if (itemStack.getItem() instanceof MinecartItem || itemCreatesBoat(itemStack.getItem()))
+			else if (EntityCollector.itemCreatesEntity(itemStack.getItem(), Entity.class))
 			{
 				spawnsEntity = true;
 			}
@@ -516,194 +502,33 @@ public class CustomItemRenderer extends ItemRenderer
 		return true;
 	}
 
-	private boolean updateMinecart(MinecartItem item)
+	private Entity getEntityFromItem(Item item)
 	{
-		// We don't support modded minecarts right now.
-		if (!item.getClass().equals(MinecartItem.class))
+		Entity collectedEntity = null;
+		List<Entity> collectedEntities = EntityCollector.collectEntitiesFromItem(item);
+		if (!collectedEntities.isEmpty())
 		{
-			minecart = null;
-		}
-		else
-		{
-			if (minecart == null || minecart.getMinecartType() != item.type)
-			{
-				Minecraft minecraft = Minecraft.getInstance();
-				minecart = AbstractMinecart.createMinecart(minecraft.level, 0, 0, 0, item.type);
-			}
+			// Just return the first entity collected.
+			// TODO: Should all entities be considered for weird items that spawn multiple?
+			collectedEntity = collectedEntities.get(0);
 		}
 
-		// If somehow the minecart is still null, then we can't render anything.
-		return minecart != null;
+		return collectedEntity;
 	}
 
-	private boolean itemCreatesBoat(Item item)
+	private boolean updateEntity(Item item)
 	{
-		// Vanilla and modded subclass BoatItems obviously create boats.
-		if (item instanceof BoatItem)
+		if (entity == null || cachedEntityItem != item)
 		{
-			return true;
+			entity = getEntityFromItem(item);
+			cachedEntityItem = item;
 		}
 
-		// More complex modded items may create a boat subclass entity, so check for that next.
-		// To do so, we'll look for a method that returns a subclass of Boat.
-		try
-		{
-			Method[] methods = item.getClass().getDeclaredMethods();
-			for (Method method : methods)
-			{
-				if (Boat.class.isAssignableFrom(method.getReturnType()) && !method.getReturnType().equals(Boat.class))
-				{
-					return true;
-				}
-			}
-		}
-		catch (Exception e) {}
-
-		// This doesn't appear to be a boat-creating item.
-		return false;
+		// If somehow the entity is still null, then we can't render anything.
+		return entity != null;
 	}
 
-	/// Attempts to create a modded boat entity from a modded boat item using reflection.
-	/// Returns null if we failed to create the entity.
-	private Boat createModdedBoat(Item item)
-	{
-		Boat moddedBoat = null;
-
-		// Ensure this is actually a modded boat item before continuing.
-		//if (itemCreatesBoat(item))
-		{
-			Minecraft minecraft = Minecraft.getInstance();
-
-			// Since this boat is modded, first we will look for a method in the BoatItem subclass that returns an instance of a Boat subclass.
-			// If we find it, we will use it to create the boat entity.
-			try
-			{
-				Method[] methods = item.getClass().getDeclaredMethods();
-				for (Method method : methods)
-				{
-					// If the signature matches, call it.
-					if (Boat.class.isAssignableFrom(method.getReturnType()) && !method.getReturnType().equals(Boat.class))
-					{
-						// First supported signature: createBoat(Level level, HitResult hit)
-						if (method.getParameterCount() == 2 &&
-							method.getParameterTypes()[0].equals(Level.class) &&
-							method.getParameterTypes()[1].equals(HitResult.class))
-							
-						{
-							method.setAccessible(true);
-							moddedBoat = (Boat) method.invoke(item, minecraft.level, new BlockHitResult(Vec3.ZERO, Direction.DOWN, BlockPos.ZERO, false));
-							break;
-						}
-						// Second supported signature: createBoat(Level level, Vec3 pos, float yaw)
-						else if (method.getParameterCount() == 3 &&
-								 method.getParameterTypes()[0].equals(Level.class) &&
-								 method.getParameterTypes()[1].equals(Vec3.class) &&
-								 method.getParameterTypes()[2].equals(float.class))
-						{
-							method.setAccessible(true);
-							moddedBoat = (Boat) method.invoke(item, minecraft.level, Vec3.ZERO, 30.0f);
-							break;
-						}
-					}
-				}
-
-				// Now, if we've created an entity we need to set the "wood type", so we will first look for an enum field on this item that matches
-				// the parameter type of a method on the boat subclass, then call that method.
-				if (moddedBoat != null)
-				{
-					Field[] fields = item.getClass().getDeclaredFields();
-					Method[] boatMethods = moddedBoat.getClass().getDeclaredMethods();
-					boolean enumFound = false;
-
-					for (Field field : fields)
-					{
-						if (field.getType().isEnum())
-						{
-							// Check if this enum field is the same type as the first parameter of a method on the boat subclass.
-							for (Method method : boatMethods)
-							{
-								if (method.getParameterCount() == 1 && method.getParameterTypes()[0].equals(field.getType()))
-								{
-									method.setAccessible(true);
-									field.setAccessible(true);
-									method.invoke(moddedBoat, field.get(item));
-									enumFound = true;
-									break;
-								}
-							}
-						}
-					}
-
-					// If we didn't find any enum fields to try, now try with suppliers.
-					if (!enumFound)
-					{
-						for (Field field : fields)
-						{
-							if (field.getType().isAssignableFrom(Supplier.class))
-							{
-								field.setAccessible(true);
-								Object fieldValue = ((Supplier<?>)field.get(item)).get();
-
-								// Check if this enum field is the same type as the first parameter of a method on the boat subclass.
-								for (Method method : boatMethods)
-								{
-									if (method.getParameterCount() == 1 && method.getParameterTypes()[0].equals(fieldValue.getClass()))
-									{
-										method.setAccessible(true);
-										method.invoke(moddedBoat, fieldValue);
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			catch (Exception e)
-			{
-				// If we fail to create the boat entity by looking for a "getBoat"-esque method, we can't render this modded boat.
-				// This will fallback to just rendering the item icon.
-				moddedBoat = null;
-				Loader.LOGGER.info(ExceptionUtils.getStackTrace(e));
-			}
-		}
-
-		return moddedBoat;
-	}
-
-	private boolean updateBoat(Item item)
-	{
-		boolean moddedBoat = false;
-
-		// Check if this is a modded boat item, that is if it is a subclass of BoatItem (or not a BoatItem at all).
-		if (!item.getClass().equals(BoatItem.class))
-		{
-			// This is a modded boat item, so we need to create the boat entity in a different way.
-			moddedBoat = true;
-		}
-
-		if (boat == null || cachedBoatItem != item)
-		{
-			Minecraft minecraft = Minecraft.getInstance();
-
-			if (moddedBoat)
-			{
-				boat = createModdedBoat(item);
-			}
-			else if (item instanceof BoatItem boatItem)
-			{
-				boat = boatItem.hasChest ? new ChestBoat(minecraft.level, 0, 0, 0) : new Boat(minecraft.level, 0, 0, 0);
-				boat.setVariant(boatItem.type);
-			}
-
-			cachedBoatItem = item;
-		}
-
-		// If somehow the boat is still null, then we can't render anything.
-		return boat != null;
-	}
-
-	private boolean updateHorse(ItemStack horseArmorItem)
+	private boolean updateHorseArmor(ItemStack horseArmorItem)
 	{
 		// If this isn't a horse armor item, we can't render anything.
 		if (!(horseArmorItem.getItem() instanceof HorseArmorItem))

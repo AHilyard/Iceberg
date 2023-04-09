@@ -3,7 +3,8 @@
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"mixins": [
-		"PlayerAdvancementsMixin"
+		"PlayerAdvancementsMixin",
+		"ItemMixin"
 	],
 	"client": [
 		"ScreenMixin",
