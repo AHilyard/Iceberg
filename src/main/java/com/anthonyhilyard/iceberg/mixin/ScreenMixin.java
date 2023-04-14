@@ -7,6 +7,7 @@ import com.anthonyhilyard.iceberg.util.Tooltips;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 
+import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -62,13 +63,12 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	}
 
 	@Inject(method = "renderTooltipInternal",
-			at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/entity/ItemRenderer;blitOffset:F", ordinal = 2, shift = Shift.AFTER),
-			locals = LocalCapture.CAPTURE_FAILEXCEPTION)
-	private void icebergRenderTooltipInternalPost(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info, RenderTooltipEvent.Pre preEvent, int tooltipWidth, int tooltipHeight, int postX, int postY)
+			at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V", shift = Shift.AFTER), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
+	private void icebergRenderTooltipInternalPost(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info, RenderTooltipEvent.Pre preEvent, int tooltipWidth, int tooltipHeight, Vector2ic postPos)
 	{
 		if (!components.isEmpty())
 		{
-			MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.Post(preEvent.getItemStack(), poseStack, postX, postY, preEvent.getFont(), tooltipWidth, tooltipHeight, components, false));
+			MinecraftForge.EVENT_BUS.post(new RenderTooltipExtEvent.Post(preEvent.getItemStack(), poseStack, postPos.x(), postPos.y(), preEvent.getFont(), tooltipWidth, tooltipHeight, components, false));
 		}
 	}
 

@@ -219,10 +219,7 @@ public class Tooltips
 		info.setFont(preEvent.getFont());
 
 		poseStack.pushPose();
-
 		final int zLevel = 400;
-		float f = itemRenderer.blitOffset;
-		itemRenderer.blitOffset = zLevel;
 
 		Tesselator tesselator = Tesselator.getInstance();
 		BufferBuilder bufferbuilder = tesselator.getBuilder();
@@ -245,12 +242,9 @@ public class Tooltips
 		}, matrix4f, bufferbuilder, rectX, rectY, rect.getWidth(), rect.getHeight(), zLevel);
 
 		RenderSystem.enableDepthTest();
-		RenderSystem.disableTexture();
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
 		BufferUploader.drawWithShader(bufferbuilder.end());
-		RenderSystem.disableBlend();
-		RenderSystem.enableTexture();
 		BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
 		poseStack.translate(0.0f, 0.0f, zLevel);
 
@@ -273,17 +267,16 @@ public class Tooltips
 		}
 
 		bufferSource.endBatch();
-		poseStack.popPose();
 		tooltipTop = rectY;
 
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent imageComponent = info.getComponents().get(componentNumber);
-			imageComponent.renderImage(preEvent.getFont(), rectX, tooltipTop, poseStack, itemRenderer, zLevel);
+			imageComponent.renderImage(preEvent.getFont(), rectX, tooltipTop, poseStack, itemRenderer);
 			tooltipTop += imageComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
 		}
 
-		itemRenderer.blitOffset = f;
+		poseStack.popPose();
 
 		RenderTooltipExtEvent.Post postEvent = new RenderTooltipExtEvent.Post(stack, poseStack, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), info.getComponents(), comparison, index);
 		MinecraftForge.EVENT_BUS.post(postEvent);
@@ -466,9 +459,9 @@ public class Tooltips
 
 		// Find the title component, which is the first text component.
 		int titleIndex = 0;
-		for (ClientTooltipComponent clienttooltipcomponent : components)
+		for (ClientTooltipComponent clientTooltipComponent : components)
 		{
-			if (clienttooltipcomponent instanceof ClientTextTooltip)
+			if (clientTooltipComponent instanceof ClientTextTooltip)
 			{
 				break;
 			}

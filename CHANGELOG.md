@@ -1,5 +1,13 @@
 # Changelog
 
+### 1.1.8
+- Fixed a bug that prevented item models from being rendered into custom GUIs with alpha applied.
+
+### 1.1.7
+- Fixed a crash when previewing some modded 3D entity models.
+- Added painting support for 3D item previews.
+- Added support for Rubidium 0.6.4.
+
 ### 1.1.6
 - Fixed crash with some mods when rendering custom 3D models.
 - Added support to 3D item previews for most items that spawn entities (boats, minecarts, spawn eggs, etc).

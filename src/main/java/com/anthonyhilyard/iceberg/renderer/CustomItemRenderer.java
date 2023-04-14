@@ -19,6 +19,7 @@ import org.lwjgl.opengl.GL11;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.math.Axis;
 import com.mojang.math.MatrixUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.pipeline.MainTarget;
@@ -43,7 +44,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.block.BlockModelShaper;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
@@ -61,6 +61,7 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.HorseArmorItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -90,8 +91,8 @@ public class CustomItemRenderer extends ItemRenderer
 	private static Entity entity = null;
 	private static Pair<Item, CompoundTag> cachedArmorStandItem = null;
 	private static Pair<Item, CompoundTag> cachedHorseArmorItem = null;
-	private static Item cachedEntityItem = null;
-	private static Map<Item, ModelBounds> modelBoundsCache = Maps.newHashMap();
+	private static Pair<Item, CompoundTag> cachedEntityItem = null;
+	private static Map<Pair<Item, CompoundTag>, ModelBounds> modelBoundsCache = Maps.newHashMap();
 
 	private static final List<Direction> quadDirections;
 
@@ -101,14 +102,15 @@ public class CustomItemRenderer extends ItemRenderer
 		quadDirections.add(null);
 	}
 
-	private Minecraft mc;
+	private Minecraft minecraft;
 	private final ModelManager modelManager;
 	private final BlockEntityWithoutLevelRenderer blockEntityRenderer;
+	private float blitOffset = 100.0f;
 
 	public CustomItemRenderer(TextureManager textureManagerIn, ModelManager modelManagerIn, ItemColors itemColorsIn, BlockEntityWithoutLevelRenderer blockEntityRendererIn, Minecraft mcIn)
 	{
-		super(textureManagerIn, modelManagerIn, itemColorsIn, blockEntityRendererIn);
-		mc = mcIn;
+		super(mcIn, textureManagerIn, modelManagerIn, itemColorsIn, blockEntityRendererIn);
+		minecraft = mcIn;
 		modelManager = modelManagerIn;
 		blockEntityRenderer = blockEntityRendererIn;
 
@@ -124,7 +126,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternionf rotation, BakedModel bakedModel)
 	{
-		mc.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
+		minecraft.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
 		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
 		RenderSystem.enableBlend();
 		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
@@ -144,7 +146,7 @@ public class CustomItemRenderer extends ItemRenderer
 		if (flatLighting) { Lighting.setupForFlatItems(); }
 
 		PoseStack poseStack = new PoseStack();
-		renderModel(itemStack, ItemTransforms.TransformType.GUI, false, poseStack, rotation, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
+		renderModel(itemStack, ItemDisplayContext.GUI, false, poseStack, rotation, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
 
 		poseStack.popPose();
 		bufferSource.endBatch();
@@ -165,7 +167,10 @@ public class CustomItemRenderer extends ItemRenderer
 		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 		entityRenderDispatcher.setRenderShadow(false);
 
+		poseStack.pushPose();
+		poseStack.mulPose(Axis.YP.rotationDegrees(90.0f));
 		RenderSystem.runAsFancy(() -> entityRenderDispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, bufferSource, packedLight));
+		poseStack.popPose();
 		
 		if (bufferSource instanceof BufferSource source)
 		{
@@ -178,7 +183,7 @@ public class CustomItemRenderer extends ItemRenderer
 		Lighting.setupFor3DItems();
 	}
 
-	private <T extends MultiBufferSource> void renderModelInternal(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack,
+	private <T extends MultiBufferSource> void renderModelInternal(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack,
 																   Quaternionf rotation, T bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel,
 																   Predicate<T> bufferSourceReady)
 	{
@@ -188,14 +193,17 @@ public class CustomItemRenderer extends ItemRenderer
 		{
 			if (updateArmorStand(itemStack))
 			{
+				poseStack.pushPose();
+				poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
 				renderEntityModel(armorStand, poseStack, bufferSource, packedLight);
+				poseStack.popPose();
 			}
 		}
 
 		if (!bakedModel.isCustomRenderer() && !itemStack.is(Items.TRIDENT))
 		{
 			boolean fabulous;
-			if (transformType != ItemTransforms.TransformType.GUI && !transformType.firstPerson() && itemStack.getItem() instanceof BlockItem blockItem)
+			if (displayContext != ItemDisplayContext.GUI && !displayContext.firstPerson() && itemStack.getItem() instanceof BlockItem blockItem)
 			{
 				Block block = blockItem.getBlock();
 				fabulous = !(block instanceof HalfTransparentBlock) && !(block instanceof StainedGlassPaneBlock);
@@ -218,7 +226,7 @@ public class CustomItemRenderer extends ItemRenderer
 					// First try rendering via the BlockEntityWithoutLevelRenderer.
 					try
 					{
-						blockEntityRenderer.renderByItem(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay);
+						blockEntityRenderer.renderByItem(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay);
 					}
 					catch (Exception e)
 					{
@@ -236,14 +244,14 @@ public class CustomItemRenderer extends ItemRenderer
 					// First render the bottom half.
 					BlockState bottomState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER);
 					BakedModel bottomModel = blockModelShaper.getBlockModel(bottomState);
-					renderBakedModel(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay, bottomModel, fabulous);
+					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bottomModel, fabulous);
 
 					// Then render the top half.
 					poseStack.pushPose();
 					poseStack.translate(0.0f, 1.0f, 0.0f);
 					BlockState topState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER);
 					BakedModel topModel = blockModelShaper.getBlockModel(topState);
-					renderBakedModel(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay, topModel, fabulous);
+					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, topModel, fabulous);
 					poseStack.popPose();
 				}
 
@@ -263,14 +271,14 @@ public class CustomItemRenderer extends ItemRenderer
 				// If we still haven't rendered anything or this is a block entity, try rendering the block model.
 				if (blockModel != null && (bufferSourceReady.test(bufferSource) || isBlockEntity))
 				{
-					renderBakedModel(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay, blockModel, fabulous);
+					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, blockModel, fabulous);
 				}
 			}
 
 			// Now try rendering entity models for items that spawn entities.
-			if (bufferSourceReady.test(bufferSource) && EntityCollector.itemCreatesEntity(itemStack.getItem(), Entity.class))
+			if (bufferSourceReady.test(bufferSource) && EntityCollector.itemCreatesEntity(itemStack, Entity.class))
 			{
-				if (updateEntity(itemStack.getItem()))
+				if (updateEntity(itemStack))
 				{
 					renderEntityModel(entity, poseStack, bufferSource, packedLight);
 				}
@@ -288,16 +296,16 @@ public class CustomItemRenderer extends ItemRenderer
 			// Finally, fall back to just rendering the item model.
 			if (bufferSourceReady.test(bufferSource))
 			{
-				renderBakedModel(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay, bakedModel, fabulous);
+				renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel, fabulous);
 			}
 		}
 		else if (bufferSourceReady.test(bufferSource))
 		{
-			IClientItemExtensions.of(itemStack).getCustomRenderer().renderByItem(itemStack, transformType, poseStack, bufferSource, packedLight, packedOverlay);
+			IClientItemExtensions.of(itemStack).getCustomRenderer().renderByItem(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay);
 		}
 	}
 
-	private void renderModel(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack, Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+	private void renderModel(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack, Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
 		if (!itemStack.isEmpty())
 		{
@@ -306,7 +314,7 @@ public class CustomItemRenderer extends ItemRenderer
 			{
 				isBlockItem = true;
 			}
-			else if (EntityCollector.itemCreatesEntity(itemStack.getItem(), Entity.class))
+			else if (EntityCollector.itemCreatesEntity(itemStack, Entity.class))
 			{
 				spawnsEntity = true;
 			}
@@ -326,12 +334,12 @@ public class CustomItemRenderer extends ItemRenderer
 			}
 			else
 			{
-				ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, transformType, leftHanded);
+				ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, displayContext, leftHanded);
 			}
 			poseStack.translate(-0.5f, -0.5f, -0.5f);
 
 			// Get the model bounds.
-			ModelBounds modelBounds = getModelBounds(itemStack, transformType, leftHanded, poseStack, rotation, bufferSource, packedLight, packedOverlay, bakedModel);
+			ModelBounds modelBounds = getModelBounds(itemStack, displayContext, leftHanded, poseStack, rotation, bufferSource, packedLight, packedOverlay, bakedModel);
 
 			// Undo the camera transforms now that we have the model bounds.
 			poseStack.popPose();
@@ -375,12 +383,12 @@ public class CustomItemRenderer extends ItemRenderer
 			}
 			else
 			{
-				bakedModel = ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, transformType, leftHanded);
+				bakedModel = ForgeHooksClient.handleCameraTransforms(poseStack, bakedModel, displayContext, leftHanded);
 			}
 			poseStack.translate(-0.5f, -0.5f, -0.5f);
 
 			CheckedBufferSource checkedBufferSource = CheckedBufferSource.create(bufferSource);
-			renderModelInternal(itemStack, transformType, leftHanded, poseStack, rotation, checkedBufferSource, packedLight, packedOverlay, bakedModel, b -> !b.hasRendered());
+			renderModelInternal(itemStack, displayContext, leftHanded, poseStack, rotation, checkedBufferSource, packedLight, packedOverlay, bakedModel, b -> !b.hasRendered());
 
 			poseStack.popPose();
 		}
@@ -406,7 +414,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	private void renderBakedModel(ItemStack itemStack, ItemTransforms.TransformType transformType, PoseStack poseStack,
+	private void renderBakedModel(ItemStack itemStack, ItemDisplayContext transformType, PoseStack poseStack,
 								  MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel, boolean fabulous)
 	{
 		for (BakedModel model : bakedModel.getRenderPasses(itemStack, fabulous))
@@ -418,7 +426,7 @@ public class CustomItemRenderer extends ItemRenderer
 				{
 					poseStack.pushPose();
 					PoseStack.Pose posestack$pose = poseStack.last();
-					if (transformType == ItemTransforms.TransformType.GUI)
+					if (transformType == ItemDisplayContext.GUI)
 					{
 						MatrixUtil.mulComponentWise(posestack$pose.pose(), 0.5F);
 					}
@@ -491,10 +499,10 @@ public class CustomItemRenderer extends ItemRenderer
 		return true;
 	}
 
-	private Entity getEntityFromItem(Item item)
+	private Entity getEntityFromItem(ItemStack itemStack)
 	{
 		Entity collectedEntity = null;
-		List<Entity> collectedEntities = EntityCollector.collectEntitiesFromItem(item);
+		List<Entity> collectedEntities = EntityCollector.collectEntitiesFromItem(itemStack);
 		if (!collectedEntities.isEmpty())
 		{
 			// Just return the first entity collected.
@@ -505,12 +513,13 @@ public class CustomItemRenderer extends ItemRenderer
 		return collectedEntity;
 	}
 
-	private boolean updateEntity(Item item)
+	private boolean updateEntity(ItemStack itemStack)
 	{
-		if (entity == null || cachedEntityItem != item)
+		Pair<Item, CompoundTag> entityItem = Pair.of(itemStack.getItem(), itemStack.getTag());
+		if (entity == null || cachedEntityItem != entityItem)
 		{
-			entity = getEntityFromItem(item);
-			cachedEntityItem = item;
+			entity = getEntityFromItem(itemStack);
+			cachedEntityItem = entityItem;
 		}
 
 		// If somehow the entity is still null, then we can't render anything.
@@ -584,19 +593,20 @@ public class CustomItemRenderer extends ItemRenderer
 		return new ModelBounds(center, height, radius);
 	}
 
-	private ModelBounds getModelBounds(ItemStack itemStack, ItemTransforms.TransformType transformType, boolean leftHanded, PoseStack poseStack,
+	private ModelBounds getModelBounds(ItemStack itemStack, ItemDisplayContext transformType, boolean leftHanded, PoseStack poseStack,
 									   Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
-		if (!modelBoundsCache.containsKey(itemStack.getItem()))
+		Pair<Item, CompoundTag> key = Pair.of(itemStack.getItem(), itemStack.getTag());
+		if (!modelBoundsCache.containsKey(key))
 		{
 			VertexCollector vertexCollector = VertexCollector.create();
 			renderModelInternal(itemStack, transformType, leftHanded, poseStack, rotation, vertexCollector, packedLight, packedOverlay, bakedModel, b -> b.getVertices().isEmpty());
 
 			// Now store the bounds in the cache.
-			modelBoundsCache.put(itemStack.getItem(), boundsFromVertices(vertexCollector.getVertices()));
+			modelBoundsCache.put(key, boundsFromVertices(vertexCollector.getVertices()));
 		}
 
-		return modelBoundsCache.get(itemStack.getItem());
+		return modelBoundsCache.get(key);
 	}
 
 	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation)
@@ -633,10 +643,10 @@ public class CustomItemRenderer extends ItemRenderer
 		blitOffset -= 50.0f;
 	}
 
-	public void renderItemModelIntoGUIWithAlpha(ItemStack stack, int x, int y, float alpha)
+	public void renderItemModelIntoGUIWithAlpha(PoseStack poseStack, ItemStack stack, int x, int y, float alpha)
 	{
-		BakedModel bakedModel = mc.getItemRenderer().getModel(stack, null, null, 0);
-		RenderTarget lastFrameBuffer = mc.getMainRenderTarget();
+		BakedModel bakedModel = minecraft.getItemRenderer().getModel(stack, null, null, 0);
+		RenderTarget lastFrameBuffer = minecraft.getMainRenderTarget();
 
 		// Bind the icon framebuffer so we can render to texture.
 		iconFrameBuffer.clear(Minecraft.ON_OSX);
@@ -649,7 +659,7 @@ public class CustomItemRenderer extends ItemRenderer
 		RenderSystem.backupProjectionMatrix();
 		RenderSystem.setProjectionMatrix(matrix);
 
-		mc.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
+		minecraft.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
 		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
 		RenderSystem.disableCull();
 		RenderSystem.enableBlend();
@@ -662,8 +672,8 @@ public class CustomItemRenderer extends ItemRenderer
 		modelViewStack.translate(48.0f, 48.0f, -2000.0f);
 		modelViewStack.scale(96.0f, 96.0f, 96.0f);
 		RenderSystem.applyModelViewMatrix();
-		PoseStack poseStack = new PoseStack();
-		BufferSource bufferSource = mc.renderBuffers().bufferSource();
+
+		BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
 
 		boolean flatLighting = !bakedModel.usesBlockLight();
 		if (flatLighting)
@@ -671,7 +681,7 @@ public class CustomItemRenderer extends ItemRenderer
 			Lighting.setupForFlatItems();
 		}
 
-		render(stack, ItemTransforms.TransformType.GUI, false, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
+		render(stack, ItemDisplayContext.GUI, false, new PoseStack(), bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
 		bufferSource.endBatch();
 		RenderSystem.enableDepthTest();
 		if (flatLighting)
@@ -693,15 +703,12 @@ public class CustomItemRenderer extends ItemRenderer
 			RenderSystem.defaultBlendFunc();
 			RenderSystem.disableCull();
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
-			modelViewStack.pushPose();
-			modelViewStack.translate(0.0f, 0.0f, 50.0f + this.blitOffset);
-			RenderSystem.applyModelViewMatrix();
 
 			RenderSystem.setShaderTexture(0, iconFrameBuffer.getColorTextureId());
+			GuiComponent.blit(poseStack, x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
 
-			GuiComponent.blit(new PoseStack(), x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
-			modelViewStack.popPose();
-			RenderSystem.applyModelViewMatrix();
+			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+
 			iconFrameBuffer.unbindRead();
 		}
 		else

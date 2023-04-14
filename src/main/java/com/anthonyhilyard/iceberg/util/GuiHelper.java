@@ -14,7 +14,6 @@ public class GuiHelper
 	public static void drawGradientRect(Matrix4f mat, int zLevel, int left, int top, int right, int bottom, int startColor, int endColor)
 	{
 		RenderSystem.enableDepthTest();
-		RenderSystem.disableTexture();
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
 		RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -26,7 +25,6 @@ public class GuiHelper
 		BufferUploader.drawWithShader(bufferBuilder.end());
 
 		RenderSystem.disableBlend();
-		RenderSystem.enableTexture();
 	}
 
 	public static void drawGradientRect(Matrix4f mat, BufferBuilder bufferBuilder, int left, int top, int right, int bottom, int zLevel, int startColor, int endColor)
@@ -58,7 +56,6 @@ public class GuiHelper
 		float endBlue    = (float)(endColor         & 255) / 255.0F;
 
 		RenderSystem.enableDepthTest();
-		RenderSystem.disableTexture();
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
 		RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -73,6 +70,5 @@ public class GuiHelper
 		tessellator.end();
 
 		RenderSystem.disableBlend();
-		RenderSystem.enableTexture();
 	}
 }
