@@ -11,6 +11,7 @@ import com.anthonyhilyard.iceberg.util.Tooltips;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.vertex.PoseStack;
 
+import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -165,8 +166,8 @@ public class ScreenMixin extends AbstractContainerEventHandler
 	}
 
 	@SuppressWarnings("deprecation")
-	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
-	private void renderTooltipInternal(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info, int tooltipWidth, int tooltipHeight, int postX, int postY)
+	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V", shift = Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILEXCEPTION, cancellable = true)
+	private void renderTooltipInternal(PoseStack poseStack, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
 	{
 		Screen self = (Screen)(Object)this;
 		ItemStack containerStack = ItemStack.EMPTY;
@@ -184,13 +185,16 @@ public class ScreenMixin extends AbstractContainerEventHandler
 			containerStack = tooltipStack;
 		}
 
+		poseStack.popPose();
+
 		if (!containerStack.isEmpty() && !components.isEmpty())
 		{
-			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, components, poseStack, postX, postY, font, tooltipWidth, tooltipHeight, false, 0);
-			RenderTooltipEvents.POST.invoker().onPost(containerStack, components, poseStack, postX, postY, font, tooltipWidth, tooltipHeight, false);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, components, poseStack, postPos.x(), postPos.y(), font, tooltipWidth, tooltipHeight, false, 0);
+			RenderTooltipEvents.POST.invoker().onPost(containerStack, components, poseStack, postPos.x(), postPos.y(), font, tooltipWidth, tooltipHeight, false);
 		}
 
 		tooltipStack = ItemStack.EMPTY;
+		info.cancel();
 	}
 
 	@Override
