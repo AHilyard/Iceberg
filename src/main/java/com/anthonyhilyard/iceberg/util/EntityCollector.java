@@ -25,6 +25,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.Painting;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -173,6 +174,9 @@ public class EntityCollector extends Level
 					entities.clear();
 				}
 			}
+
+			// Now iterate through all the collected entities and remove any projectiles to prevent some crashes with modded bobbers, etc.
+			entities.removeIf(entity -> entity instanceof Projectile);
 		}
 		catch (Exception e)
 		{

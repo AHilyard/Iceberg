@@ -169,7 +169,13 @@ public class CustomItemRenderer extends ItemRenderer
 
 		poseStack.pushPose();
 		poseStack.mulPose(Axis.YP.rotationDegrees(90.0f));
-		RenderSystem.runAsFancy(() -> entityRenderDispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, bufferSource, packedLight));
+
+		try
+		{
+			RenderSystem.runAsFancy(() -> entityRenderDispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, bufferSource, packedLight));
+		}
+		catch (Exception e) {}
+
 		poseStack.popPose();
 		
 		if (bufferSource instanceof BufferSource source)

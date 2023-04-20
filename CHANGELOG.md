@@ -1,5 +1,8 @@
 # Changelog
 
+### 1.1.9
+- Fixed a bug that could cause crashes when trying to preview fishing rods.
+
 ### 1.1.8
 - Fixed a bug that prevented item models from being rendered into custom GUIs with alpha applied.
 

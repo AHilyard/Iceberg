@@ -43,7 +43,7 @@ public class VertexCollector implements MultiBufferSource
 			}
 		}
 
-		if (useSodiumVersion)
+		if (useSodiumVersion != null && useSodiumVersion)
 		{
 			// Instantiate the Sodium implementation using reflection.
 			try

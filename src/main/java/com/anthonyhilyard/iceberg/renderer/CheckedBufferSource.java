@@ -38,7 +38,7 @@ public class CheckedBufferSource implements MultiBufferSource
 			}
 		}
 
-		if (useSodiumVersion)
+		if (useSodiumVersion != null && useSodiumVersion)
 		{
 			// Instantiate the Rubidium implementation using reflection.
 			try
