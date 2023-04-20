@@ -34,7 +34,7 @@ public class VertexCollector implements MultiBufferSource
 		{
 			try
 			{
-				// If Sodium 0.4.9+ is installed, use the Sodium implementation.
+				// If Sodium 0.4.10 is installed, use the Sodium implementation.
 				useSodiumVersion = FabricLoader.getInstance().isModLoaded("sodium") && VersionPredicateParser.parse("0.4.10").test(FabricLoader.getInstance().getModContainer("sodium").get().getMetadata().getVersion());
 			}
 			catch (Exception e)
@@ -43,7 +43,7 @@ public class VertexCollector implements MultiBufferSource
 			}
 		}
 
-		if (useSodiumVersion)
+		if (useSodiumVersion != null && useSodiumVersion)
 		{
 			// Instantiate the Sodium implementation using reflection.
 			try
