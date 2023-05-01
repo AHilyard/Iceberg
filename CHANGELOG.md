@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.1.10
+- Fixed a conflict when installed with TooltipFix and Legendary Tooltips that caused tooltips to have broken shadows.
+- Fixed a crash when installed with older versions of Sodium.
+
 ### 1.1.9
 - Fixed a bug that could cause crashes when trying to preview fishing rods.
 

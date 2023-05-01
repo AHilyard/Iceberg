@@ -189,8 +189,8 @@ public class ScreenMixin extends AbstractContainerEventHandler
 
 		if (!containerStack.isEmpty() && !components.isEmpty())
 		{
-			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, components, poseStack, postPos.x(), postPos.y(), font, tooltipWidth, tooltipHeight, false, 0);
-			RenderTooltipEvents.POST.invoker().onPost(containerStack, components, poseStack, postPos.x(), postPos.y(), font, tooltipWidth, tooltipHeight, false);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, components, poseStack, postPos.x(), postPos.y(), font, tooltipWidth2, tooltipHeight2, false, 0);
+			RenderTooltipEvents.POST.invoker().onPost(containerStack, components, poseStack, postPos.x(), postPos.y(), font, tooltipWidth2, tooltipHeight2, false);
 		}
 
 		tooltipStack = ItemStack.EMPTY;

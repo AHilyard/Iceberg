@@ -6,7 +6,7 @@ import com.anthonyhilyard.iceberg.Loader;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.impl.util.version.VersionPredicateParser;
+import net.fabricmc.loader.api.metadata.version.VersionPredicate;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 
@@ -28,8 +28,8 @@ public class CheckedBufferSource implements MultiBufferSource
 		{
 			try
 			{
-				// If Sodium 0.4.10 is installed, use the Sodium implementation.
-				useSodiumVersion = FabricLoader.getInstance().isModLoaded("sodium") && VersionPredicateParser.parse("0.4.10").test(FabricLoader.getInstance().getModContainer("sodium").get().getMetadata().getVersion());
+				// If Sodium 0.4.11 is installed, use the Sodium implementation.
+				useSodiumVersion = FabricLoader.getInstance().isModLoaded("sodium") && VersionPredicate.parse("0.4.11").test(FabricLoader.getInstance().getModContainer("sodium").get().getMetadata().getVersion());
 			}
 			catch (Exception e)
 			{
