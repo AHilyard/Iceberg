@@ -2,7 +2,6 @@ package com.anthonyhilyard.iceberg.util;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -11,22 +10,15 @@ import com.google.common.collect.Maps;
 import com.mojang.authlib.GameProfile;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.Holder;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.AbortableIterationConsumer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.decoration.Painting;
-import net.minecraft.world.entity.decoration.PaintingVariant;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
@@ -52,6 +44,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.ticks.LevelTickAccess;
+import org.jetbrains.annotations.Nullable;
 
 public class EntityCollector extends Level
 {
@@ -84,7 +77,7 @@ public class EntityCollector extends Level
 			@Override public void setYSpawn(int p_78652_) {}
 			@Override public void setZSpawn(int p_78653_) {}
 			@Override public void setSpawnAngle(float p_78648_) {}
-		}, null, wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), wrapped.getProfilerSupplier(), false, wrapped.isDebug(), 0, 0);
+		}, null, wrapped.dimensionTypeRegistration(), wrapped.getProfilerSupplier(), false, wrapped.isDebug(), 0, 0);
 		wrappedLevel = wrapped;
 	}
 
@@ -108,7 +101,7 @@ public class EntityCollector extends Level
 
 		try
 		{
-			Player dummyPlayer = new Player(minecraft.player.level, BlockPos.ZERO, 0.0f, new GameProfile(null, "_dummy")) {
+			Player dummyPlayer = new Player(minecraft.player.level, BlockPos.ZERO, 0.0f, new GameProfile(null, "_dummy"), null) {
 				@Override public boolean isSpectator() { return false; }
 				@Override public boolean isCreative() { return false; }
 			};
@@ -146,33 +139,6 @@ public class EntityCollector extends Level
 				levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
 
 				entities.addAll(levelWrapper.getCollectedEntities());
-
-				CompoundTag itemTag = dummyStack.getTag();
-				if (itemTag != null && itemTag.contains("EntityTag", 10))
-				{
-					CompoundTag entityTag = itemTag.getCompound("EntityTag");
-
-					Optional<Holder<PaintingVariant>> loadedVariant = Painting.loadVariant(entityTag);
-					if (loadedVariant.isPresent())
-					{
-						// Entities collected here should be updated in case the item used a specific variant.
-						for (Entity entity : entities)
-						{
-							if (entity instanceof Painting paintingEntity)
-							{
-								paintingEntity.setVariant(loadedVariant.get());
-							}
-						}
-					}
-					else
-					{
-						entities.clear();
-					}
-				}
-				else
-				{
-					entities.clear();
-				}
 			}
 
 			// Now iterate through all the collected entities and remove any projectiles to prevent some crashes with modded bobbers, etc.
@@ -276,10 +242,6 @@ public class EntityCollector extends Level
 	@Override
 	public RegistryAccess registryAccess() { return wrappedLevel.registryAccess(); }
 
-
-	@Override
-	public FeatureFlagSet enabledFeatures() { return wrappedLevel.enabledFeatures(); }
-
 	@Override
 	public float getShade(Direction p_45522_, boolean p_45523_) { return wrappedLevel.getShade(p_45522_, p_45523_); }
 
@@ -288,11 +250,10 @@ public class EntityCollector extends Level
 	public void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_) { /* No block updates. */ }
 
 	@Override
-	public void playSeededSound(Player p_262953_, double p_263004_, double p_263398_, double p_263376_, Holder<SoundEvent> p_263359_, SoundSource p_263020_, float p_263055_, float p_262914_, long p_262991_) { /* No sounds. */ }
+	public void playSeededSound(@Nullable Player p_220363_, double p_220364_, double p_220365_, double p_220366_, SoundEvent p_220367_, SoundSource p_220368_, float p_220369_, float p_220370_, long p_220371_) { /* No sounds. */ }
 
 	@Override
-	public void playSeededSound(Player p_220372_, Entity p_220373_, Holder<SoundEvent> p_263500_, SoundSource p_220375_, float p_220376_, float p_220377_, long p_220378_) { /* No sounds. */ }
-
+	public void playSeededSound(@Nullable Player p_220372_, Entity p_220373_, SoundEvent p_220374_, SoundSource p_220375_, float p_220376_, float p_220377_, long p_220378_) {/* No sounds. */ }
 
 	@Override
 	public String gatherChunkSourceStats() { return wrappedLevel.gatherChunkSourceStats(); }
@@ -335,13 +296,13 @@ public class EntityCollector extends Level
 			public Iterable<Entity> getAll() { return List.of(); }
 
 			@Override
-			public <U extends Entity> void get(EntityTypeTest<Entity, U> p_156935_, AbortableIterationConsumer<U> p_261602_) {}
+			public <U extends Entity> void get(EntityTypeTest<Entity, U> p_156935_, Consumer<U> p_156936_) {}
 
 			@Override
 			public void get(AABB p_156937_, Consumer<Entity> p_156938_) {}
 
 			@Override
-			public <U extends Entity> void get(EntityTypeTest<Entity, U> p_156932_, AABB p_156933_, AbortableIterationConsumer<U> p_261542_) {}
+			public <U extends Entity> void get(EntityTypeTest<Entity, U> p_156932_, AABB p_156933_, Consumer<U> p_156934_) {}
 		};
 
 	}

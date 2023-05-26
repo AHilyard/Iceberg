@@ -2,9 +2,9 @@ package com.anthonyhilyard.iceberg.renderer;
 
 import java.util.Set;
 
+import com.mojang.math.Vector3f;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-import org.joml.Vector3f;
 
 import com.anthonyhilyard.iceberg.Loader;
 import com.google.common.collect.Sets;
@@ -95,7 +95,7 @@ public class VertexCollector implements MultiBufferSource
 			{
 				if (currentAlpha >= 25)
 				{
-					vertices.add(new Vector3f(currentVertex));
+					vertices.add(currentVertex.copy());
 				}
 			}
 

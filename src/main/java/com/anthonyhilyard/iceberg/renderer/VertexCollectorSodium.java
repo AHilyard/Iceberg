@@ -1,6 +1,6 @@
 package com.anthonyhilyard.iceberg.renderer;
 
-import org.joml.Vector3f;
+import com.mojang.math.Vector3f;
 import org.lwjgl.system.MemoryStack;
 
 import com.anthonyhilyard.iceberg.util.UnsafeUtil;
@@ -55,7 +55,7 @@ public class VertexCollectorSodium extends VertexCollector
 			{
 				if (currentAlpha >= 25)
 				{
-					vertices.add(new Vector3f(currentVertex));
+					vertices.add(currentVertex.copy());
 				}
 			}
 
