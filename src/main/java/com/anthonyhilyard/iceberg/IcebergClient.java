@@ -49,7 +49,6 @@ public class IcebergClient
 				String text = element.left().get().getString();
 
 				Map<String, String> languageData = Language.getInstance().getLanguageData();
-
 				Set<String> keys = languageData.keySet().stream().filter(key -> {
 					for (String tooltip : CREATE_TOOLTIPS) {
 						if (key.startsWith(tooltip))
@@ -58,7 +57,7 @@ public class IcebergClient
 						}
 					}
 
-					return false;
+					return key.startsWith("create.tooltip") && key.endsWith(".header");
 				}).collect(Collectors.toSet());
 
 				for (String toCheck : keys) {
@@ -67,7 +66,6 @@ public class IcebergClient
 						return;
 					}
 				}
-
 			}
 
 			// Insert a title break component after the first formattedText component.
