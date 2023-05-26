@@ -646,7 +646,7 @@ public class CustomItemRenderer extends ItemRenderer
 		blitOffset -= 50.0f;
 	}
 
-	public void renderItemModelIntoGUIWithAlpha(PoseStack poseStack, ItemStack stack, int x, int y, float alpha)
+	public void renderItemModelIntoGUIWithAlpha(ItemStack stack, int x, int y, float alpha)
 	{
 		BakedModel bakedModel = minecraft.getItemRenderer().getModel(stack, null, null, 0);
 		RenderTarget lastFrameBuffer = minecraft.getMainRenderTarget();
@@ -705,7 +705,7 @@ public class CustomItemRenderer extends ItemRenderer
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
 
 			RenderSystem.setShaderTexture(0, iconFrameBuffer.getColorTextureId());
-			GuiComponent.blit(poseStack, x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
+			GuiComponent.blit(new PoseStack(), x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
 
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
