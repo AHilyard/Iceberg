@@ -4,6 +4,9 @@
 - Fixed a conflict when installed with TooltipFix and Legendary Tooltips that caused tooltips to have broken shadows.
 - Fixed a crash when installed with older versions of Sodium.
 
+### 1.1.9.1
+- Fixed a conflict that prevented mod from working on Quilt loader.
+
 ### 1.1.9
 - Fixed a bug that could cause crashes when trying to preview fishing rods.
 

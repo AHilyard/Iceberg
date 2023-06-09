@@ -34,7 +34,7 @@
 		"java": ">=17"
 	},
 	"suggests": {
-		"sodium": "0.4.11"
+		"sodium": "0.4.10"
 	},
 	"custom": {
 		"modupdater": {
