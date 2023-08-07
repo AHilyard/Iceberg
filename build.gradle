@@ -23,7 +23,7 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loaderVersion}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabricVersion}"
-	modImplementation files("libs/sodium-fabric-mc1.19.4-0.4.10+build.24.jar")
+	modImplementation files("libs/sodium-fabric-mc1.20-0.4.10+build.27.jar")
 }
 
 loom {
@@ -41,10 +41,6 @@ processResources {
 tasks.withType(JavaCompile).configureEach {
 	it.options.encoding = "UTF-8"
 	it.options.release = 17
-}
-
-java {
-	withSourcesJar()
 }
 
 jar {

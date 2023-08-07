@@ -2,13 +2,14 @@ package com.anthonyhilyard.iceberg.events;
 
 import java.util.List;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.datafixers.util.Either;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -34,11 +35,11 @@ public final class RenderTooltipEvents
 		});
 
 	public static final Event<RenderTooltipEvents.PreExt> PREEXT = EventFactory.createArrayBacked(RenderTooltipEvents.PreExt.class,
-		callbacks ->  (stack, components, poseStack, x, y, screenWidth, screenHeight, font, comparison, index) -> {
+		callbacks ->  (stack, graphics, x, y, screenWidth, screenHeight, font, components, positioner, comparison, index) -> {
 			PreExtResult result = new PreExtResult(InteractionResult.PASS, x, y, screenWidth, screenHeight, font);
 			for (RenderTooltipEvents.PreExt callback : callbacks)
 			{
-				result = callback.onPre(stack, components, poseStack, result.x, result.y, screenWidth, screenHeight, result.font, comparison, index);
+				result = callback.onPre(stack, graphics, result.x, result.y, result.screenWidth, result.screenHeight, result.font, components, positioner, comparison, index);
 
 				if (result.result != InteractionResult.PASS)
 				{
@@ -48,55 +49,21 @@ public final class RenderTooltipEvents
 			return result;
 		});
 
-	@Deprecated
-	public static final Event<RenderTooltipEvents.Pre> PRE = EventFactory.createArrayBacked(RenderTooltipEvents.Pre.class,
-		callbacks -> (stack, components, poseStack, x, y, screenWidth, screenHeight, maxWidth, font, comparison) -> {
-		for (RenderTooltipEvents.Pre callback : callbacks)
-		{
-			InteractionResult result = callback.onPre(stack, components, poseStack, x, y, screenWidth, screenHeight, maxWidth, font, comparison);
-
-			if (result != InteractionResult.PASS)
-			{
-				return result;
-			}
-		}
-		return InteractionResult.PASS;
-	});
-
 	public static final Event<RenderTooltipEvents.ColorExt> COLOREXT = EventFactory.createArrayBacked(RenderTooltipEvents.ColorExt.class,
-		callbacks -> (stack, components, poseStack, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, comparison, index) -> {
+		callbacks -> (stack, graphics, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, comparison, index) -> {
 			ColorExtResult result = new ColorExtResult(backgroundStart, backgroundEnd, borderStart, borderEnd);
 			for (RenderTooltipEvents.ColorExt callback : callbacks)
 			{
-				result = callback.onColor(stack, components, poseStack, x, y, font, result.backgroundStart, result.backgroundEnd, result.borderStart, result.borderEnd, comparison, index);
+				result = callback.onColor(stack, graphics, x, y, font, result.backgroundStart, result.backgroundEnd, result.borderStart, result.borderEnd, components, comparison, index);
 			}
 			return result;
 	});
 
-	@Deprecated
-	public static final Event<RenderTooltipEvents.Color> COLOR = EventFactory.createArrayBacked(RenderTooltipEvents.Color.class,
-		callbacks -> (stack, components, poseStack, x, y, font, background, borderStart, borderEnd, comparison) -> {
-		ColorResult result = new ColorResult(background, borderStart, borderEnd);
-		for (RenderTooltipEvents.Color callback : callbacks)
-		{
-			result = callback.onColor(stack, components, poseStack, x, y, font, result.background, result.borderStart, result.borderEnd, comparison);
-		}
-		return result;
-	});
-
 	public static final Event<RenderTooltipEvents.PostExt> POSTEXT = EventFactory.createArrayBacked(RenderTooltipEvents.PostExt.class,
-		callbacks -> (stack, components, poseStack, x, y, font, width, height, comparison, index) -> {
+		callbacks -> (stack, graphics, x, y, font, width, height, components, comparison, index) -> {
 			for (RenderTooltipEvents.PostExt callback : callbacks)
 			{
-				callback.onPost(stack, components, poseStack, x, y, font, width, height, comparison, index);
-			}
-	});
-
-	public static final Event<RenderTooltipEvents.Post> POST = EventFactory.createArrayBacked(RenderTooltipEvents.Post.class,
-		callbacks -> (stack, components, poseStack, x, y, font, width, height, comparison) -> {
-			for (RenderTooltipEvents.Post callback : callbacks)
-			{
-				callback.onPost(stack, components, poseStack, x, y, font, width, height, comparison);
+				callback.onPost(stack, graphics, x, y, font, width, height, components, comparison, index);
 			}
 	});
 
@@ -109,44 +76,22 @@ public final class RenderTooltipEvents
 	@FunctionalInterface
 	public interface PreExt
 	{
-		PreExtResult onPre(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, int screenWidth, int screenHeight, Font font, boolean comparison, int index);
-	}
-
-	@Deprecated
-	@FunctionalInterface
-	public interface Pre
-	{
-		InteractionResult onPre(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, int screenWidth, int screenHeight, int maxWidth, Font font, boolean comparison);
+		PreExtResult onPre(ItemStack stack, GuiGraphics graphics, int x, int y, int screenWidth, int screenHeight, Font font, List<ClientTooltipComponent> components, ClientTooltipPositioner positioner, boolean comparison, int index);
 	}
 
 	@FunctionalInterface
 	public interface ColorExt
 	{
-		ColorExtResult onColor(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, boolean comparison, int index);
-	}
-
-	@Deprecated
-	@FunctionalInterface
-	public interface Color
-	{
-		ColorResult onColor(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int background, int borderStart, int borderEnd, boolean comparison);
+		ColorExtResult onColor(ItemStack stack, GuiGraphics graphics, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison, int index);
 	}
 
 	@FunctionalInterface
 	public interface PostExt
 	{
-		void onPost(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int width, int height, boolean comparison, int index);
-	}
-
-	@Deprecated
-	@FunctionalInterface
-	public interface Post
-	{
-		void onPost(ItemStack stack, List<ClientTooltipComponent> components, PoseStack poseStack, int x, int y, Font font, int width, int height, boolean comparison);
+		void onPost(ItemStack stack, GuiGraphics graphics, int x, int y, Font font, int width, int height, List<ClientTooltipComponent> components, boolean comparison, int index);
 	}
 
 	public record GatherResult(InteractionResult result, int maxWidth, List<Either<FormattedText, TooltipComponent>> tooltipElements) {}
 	public record PreExtResult(InteractionResult result, int x, int y, int screenWidth, int screenHeight, Font font) {}
 	public record ColorExtResult(int backgroundStart, int backgroundEnd, int borderStart, int borderEnd) {}
-	public record ColorResult(int background, int borderStart, int borderEnd) {}
 }

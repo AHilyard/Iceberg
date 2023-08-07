@@ -108,14 +108,14 @@ public class EntityCollector extends Level
 
 		try
 		{
-			Player dummyPlayer = new Player(minecraft.player.level, BlockPos.ZERO, 0.0f, new GameProfile(null, "_dummy")) {
+			Player dummyPlayer = new Player(minecraft.player.level(), BlockPos.ZERO, 0.0f, new GameProfile(null, "_dummy")) {
 				@Override public boolean isSpectator() { return false; }
 				@Override public boolean isCreative() { return false; }
 			};
 
 			dummyPlayer.setItemInHand(InteractionHand.MAIN_HAND, dummyStack);
 
-			EntityCollector levelWrapper = EntityCollector.of(dummyPlayer.level);
+			EntityCollector levelWrapper = EntityCollector.of(dummyPlayer.level());
 
 			if (item instanceof SpawnEggItem spawnEggItem)
 			{

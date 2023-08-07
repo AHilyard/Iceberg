@@ -7,12 +7,13 @@
 		"ItemMixin"
 	],
 	"client": [
-		"ScreenMixin",
+		"GuiGraphicsMixin",
 		"ClientPacketListenerMixin",
 		"LivingEntityMixin",
 		"TextColorMixin",
 		"MinecraftMixin",
-		"TooltipRenderUtilMixin"
+		"TooltipRenderUtilMixin",
+		"ScreenMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
