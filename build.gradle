@@ -53,7 +53,7 @@ dependencies {
 	annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 	compileClasspath fg.deobf('curse.maven:configmenusforge-544048:3570070')
 	compileClasspath fg.deobf('curse.maven:configured-457570:4011355')
-	compileClasspath fg.deobf('curse.maven:rubidium-574856:4448053')
+	compileClasspath fg.deobf('curse.maven:rubidium-574856:4684247')
 }
 
 jar {

@@ -9,11 +9,10 @@
 		"ItemMixin"
 	],
 	"client": [
-		"ScreenMixin",
+		"GuiGraphicsMixin",
 		"ClientPacketListenerMixin",
 		"TextColorMixin",
-		"MinecraftMixin",
-		"TooltipRenderUtilMixin"
+		"MinecraftMixin"
 	],
 	"server": [
 		"MainMixin"

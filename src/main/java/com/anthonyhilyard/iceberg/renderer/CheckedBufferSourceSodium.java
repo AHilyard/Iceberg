@@ -4,11 +4,11 @@ import org.lwjgl.system.MemoryStack;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
+import net.caffeinemc.mods.sodium.api.vertex.buffer.VertexBufferWriter;
+import net.caffeinemc.mods.sodium.api.vertex.format.VertexFormatDescription;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 
-import me.jellysquid.mods.sodium.client.render.vertex.VertexBufferWriter;
-import me.jellysquid.mods.sodium.client.render.vertex.VertexFormatDescription;
 
 public final class CheckedBufferSourceSodium extends CheckedBufferSource
 {

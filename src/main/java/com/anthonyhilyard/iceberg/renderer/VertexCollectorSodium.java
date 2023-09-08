@@ -6,10 +6,9 @@ import org.lwjgl.system.MemoryStack;
 import com.anthonyhilyard.iceberg.util.UnsafeUtil;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
+import net.caffeinemc.mods.sodium.api.vertex.attributes.CommonVertexAttribute;
+import net.caffeinemc.mods.sodium.api.vertex.format.VertexFormatDescription;
 import net.minecraft.client.renderer.RenderType;
-
-import me.jellysquid.mods.sodium.client.render.vertex.VertexFormatDescription;
-import me.jellysquid.mods.sodium.client.render.vertex.transform.CommonVertexElement;
 
 public class VertexCollectorSodium extends VertexCollector
 {
@@ -79,12 +78,12 @@ public class VertexCollectorSodium extends VertexCollector
 				for (int i = 0; i < count; i++)
 				{
 					// Get the vertex position.
-					float x = UnsafeUtil.readFloat(pointer + i * format.stride + format.getOffset(CommonVertexElement.POSITION));
-					float y = UnsafeUtil.readFloat(pointer + i * format.stride + format.getOffset(CommonVertexElement.POSITION) + 4);
-					float z = UnsafeUtil.readFloat(pointer + i * format.stride + format.getOffset(CommonVertexElement.POSITION) + 8);
+					float x = UnsafeUtil.readFloat(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.POSITION));
+					float y = UnsafeUtil.readFloat(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.POSITION) + 4);
+					float z = UnsafeUtil.readFloat(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.POSITION) + 8);
 
 					// Get the vertex alpha.
-					int a = UnsafeUtil.readByte(pointer + i * format.stride + format.getOffset(CommonVertexElement.COLOR) + 3) & 0xFF;
+					int a = UnsafeUtil.readByte(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.COLOR) + 3) & 0xFF;
 
 					// Add the vertex to the list if it's opaque.
 					if (a >= 25)

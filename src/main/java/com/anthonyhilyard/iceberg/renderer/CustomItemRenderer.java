@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import com.anthonyhilyard.iceberg.util.EntityCollector;
+import com.anthonyhilyard.iceberg.util.GuiHelper;
 import com.google.common.collect.Maps;
 
 import org.joml.Matrix4f;
@@ -18,6 +19,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexSorting;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Axis;
 import com.mojang.math.MatrixUtil;
@@ -37,7 +39,7 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.color.item.ItemColors;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -105,7 +107,6 @@ public class CustomItemRenderer extends ItemRenderer
 	private Minecraft minecraft;
 	private final ModelManager modelManager;
 	private final BlockEntityWithoutLevelRenderer blockEntityRenderer;
-	private float blitOffset = 100.0f;
 
 	public CustomItemRenderer(TextureManager textureManagerIn, ModelManager modelManagerIn, ItemColors itemColorsIn, BlockEntityWithoutLevelRenderer blockEntityRendererIn, Minecraft mcIn)
 	{
@@ -124,7 +125,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternionf rotation, BakedModel bakedModel)
+	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternionf rotation, BakedModel bakedModel, GuiGraphics graphics)
 	{
 		minecraft.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
 		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
@@ -134,10 +135,8 @@ public class CustomItemRenderer extends ItemRenderer
 
 		PoseStack modelViewStack = RenderSystem.getModelViewStack();
 		modelViewStack.pushPose();
-		modelViewStack.translate(x, y, 100.0f + blitOffset);
-
-		modelViewStack.translate(8.0f, 8.0f, 0.0f);
-		modelViewStack.scale(1.0f, -1.0f, 1.0f);
+		modelViewStack.translate(x + 8.0f, y + 8.0f, 150.0f);
+		modelViewStack.mulPoseMatrix((new Matrix4f()).scaling(1.0f, -1.0f, 1.0f));
 		modelViewStack.scale(16.0f, 16.0f, 16.0f);
 		RenderSystem.applyModelViewMatrix();
 
@@ -148,9 +147,10 @@ public class CustomItemRenderer extends ItemRenderer
 		PoseStack poseStack = new PoseStack();
 		renderModel(itemStack, ItemDisplayContext.GUI, false, poseStack, rotation, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
 
-		poseStack.popPose();
+		RenderSystem.disableDepthTest();
 		bufferSource.endBatch();
 		RenderSystem.enableDepthTest();
+
 		if (flatLighting) { Lighting.setupFor3DItems(); }
 
 		modelViewStack.popPose();
@@ -615,16 +615,14 @@ public class CustomItemRenderer extends ItemRenderer
 		return modelBoundsCache.get(key);
 	}
 
-	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation)
+	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 		BakedModel bakedModel = minecraft.getItemRenderer().getModel(stack, minecraft.level, minecraft.player, 0);
 
-		blitOffset += 50.0f;
-
 		try
 		{
-			renderGuiModel(stack, x, y, rotation, bakedModel);
+			renderGuiModel(stack, x, y, rotation, bakedModel, graphics);
 		}
 		catch (Throwable throwable)
 		{
@@ -645,8 +643,6 @@ public class CustomItemRenderer extends ItemRenderer
 			});
 			throw new ReportedException(crashreport);
 		}
-
-		blitOffset -= 50.0f;
 	}
 
 	public void renderItemModelIntoGUIWithAlpha(PoseStack poseStack, ItemStack stack, int x, int y, float alpha)
@@ -663,7 +659,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 		RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
 		RenderSystem.backupProjectionMatrix();
-		RenderSystem.setProjectionMatrix(matrix);
+		RenderSystem.setProjectionMatrix(matrix, VertexSorting.ORTHOGRAPHIC_Z);
 
 		minecraft.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
 		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
@@ -711,7 +707,7 @@ public class CustomItemRenderer extends ItemRenderer
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
 
 			RenderSystem.setShaderTexture(0, iconFrameBuffer.getColorTextureId());
-			GuiComponent.blit(poseStack, x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
+			GuiHelper.blit(poseStack, x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
 
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 

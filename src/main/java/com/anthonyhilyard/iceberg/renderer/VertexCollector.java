@@ -34,8 +34,8 @@ public class VertexCollector implements MultiBufferSource
 		{
 			try
 			{
-				// Check if Rubidium 0.6.4 is installed using Forge API.
-				useSodiumVersion = ModList.get().isLoaded("rubidium") && ModList.get().getModContainerById("rubidium").get().getModInfo().getVersion().equals(new DefaultArtifactVersion("0.6.4"));
+				// Check if Rubidium 0.7.0+ is installed using Forge API.
+				useSodiumVersion = ModList.get().isLoaded("rubidium") && ModList.get().getModContainerById("rubidium").get().getModInfo().getVersion().compareTo(new DefaultArtifactVersion("0.7.0")) >= 0;
 			}
 			catch (Exception e)
 			{
