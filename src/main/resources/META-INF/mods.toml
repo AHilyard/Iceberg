@@ -22,7 +22,7 @@ description="A library containing events, helpers, and utilities to make modding
 [[dependencies.iceberg]]
 	modId="minecraft"
 	mandatory=true
-	versionRange="[1.20,)"
+	versionRange="[1.20,1.20.1]"
 	ordering="NONE"
 	side="BOTH"
 

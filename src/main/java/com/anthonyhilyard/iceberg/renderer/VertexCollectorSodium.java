@@ -92,6 +92,9 @@ public class VertexCollectorSodium extends VertexCollector
 					}
 				}
 			}
+
+			@Override
+			public boolean isFullWriter() { return true; }
 		};
 	}
 }

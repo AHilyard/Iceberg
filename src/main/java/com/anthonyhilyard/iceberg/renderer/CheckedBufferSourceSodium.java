@@ -60,6 +60,9 @@ public final class CheckedBufferSourceSodium extends CheckedBufferSource
 				hasRendered = true;
 				((VertexBufferWriter)vertexConsumer).push(memoryStack, pointer, count, format);
 			}
+
+			@Override
+			public boolean isFullWriter() { return true; }
 		};
 
 		return vertexConsumerWrap;
