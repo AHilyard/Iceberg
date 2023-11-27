@@ -1,10 +1,5 @@
 package com.anthonyhilyard.iceberg.renderer;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
-
-import com.anthonyhilyard.iceberg.Loader;
-
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -16,7 +11,7 @@ public class CheckedBufferSource implements MultiBufferSource
 	protected boolean hasRendered = false;
 	protected final MultiBufferSource bufferSource;
 
-	private static Boolean useSodiumVersion = null;
+	protected static final boolean useSodiumVersion = ModList.get().isLoaded("rubidium");
 
 	protected CheckedBufferSource(MultiBufferSource bufferSource)
 	{
@@ -25,30 +20,9 @@ public class CheckedBufferSource implements MultiBufferSource
 
 	public static CheckedBufferSource create(MultiBufferSource bufferSource)
 	{
-		if (useSodiumVersion == null)
+		if (useSodiumVersion)
 		{
-			try
-			{
-				// Check if Rubidium 0.7.1+ is installed using Forge API.
-				useSodiumVersion = ModList.get().isLoaded("rubidium") && ModList.get().getModContainerById("rubidium").get().getModInfo().getVersion().compareTo(new DefaultArtifactVersion("0.7.1")) >= 0;
-			}
-			catch (Exception e)
-			{
-				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-
-		if (useSodiumVersion != null && useSodiumVersion)
-		{
-			// Instantiate the Rubidium implementation using reflection.
-			try
-			{
-				return (CheckedBufferSource) Class.forName("com.anthonyhilyard.iceberg.renderer.CheckedBufferSourceSodium").getDeclaredConstructor(MultiBufferSource.class).newInstance(bufferSource);
-			}
-			catch (Exception e)
-			{
-				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
-			}
+			return new CheckedBufferSourceSodium(bufferSource);
 		}
 
 		return new CheckedBufferSource(bufferSource);
