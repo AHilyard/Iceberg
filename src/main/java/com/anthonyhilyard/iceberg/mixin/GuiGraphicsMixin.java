@@ -45,7 +45,7 @@ public class GuiGraphicsMixin
 	@Final
 	private Minecraft minecraft;
 
-	private static ItemStack tooltipStack = ItemStack.EMPTY;
+	private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
 
 	private int storedTooltipWidth, storedTooltipHeight;
 	private Vector2ic storedPostPos;
@@ -56,13 +56,13 @@ public class GuiGraphicsMixin
 	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "HEAD"))
 	protected void renderTooltipHead(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
 	{
-		tooltipStack = itemStack;
+		icebergTooltipStack = itemStack;
 	}
 
 	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "TAIL"))
 	protected void renderTooltipTail(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
 	{
-		tooltipStack = ItemStack.EMPTY;
+		icebergTooltipStack = ItemStack.EMPTY;
 	}
 
 	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;Ljava/util/Optional;II)V",
@@ -78,13 +78,13 @@ public class GuiGraphicsMixin
 
 			// If the tooltip stack is empty, try to get the stack from the slot under the mouse.
 			// This is needed for the creative inventory screen, which doesn't set the tooltip stack.
-			if (tooltipStack.isEmpty() && hoveredSlot != null)
+			if (icebergTooltipStack.isEmpty() && hoveredSlot != null)
 			{
-				tooltipStack = hoveredSlot.getItem();
+				icebergTooltipStack = hoveredSlot.getItem();
 			}
 		}
 
-		List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(tooltipStack, textComponents, itemComponent, x, currentScreen.width, currentScreen.height, null, font, -1);
+		List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, textComponents, itemComponent, x, currentScreen.width, currentScreen.height, null, font, -1);
 		if (newComponents != null && !newComponents.isEmpty())
 		{
 			components.clear();
@@ -110,9 +110,9 @@ public class GuiGraphicsMixin
 		}
 		else
 		{
-			if (FabricLoader.getInstance().isModLoaded("andromeda") && tooltipStack != null && !tooltipStack.isEmpty())
+			if (FabricLoader.getInstance().isModLoaded("andromeda") && icebergTooltipStack != null && !icebergTooltipStack.isEmpty())
 			{
-				List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(tooltipStack, Screen.getTooltipFromItem(minecraft, tooltipStack), tooltipStack.getTooltipImage(), x, width, height, null, font, -1);
+				List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, Screen.getTooltipFromItem(minecraft, icebergTooltipStack), icebergTooltipStack.getTooltipImage(), x, width, height, null, font, -1);
 				if (newComponents != null && !newComponents.isEmpty())
 				{
 					int oldWidth = 0, oldHeight = 0;
@@ -129,9 +129,9 @@ public class GuiGraphicsMixin
 					
 					components.clear();
 					components.addAll(newComponents);
-					Rect2i newRect = Tooltips.calculateRect(tooltipStack, self, positioner, components, x, y, width, height, width, font, 0, true);
+					Rect2i newRect = Tooltips.calculateRect(icebergTooltipStack, self, positioner, components, x, y, width, height, width, font, 0, true);
 
-					if (tooltipStack == minecraft.player.getMainHandItem())
+					if (minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
 					{
 						PoseStack poseStack = RenderSystem.getModelViewStack();
 						xChange = (oldWidth - newRect.getWidth()) / 2;
@@ -149,7 +149,7 @@ public class GuiGraphicsMixin
 			PreExtResult eventResult = null;
 			InteractionResult result = InteractionResult.PASS;
 
-			eventResult = RenderTooltipEvents.PREEXT.invoker().onPre(tooltipStack, self, x, y, width, height, font, components, positioner, false, 0);
+			eventResult = RenderTooltipEvents.PREEXT.invoker().onPre(icebergTooltipStack, self, x, y, width, height, font, components, positioner, false, 0);
 			result = eventResult.result();
 
 			if (result != InteractionResult.PASS)
@@ -178,7 +178,7 @@ public class GuiGraphicsMixin
 
 		if (containerStack.isEmpty())
 		{
-			containerStack = tooltipStack;
+			containerStack = icebergTooltipStack;
 		}
 
 		if (!containerStack.isEmpty())
@@ -235,7 +235,7 @@ public class GuiGraphicsMixin
 
 		if (containerStack.isEmpty())
 		{
-			containerStack = tooltipStack;
+			containerStack = icebergTooltipStack;
 		}
 
 		if (!containerStack.isEmpty() && !components.isEmpty())
@@ -243,14 +243,14 @@ public class GuiGraphicsMixin
 			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, storedPostPos.x(), storedPostPos.y(), font, storedTooltipWidth, storedTooltipHeight, components, false, 0);
 		}
 
-		if (FabricLoader.getInstance().isModLoaded("andromeda") && tooltipStack == minecraft.player.getMainHandItem())
+		if (FabricLoader.getInstance().isModLoaded("andromeda") && minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
 		{
 			PoseStack poseStack = RenderSystem.getModelViewStack();
 			poseStack.translate(-xChange, -yChange, 0);
 			RenderSystem.applyModelViewMatrix();
 		}
 
-		tooltipStack = ItemStack.EMPTY;
+		icebergTooltipStack = ItemStack.EMPTY;
 		xChange = 0;
 		yChange = 0;
 	}

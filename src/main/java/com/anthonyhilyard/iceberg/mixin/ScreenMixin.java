@@ -28,7 +28,7 @@ public class ScreenMixin
 		{
 			try
 			{
-				Field tooltipStackField = GuiGraphics.class.getDeclaredField("tooltipStack");
+				Field tooltipStackField = GuiGraphics.class.getDeclaredField("icebergTooltipStack");
 				tooltipStackField.setAccessible(true);
 				tooltipStackField.set(null, itemStack);
 			}

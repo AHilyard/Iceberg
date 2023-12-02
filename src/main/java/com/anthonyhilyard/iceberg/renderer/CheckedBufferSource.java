@@ -28,8 +28,8 @@ public class CheckedBufferSource implements MultiBufferSource
 		{
 			try
 			{
-				// If Sodium 0.4.10 is installed, use the Sodium implementation.
-				useSodiumVersion = FabricLoader.getInstance().isModLoaded("sodium") && VersionPredicate.parse("0.4.10").test(FabricLoader.getInstance().getModContainer("sodium").get().getMetadata().getVersion());
+				// If Sodium 0.5.0+ is installed, use the Sodium implementation.
+				useSodiumVersion = FabricLoader.getInstance().isModLoaded("sodium") && VersionPredicate.parse(">=0.5.0").test(FabricLoader.getInstance().getModContainer("sodium").get().getMetadata().getVersion());
 			}
 			catch (Exception e)
 			{

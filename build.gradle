@@ -23,7 +23,7 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loaderVersion}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabricVersion}"
-	modImplementation files("libs/sodium-fabric-mc1.20-0.4.10+build.27.jar")
+	modImplementation files("libs/sodium-fabric-mc1.20.1-0.5.0.jar")
 }
 
 loom {
