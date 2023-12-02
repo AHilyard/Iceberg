@@ -108,8 +108,18 @@ public class ItemColor
 		if (result == null || result.equals(item.getDisplayName().getStyle().getColor()))
 		{
 			Minecraft mc = Minecraft.getInstance();
-			List<Component> lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
-			if (!lines.isEmpty())
+			List<Component> lines = null;
+			
+			try
+			{
+				lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
+			}
+			catch (Exception e)
+			{
+				// An item must have misbehaved.
+			}
+
+			if (lines != null && !lines.isEmpty())
 			{
 				result = lines.get(0).getStyle().getColor();
 			}

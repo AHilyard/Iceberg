@@ -20,7 +20,7 @@ import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.ValueSpec;
 import net.minecraftforge.fml.Logging;
 import net.minecraftforge.fml.config.IConfigSpec;
-import net.minecraftforge.fml.unsafe.UnsafeHacks;
+import net.minecraftforge.unsafe.UnsafeHacks;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;

@@ -24,7 +24,7 @@ public class IcebergClient
 	{
 	}
 
-	@SubscribeEvent(priority = EventPriority.LOWEST)
+	@SubscribeEvent(priority = EventPriority.HIGHEST)
 	public static void onGatherComponentsEventEnd(GatherComponents event)
 	{
 		if (event.getTooltipElements().size() > 1)
