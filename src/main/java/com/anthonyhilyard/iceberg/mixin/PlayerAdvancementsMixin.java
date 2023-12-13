@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -20,11 +20,11 @@ public class PlayerAdvancementsMixin
 	private ServerPlayer player;
 
 	@Inject(method = "award", at = @At(value = "TAIL"), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
-	public void onAward(Advancement advancement, String criterionKey, CallbackInfoReturnable<Boolean> callbackInfo, boolean success)
+	public void onAward(AdvancementHolder advancementHolder, String criterionKey, CallbackInfoReturnable<Boolean> callbackInfo, boolean success)
 	{
 		if (success)
 		{
-			CriterionCallback.EVENT.invoker().awardCriterion(player, advancement, criterionKey);
+			CriterionCallback.EVENT.invoker().awardCriterion(player, advancementHolder, criterionKey);
 		}
 	}
 }

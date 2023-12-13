@@ -8,18 +8,23 @@ import com.anthonyhilyard.iceberg.util.Tooltips.TitleBreakComponent;
 import com.mojang.datafixers.util.Either;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.event.Event;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 public class IcebergClient implements ClientModInitializer
 {
+	private static ResourceLocation earlyEventPhase = new ResourceLocation("iceberg", "early");
+
 	@Override
 	public void onInitializeClient()
 	{
 		TitleBreakComponent.registerFactory();
-		RenderTooltipEvents.GATHER.register(IcebergClient::onGatherComponentsEventEnd);
+		RenderTooltipEvents.GATHER.addPhaseOrdering(earlyEventPhase, Event.DEFAULT_PHASE);
+		RenderTooltipEvents.GATHER.register(earlyEventPhase, IcebergClient::onGatherComponentsEventEnd);
 
 		// Event testing.
 		// CriterionCallback.EVENT.register((player, advancement, criterion) -> { Loader.LOGGER.info("CriterionCallback: {}, {}, {}", player.getName().getString(), advancement.getId().toString(), criterion); });

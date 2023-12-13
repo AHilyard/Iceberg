@@ -104,7 +104,7 @@ public class EntityCollector extends Level
 		List<Entity> entities = Lists.newArrayList();
 		Item item = itemStack.getItem();
 		ItemStack dummyStack = new ItemStack(item, itemStack.getCount());
-		dummyStack.setTag(itemStack.getTag());
+		dummyStack.setTag(ItemUtil.getItemNBT(itemStack));
 
 		try
 		{
@@ -188,7 +188,7 @@ public class EntityCollector extends Level
 
 	public static <T extends Entity> boolean itemCreatesEntity(ItemStack itemStack, Class<T> targetClass)
 	{
-		ItemClassPair key = new ItemClassPair(itemStack.getItem(), itemStack.getTag(), targetClass);
+		ItemClassPair key = new ItemClassPair(itemStack.getItem(), ItemUtil.getItemNBT(itemStack), targetClass);
 		boolean result = false;
 		if (!itemCreatesEntityResultCache.containsKey(key))
 		{

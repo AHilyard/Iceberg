@@ -1,6 +1,6 @@
 package com.anthonyhilyard.iceberg.events;
 
-import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.world.entity.player.Player;
 
 /**
@@ -9,13 +9,13 @@ import net.minecraft.world.entity.player.Player;
 public interface CriterionCallback
 {
 	ToggleableEvent<CriterionCallback> EVENT = ToggleableEvent.create(CriterionCallback.class,
-		(listeners) -> (player, advancement, criterionKey) -> {
+		(listeners) -> (player, advancementHolder, criterionKey) -> {
 			for (CriterionCallback listener : listeners)
 			{
-				listener.awardCriterion(player, advancement, criterionKey);
+				listener.awardCriterion(player, advancementHolder, criterionKey);
 			}
 		}
 	);
 
-	public void awardCriterion(Player player, Advancement advancement, String criterionKey);
+	public void awardCriterion(Player player, AdvancementHolder advancementHolder, String criterionKey);
 }
