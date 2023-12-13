@@ -9,6 +9,7 @@ import java.util.function.Predicate;
 
 import com.anthonyhilyard.iceberg.util.EntityCollector;
 import com.anthonyhilyard.iceberg.util.GuiHelper;
+import com.anthonyhilyard.iceberg.util.ItemUtil;
 import com.google.common.collect.Maps;
 
 import org.joml.Matrix4f;
@@ -407,9 +408,9 @@ public class CustomItemRenderer extends ItemRenderer
 		BlockEntity blockEntity = entityBlock.newBlockEntity(BlockPos.ZERO, blockState);
 		if (blockEntity != null)
 		{
-			if (itemStack.getTag() != null)
+			if (itemStack.hasTag())
 			{
-				blockEntity.load(itemStack.getTag());
+				blockEntity.load(ItemUtil.getItemNBT(itemStack));
 			}
 			
 			BlockEntityRenderer<BlockEntity> renderer = minecraft.getBlockEntityRenderDispatcher().getRenderer(blockEntity);
@@ -489,7 +490,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 
 		// If the item has changed, then we need to update the armor stand.
-		if (cachedArmorStandItem != Pair.of(itemStack.getItem(), itemStack.getTag()))
+		if (cachedArmorStandItem != Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack)))
 		{
 			// Clear the armor stand.
 			for (EquipmentSlot slot : EquipmentSlot.values())
@@ -500,7 +501,7 @@ public class CustomItemRenderer extends ItemRenderer
 			// Equip the armor stand with the armor.
 			armorStand.setItemSlot(equipmentSlot, itemStack);
 
-			cachedArmorStandItem = Pair.of(itemStack.getItem(), itemStack.getTag());
+			cachedArmorStandItem = Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack));
 		}
 		return true;
 	}
@@ -521,7 +522,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private boolean updateEntity(ItemStack itemStack)
 	{
-		Pair<Item, CompoundTag> entityItem = Pair.of(itemStack.getItem(), itemStack.getTag());
+		Pair<Item, CompoundTag> entityItem = Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack));
 		if (entity == null || cachedEntityItem != entityItem)
 		{
 			entity = getEntityFromItem(itemStack);
@@ -555,12 +556,12 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 
 		// If the item has changed, then we need to update the horse.
-		if (cachedHorseArmorItem != Pair.of(horseArmorItem.getItem(), horseArmorItem.getTag()))
+		if (cachedHorseArmorItem != Pair.of(horseArmorItem.getItem(), ItemUtil.getItemNBT(horseArmorItem)))
 		{
 			// Equip the horse with the armor.
 			horse.setItemSlot(EquipmentSlot.CHEST, horseArmorItem);
 
-			cachedHorseArmorItem = Pair.of(horseArmorItem.getItem(), horseArmorItem.getTag());
+			cachedHorseArmorItem = Pair.of(horseArmorItem.getItem(), ItemUtil.getItemNBT(horseArmorItem));
 		}
 		return true;
 	}
@@ -602,7 +603,7 @@ public class CustomItemRenderer extends ItemRenderer
 	private ModelBounds getModelBounds(ItemStack itemStack, ItemDisplayContext transformType, boolean leftHanded, PoseStack poseStack,
 									   Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
-		Pair<Item, CompoundTag> key = Pair.of(itemStack.getItem(), itemStack.getTag());
+		Pair<Item, CompoundTag> key = Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack));
 		if (!modelBoundsCache.containsKey(key))
 		{
 			VertexCollector vertexCollector = VertexCollector.create();

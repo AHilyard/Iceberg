@@ -294,7 +294,7 @@ public class Selectors
 			}
 
 			// Look for a tag matching the given name and value.
-			return findMatchingSubtag(item.getTag(), tagName, tagValue, valueChecker);
+			return findMatchingSubtag(ItemUtil.getItemNBT(item), tagName, tagValue, valueChecker);
 		}
 
 		return false;

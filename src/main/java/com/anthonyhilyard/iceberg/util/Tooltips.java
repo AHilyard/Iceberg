@@ -35,7 +35,6 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
@@ -61,7 +60,6 @@ public class Tooltips
 	private static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0x505000FF), TextColor.fromRgb(0x5028007F));
 
 	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
-	private static ItemRenderer itemRenderer = null;
 	private static boolean tooltipWidthWarningShown = false;
 
 	public static TooltipColors currentColors = DEFAULT_COLORS;
@@ -210,12 +208,6 @@ public class Tooltips
 		if (info.getComponents().isEmpty())
 		{
 			return;
-		}
-
-		// Grab the itemRenderer now if needed.
-		if (itemRenderer == null)
-		{
-			itemRenderer = Minecraft.getInstance().getItemRenderer();
 		}
 
 		// Center the title now if needed.
@@ -512,7 +504,7 @@ public class Tooltips
 				List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(titleComponent));
 				if (recomposedLines.isEmpty())
 				{
-					return components;
+					return result;
 				}
 
 				FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
