@@ -218,7 +218,7 @@ public class GuiGraphicsMixin
 		storeLocals(font, components, x, y, positioner, info, tooltipWidth, tooltipHeight, tooltipWidth2, tooltipHeight2, postPos);
 	}
 
-	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"))
+	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V", shift = Shift.BEFORE))
 	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
