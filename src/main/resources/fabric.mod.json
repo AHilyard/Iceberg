@@ -28,13 +28,14 @@
 	],
 
 	"depends": {
-		"fabricloader": ">=0.14.19",
+		"fabricloader": ">=0.15.0",
 		"fabric": "*",
-		"minecraft": "1.20.2",
-		"java": ">=17"
+		"minecraft": ">=1.20.6",
+		"java": ">=21"
 	},
 	"suggests": {
-		"sodium": ">=0.5.0"
+		"sodium": ">=0.5.0",
+		"prism": ">=1.0.6"
 	},
 	"custom": {
 		"modupdater": {
@@ -43,9 +44,10 @@
 		  "strict": false
 		},
 		"modmenu": {
-		  "links": {
-			"modmenu.discord": "https://discord.gg/S5NQjbXPnb"
-		  }
+			"links": {
+				"modmenu.discord": "https://discord.gg/S5NQjbXPnb"
+			},
+			"badges": [ "library" ]
 		}
 	  }
 }

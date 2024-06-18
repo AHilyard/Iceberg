@@ -9,10 +9,12 @@ import java.util.function.BiPredicate;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
@@ -20,6 +22,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -94,9 +97,9 @@ public class Selectors
 			new SelectorDocumentation("Item name color", "# followed by color hex code, to match all items with that exact color item name.", "#23F632"),
 			new SelectorDocumentation("Display name", "% followed by any text.  Will match any item with this text (case-sensitive) in its tooltip display name.", "%Netherite", "%Uncommon"),
 			new SelectorDocumentation("Tooltip text", "^ followed by any text.  Will match any item with this text (case-sensitive) anywhere in the tooltip text (besides the name).", "^Legendary"),
-			new SelectorDocumentation("NBT tag", "& followed by tag name and optional comparator (=, >, <, or !=) and value, in the format <tag><comparator><value> or just <tag>.", "&Damage=0", "&Tier>1", "&map!=128", "&Enchantments"),
+			new SelectorDocumentation("NBT/Item component", "& followed by tag or component name and optional comparator (=, >, <, or !=) and value, in the format <name><comparator><value> or just <name>.", "&damage>100", "&Tier>1", "&map_id!=128", "&enchantments"),
 			new SelectorDocumentation("Negation", "~ followed by any selector above.  This selector will be negated, matching every item that does NOT match the selector.", "~minecraft:stick", "~!uncommon", "~@minecraft"),
-			new SelectorDocumentation("Combining selectors", "Any number of selectors can be combined by separating them with a plus sign.", "minecraft:diamond_sword+&Enchantments", "minecraft:stick+~!common+&Damage=0")
+			new SelectorDocumentation("Combining selectors", "Any number of selectors can be combined by separating them with a plus sign.", "minecraft:diamond_sword+&enchantments", "minecraft:stick+~!common+&damage>100")
 		);
 	}
 
@@ -135,7 +138,7 @@ public class Selectors
 		// This is a tag, which should be a resource location.
 		if (value.startsWith("$"))
 		{
-			return ResourceLocation.isValidResourceLocation(value.substring(1));
+			return ResourceLocation.tryParse(value.substring(1)) != null;
 		}
 		// Mod IDs need to conform to this regex: ^[a-z][a-z0-9_-]{1,63}$
 		else if (value.startsWith("@"))
@@ -150,14 +153,14 @@ public class Selectors
 		// If this is a hex color, ensure it's in a valid format.
 		else if (value.startsWith("#"))
 		{
-			return TextColor.parseColor(value) != null;
+			return TextColor.parseColor(value).result().orElse(null) != null;
 		}
 		// Text matches are always considered valid.
 		else if (value.startsWith("%") || value.startsWith("^"))
 		{
 			return true;
 		}
-		// Any text is valid for NBT tag selectors.
+		// Any text is valid for NBT/component selectors.
 		else if (value.startsWith("&"))
 		{
 			return true;
@@ -165,7 +168,7 @@ public class Selectors
 		// Otherwise it's an item, so just make sure it's a value resource location.
 		else
 		{
-			return value == null || value == "" || ResourceLocation.isValidResourceLocation(value);
+			return value == null || value == "" || ResourceLocation.tryParse(value) != null;
 		}
 	}
 
@@ -176,14 +179,19 @@ public class Selectors
 	 * @return True if the item matches, false otherwise.
 	 */
 	@SuppressWarnings("removal")
-	public static boolean itemMatches(ItemStack item, String selector)
+	public static boolean itemMatches(ItemStack item, String selector, HolderLookup.Provider provider)
 	{
+		if (item.isEmpty())
+		{
+			return false;
+		}
+
 		// If this is a combination of selectors, check each one.
 		if (selector.contains("+"))
 		{
 			for (String subSelector : selector.split("\\+"))
 			{
-				if (!itemMatches(item, subSelector))
+				if (!itemMatches(item, subSelector, provider))
 				{
 					return false;
 				}
@@ -194,7 +202,7 @@ public class Selectors
 		// If this is a negation, remove the ~ and check the rest.
 		if (selector.startsWith("~"))
 		{
-			return !itemMatches(item, selector.substring(1));
+			return !itemMatches(item, selector.substring(1), provider);
 		}
 		
 		// Wildcard
@@ -220,7 +228,7 @@ public class Selectors
 		// Item name color
 		else if (selector.startsWith("#"))
 		{
-			TextColor entryColor = TextColor.parseColor(selector);
+			TextColor entryColor = TextColor.parseColor(selector).result().orElse(null);
 			if (entryColor != null && entryColor.equals(ItemColor.getColorForItem(item, TextColor.fromRgb(0xFFFFFF))))
 			{
 				return true;
@@ -237,7 +245,7 @@ public class Selectors
 		// Item tag
 		else if (selector.startsWith("$"))
 		{
-			Optional<TagKey<Item>> matchingTag = BuiltInRegistries.ITEM.getTagNames().filter(tagKey -> tagKey.location().equals(new ResourceLocation(selector.substring(1)))).findFirst();
+			Optional<TagKey<Item>> matchingTag = BuiltInRegistries.ITEM.getTagNames().filter(tagKey -> tagKey.location().equals(ResourceLocation.parse(selector.substring(1)))).findFirst();
 			if (matchingTag.isPresent() && item.is(matchingTag.get()))
 			{
 				return true;
@@ -255,7 +263,7 @@ public class Selectors
 		else if (selector.startsWith("^"))
 		{
 			Minecraft mc = Minecraft.getInstance();
-			List<Component> lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
+			List<Component> lines = item.getTooltipLines(TooltipContext.EMPTY, mc.player, TooltipFlag.Default.ADVANCED);
 			String tooltipText = "";
 
 			// Skip title line.
@@ -268,32 +276,72 @@ public class Selectors
 				return true;
 			}
 		}
-		// NBT tag
+		// NBT tag/item component
 		else if (selector.startsWith("&"))
 		{
-			String tagName = selector.substring(1);
-			String tagValue = null;
+			String name = selector.substring(1);
+			String value = null;
 			BiPredicate<Tag, String> valueChecker = null;
 
 			// This implementation means tag names containing and comparator strings can't be compared.
 			// Hopefully this isn't common.
 			for (String comparator : nbtComparators.keySet())
 			{
-				if (tagName.contains(comparator))
+				if (name.contains(comparator))
 				{
 					valueChecker = nbtComparators.get(comparator);
-					String[] components = tagName.split(comparator);
-					tagName = components[0];
+					String[] components = name.split(comparator);
+					name = components[0];
 					if (components.length > 1)
 					{
-						tagValue = components[1];
+						value = components[1];
 					}
 					break;
 				}
 			}
 
 			// Look for a tag matching the given name and value.
-			return findMatchingSubtag(ItemUtil.getItemNBT(item), tagName, tagValue, valueChecker);
+			Tag itemTag = item.save(provider);
+
+			boolean result = findMatchingSubtag(itemTag, name, value, valueChecker);
+
+			if (!result)
+			{
+				// If we didn't find any matching subtags, try adding the minecraft namespace to all keys and values that don't have one specified.
+				if (!name.contains(":"))
+				{
+					name = "minecraft:" + name;
+				}
+
+				// For the value, there are a few different possible scenarios:
+				// 1. The value is just an alphabetical string value, and the namespace can be appended directly.
+				// 2. The value represents a compound tag or list tag, and any alphabetical string values in quotes can have the namespace appended.
+				if (value != null)
+				{
+					if (!value.contains(":") && value.matches("^[a-z]+$"))
+					{
+						value = "minecraft:" + value;
+					}
+					else if (value.contains("\""))
+					{
+						// We need to check for the presence of quotes, and if they are present, we need to add the namespace to the value.
+						String[] components = value.split("\"");
+						for (int i = 0; i < components.length; i++)
+						{
+							if (i % 2 == 1 && !components[i].contains(":"))
+							{
+								components[i] = "minecraft:" + components[i];
+							}
+						}
+						value = String.join("\"", components);
+					}
+				}
+
+				// Try again with the new values.
+				result = findMatchingSubtag(itemTag, name, value, valueChecker);
+			}
+
+			return result;
 		}
 
 		return false;
@@ -307,6 +355,19 @@ public class Selectors
 		if (tag == null)
 		{
 			return false;
+		}
+
+		// If this tag represents a string value, first check if that string can be serialized into a real tag.
+		if (tag.getId() == Tag.TAG_STRING)
+		{
+			try
+			{
+				tag = TagParser.parseTag(tag.getAsString());
+			}
+			catch (Exception e)
+			{
+				// Nope!  Keep going.
+			}
 		}
 
 		if (tag.getId() == Tag.TAG_COMPOUND)
@@ -335,6 +396,21 @@ public class Selectors
 						if (findMatchingSubtag(compoundTag.get(innerKey), key, value, valueChecker))
 						{
 							return true;
+						}
+					}
+					else if (compoundTag.getTagType(innerKey) == Tag.TAG_STRING)
+					{
+						try
+						{
+							tag = TagParser.parseTag(tag.getAsString());
+							if (findMatchingSubtag(compoundTag.get(innerKey), key, value, valueChecker))
+							{
+								return true;
+							}
+						}
+						catch (Exception e)
+						{
+							// Nope!  Keep going.
 						}
 					}
 				}

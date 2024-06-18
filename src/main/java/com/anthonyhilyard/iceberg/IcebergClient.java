@@ -17,7 +17,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class IcebergClient implements ClientModInitializer
 {
-	private static ResourceLocation earlyEventPhase = new ResourceLocation("iceberg", "early");
+	private static ResourceLocation earlyEventPhase = ResourceLocation.fromNamespaceAndPath("iceberg", "early");
 
 	@Override
 	public void onInitializeClient()

@@ -8,12 +8,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
+import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.resources.IoSupplier;
 
 /**
@@ -24,11 +27,13 @@ public class DynamicResourcePack implements PackResources
 {
 	private record DynamicResourceKey(String type, String namespace, String path) {}
 
+	private final PackLocationInfo location;
 	private final String packName;
 	private Map<DynamicResourceKey, IoSupplier<InputStream>> dynamicResourceMap = new HashMap<DynamicResourceKey, IoSupplier<InputStream>>();
 
 	public DynamicResourcePack(String packName)
 	{
+		location = new PackLocationInfo(packName, Component.literal(packName), PackSource.DEFAULT, null);
 		this.packName = packName;
 	}
 
@@ -120,7 +125,7 @@ public class DynamicResourcePack implements PackResources
 		.filter(entry -> entry.getKey().namespace.contentEquals(namespace))
 		.filter(entry -> entry.getKey().path.startsWith(path))
 		.filter(entry -> entry.getKey().type.contentEquals(type.getDirectory()))
-		.forEach(entry -> output.accept(new ResourceLocation(namespace, entry.getKey().path), entry.getValue()));
+		.forEach(entry -> output.accept(ResourceLocation.fromNamespaceAndPath(namespace, entry.getKey().path), entry.getValue()));
 	}
 
 	@Override
@@ -155,4 +160,7 @@ public class DynamicResourcePack implements PackResources
 	public void close()
 	{
 	}
+
+	@Override
+	public PackLocationInfo location() { return location; }
 }

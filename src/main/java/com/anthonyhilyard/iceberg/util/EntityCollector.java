@@ -6,21 +6,28 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
+import com.anthonyhilyard.iceberg.Loader;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.authlib.GameProfile;
+import com.mojang.datafixers.util.Pair;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.AbortableIterationConsumer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.TickRateManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.Painting;
 import net.minecraft.world.entity.decoration.PaintingVariant;
@@ -30,6 +37,7 @@ import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.GameRules;
@@ -45,6 +53,7 @@ import net.minecraft.world.level.entity.LevelEntityGetter;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.gameevent.GameEvent.Context;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 import net.minecraft.world.level.storage.WritableLevelData;
 import net.minecraft.world.phys.AABB;
@@ -62,14 +71,14 @@ public class EntityCollector extends Level
 	private static final Map<Level, EntityCollector> wrappedLevelsMap = Maps.newHashMap();
 	private static final Map<ItemClassPair, Boolean> itemCreatesEntityResultCache = Maps.newHashMap();
 
-	private record ItemClassPair(Item item, CompoundTag tag, Class<?> targetClass) {}
+	private static Map<Pair<Item, DataComponentMap>, List<Entity>> entityCache = Maps.newHashMap();
+
+	private record ItemClassPair(Item item, DataComponentMap components, Class<?> targetClass) {}
 
 	protected EntityCollector(Level wrapped)
 	{
 		super(new WritableLevelData() {
-			@Override public int getXSpawn() { return 0; }
-			@Override public int getYSpawn() { return 0; }
-			@Override public int getZSpawn() { return 0; }
+			@Override public BlockPos getSpawnPos() { return BlockPos.ZERO; }
 			@Override public float getSpawnAngle() { return 0.0f; }
 			@Override public long getGameTime() { return 0; }
 			@Override public long getDayTime() { return 0; }
@@ -80,10 +89,7 @@ public class EntityCollector extends Level
 			@Override public GameRules getGameRules() { return new GameRules(); }
 			@Override public Difficulty getDifficulty() { return Difficulty.EASY; }
 			@Override public boolean isDifficultyLocked() { return false; }
-			@Override public void setXSpawn(int x) {}
-			@Override public void setYSpawn(int p_78652_) {}
-			@Override public void setZSpawn(int p_78653_) {}
-			@Override public void setSpawnAngle(float p_78648_) {}
+			@Override public void setSpawn(BlockPos blockPos, float f) {}
 		}, null, wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), wrapped.getProfilerSupplier(), false, wrapped.isDebug(), 0, 0);
 		wrappedLevel = wrapped;
 	}
@@ -100,68 +106,77 @@ public class EntityCollector extends Level
 
 	public static List<Entity> collectEntitiesFromItem(ItemStack itemStack)
 	{
-		Minecraft minecraft = Minecraft.getInstance();
-		List<Entity> entities = Lists.newArrayList();
-		Item item = itemStack.getItem();
-		ItemStack dummyStack = new ItemStack(item, itemStack.getCount());
-		dummyStack.setTag(ItemUtil.getItemNBT(itemStack));
+		Pair<Item, DataComponentMap> key = Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack));
 
-		try
+		if (!entityCache.containsKey(key))
 		{
-			Player dummyPlayer = new Player(minecraft.player.level(), BlockPos.ZERO, 0.0f, new GameProfile(null, "_dummy")) {
-				@Override public boolean isSpectator() { return false; }
-				@Override public boolean isCreative() { return false; }
-			};
+			Minecraft minecraft = Minecraft.getInstance();
+			List<Entity> entities = Lists.newArrayList();
+			Item item = itemStack.getItem();
+			ItemStack dummyStack = new ItemStack(item, itemStack.getCount());
+			dummyStack.applyComponents(ItemUtil.getItemComponents(itemStack));
 
-			dummyPlayer.setItemInHand(InteractionHand.MAIN_HAND, dummyStack);
-
-			EntityCollector levelWrapper = EntityCollector.of(dummyPlayer.level());
-
-			if (item instanceof SpawnEggItem spawnEggItem)
+			try
 			{
-				entities.add(spawnEggItem.getType(new CompoundTag()).create(levelWrapper));
-			}
-			else
-			{
-				dummyStack.use(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND);
-			}
+				Player dummyPlayer = new Player(minecraft.player.level(), BlockPos.ZERO, 0.0f, new GameProfile(UUID.randomUUID(), "_dummy")) {
+					@Override public boolean isSpectator() { return false; }
+					@Override public boolean isCreative() { return false; }
+				};
 
-			entities.addAll(levelWrapper.getCollectedEntities());
+				dummyPlayer.setItemInHand(InteractionHand.MAIN_HAND, dummyStack);
 
-			// If we didn't spawn any entities, try again but this time on a simulated rail for minecart-like items.
-			if (entities.isEmpty())
-			{
-				levelWrapper.setBlockState(Blocks.RAIL.defaultBlockState());
-				dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyPlayer.getItemInHand(InteractionHand.MAIN_HAND), new BlockHitResult(Vec3.ZERO, Direction.DOWN, BlockPos.ZERO, false)));
-				levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
+				EntityCollector levelWrapper = EntityCollector.of(dummyPlayer.level());
 
-				entities.addAll(levelWrapper.getCollectedEntities());
-			}
-
-			// If we still didn't spawn any entities, try again but this time simulate placing on a solid wall for painting-like items.
-			if (entities.isEmpty())
-			{
-				levelWrapper.setBlockState(Blocks.STONE.defaultBlockState());
-				dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyPlayer.getItemInHand(InteractionHand.MAIN_HAND), new BlockHitResult(Vec3.ZERO, Direction.NORTH, BlockPos.ZERO, false)));
-				levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
-
-				entities.addAll(levelWrapper.getCollectedEntities());
-
-				CompoundTag itemTag = dummyStack.getTag();
-				if (itemTag != null && itemTag.contains("EntityTag", 10))
+				if (item instanceof SpawnEggItem spawnEggItem)
 				{
-					CompoundTag entityTag = itemTag.getCompound("EntityTag");
+					entities.add(spawnEggItem.getType(dummyStack).create(levelWrapper));
+				}
+				else
+				{
+					dummyStack.use(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND);
+				}
 
-					Optional<Holder<PaintingVariant>> loadedVariant = Painting.loadVariant(entityTag);
-					if (loadedVariant.isPresent())
+				entities.addAll(levelWrapper.getCollectedEntities());
+
+				// If we didn't spawn any entities, try again but this time on a simulated rail for minecart-like items.
+				if (entities.isEmpty())
+				{
+					levelWrapper.setBlockState(Blocks.RAIL.defaultBlockState());
+					dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyPlayer.getItemInHand(InteractionHand.MAIN_HAND), new BlockHitResult(Vec3.ZERO, Direction.DOWN, BlockPos.ZERO, false)));
+					levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
+
+					entities.addAll(levelWrapper.getCollectedEntities());
+				}
+
+				// If we still didn't spawn any entities, try again but this time simulate placing on a solid wall for painting-like items.
+				if (entities.isEmpty())
+				{
+					levelWrapper.setBlockState(Blocks.STONE.defaultBlockState());
+					dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyPlayer.getItemInHand(InteractionHand.MAIN_HAND), new BlockHitResult(Vec3.ZERO, Direction.NORTH, BlockPos.ZERO, false)));
+					levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
+
+					entities.addAll(levelWrapper.getCollectedEntities());
+
+					CompoundTag itemTag = (CompoundTag)dummyStack.saveOptional(dummyPlayer.level().registryAccess());
+					if (itemTag != null && itemTag.contains("EntityTag", 10))
 					{
-						// Entities collected here should be updated in case the item used a specific variant.
-						for (Entity entity : entities)
+						CompoundTag entityTag = itemTag.getCompound("EntityTag");
+
+						Optional<Holder<PaintingVariant>> loadedVariant = Painting.VARIANT_CODEC.parse(NbtOps.INSTANCE, entityTag).result();
+						if (loadedVariant.isPresent())
 						{
-							if (entity instanceof Painting paintingEntity)
+							// Entities collected here should be updated in case the item used a specific variant.
+							for (Entity entity : entities)
 							{
-								paintingEntity.setVariant(loadedVariant.get());
+								if (entity instanceof Painting paintingEntity)
+								{
+									paintingEntity.setVariant(loadedVariant.get());
+								}
 							}
+						}
+						else
+						{
+							entities.clear();
 						}
 					}
 					else
@@ -169,26 +184,25 @@ public class EntityCollector extends Level
 						entities.clear();
 					}
 				}
-				else
-				{
-					entities.clear();
-				}
+
+				// Now iterate through all the collected entities and remove any projectiles to prevent some crashes with modded bobbers, etc.
+				entities.removeIf(entity -> entity instanceof Projectile);
+			}
+			catch (Exception e)
+			{
+				// Ignore any errors.
+				Loader.LOGGER.error(ExceptionUtils.getStackTrace(e));
 			}
 
-			// Now iterate through all the collected entities and remove any projectiles to prevent some crashes with modded bobbers, etc.
-			entities.removeIf(entity -> entity instanceof Projectile);
-		}
-		catch (Exception e)
-		{
-			// Ignore any errors.
+			entityCache.put(key, entities);
 		}
 
-		return entities;
+		return entityCache.get(key);
 	}
 
 	public static <T extends Entity> boolean itemCreatesEntity(ItemStack itemStack, Class<T> targetClass)
 	{
-		ItemClassPair key = new ItemClassPair(itemStack.getItem(), ItemUtil.getItemNBT(itemStack), targetClass);
+		ItemClassPair key = new ItemClassPair(itemStack.getItem(), ItemUtil.getItemComponents(itemStack), targetClass);
 		boolean result = false;
 		if (!itemCreatesEntityResultCache.containsKey(key))
 		{
@@ -261,8 +275,9 @@ public class EntityCollector extends Level
 	@Override
 	public void levelEvent(Player p_46771_, int p_46772_, BlockPos p_46773_, int p_46774_) { /* No events. */ }
 
+
 	@Override
-	public void gameEvent(GameEvent p_220404_, Vec3 p_220405_, Context p_220406_) { /* No events. */  }
+	public void gameEvent(Holder<GameEvent> holder, Vec3 vec3, Context context) { /* No events. */ }
 
 
 	@Override
@@ -300,15 +315,14 @@ public class EntityCollector extends Level
 	@Override
 	public Entity getEntity(int p_46492_) { return null; }
 
+	@Override
+	public MapItemSavedData getMapData(MapId mapId) { return wrappedLevel.getMapData(mapId); }
 
 	@Override
-	public MapItemSavedData getMapData(String p_46650_) { return wrappedLevel.getMapData(p_46650_); }
+	public void setMapData(MapId mapId, MapItemSavedData mapItemSavedData) { /* No map data updates. */ }
 
 	@Override
-	public void setMapData(String p_151533_, MapItemSavedData p_151534_) { /* No map data updates. */ }
-
-	@Override
-	public int getFreeMapId() { return wrappedLevel.getFreeMapId(); }
+	public MapId getFreeMapId() { return wrappedLevel.getFreeMapId(); }
 
 	@Override
 	public void destroyBlockProgress(int p_46506_, BlockPos p_46507_, int p_46508_) { /* No block updates. */ }
@@ -319,6 +333,12 @@ public class EntityCollector extends Level
 
 	@Override
 	public RecipeManager getRecipeManager() { return wrappedLevel.getRecipeManager(); }
+
+	@Override
+	public TickRateManager tickRateManager() { return wrappedLevel.tickRateManager(); }
+
+	@Override
+	public PotionBrewing potionBrewing() { return wrappedLevel.potionBrewing(); }
 
 	@Override
 	public LevelEntityGetter<Entity> getEntities()

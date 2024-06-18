@@ -13,6 +13,7 @@ import com.anthonyhilyard.iceberg.util.ItemUtil;
 import com.google.common.collect.Maps;
 
 import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -53,24 +54,26 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.AnimalArmorItem;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.HorseArmorItem;
+import net.minecraft.world.item.Equipable;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.AnimalArmorItem.BodyType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
@@ -92,12 +95,14 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private static RenderTarget iconFrameBuffer = null;
 	private static ArmorStand armorStand = null;
+	private static Wolf wolf = null;
 	private static Horse horse = null;
 	private static Entity entity = null;
-	private static Pair<Item, CompoundTag> cachedArmorStandItem = null;
-	private static Pair<Item, CompoundTag> cachedHorseArmorItem = null;
-	private static Pair<Item, CompoundTag> cachedEntityItem = null;
-	private static Map<Pair<Item, CompoundTag>, ModelBounds> modelBoundsCache = Maps.newHashMap();
+	private static Pair<Item, DataComponentMap> cachedArmorStandItem = null;
+	private static Pair<Item, DataComponentMap> cachedHorseArmorItem = null;
+	private static Pair<Item, DataComponentMap> cachedWolfArmorItem = null;
+	private static Pair<Item, DataComponentMap> cachedEntityItem = null;
+	private static Map<Pair<Item, DataComponentMap>, ModelBounds> modelBoundsCache = Maps.newHashMap();
 
 	private static final List<Direction> quadDirections;
 
@@ -140,10 +145,10 @@ public class CustomItemRenderer extends ItemRenderer
 		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
 		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-		PoseStack modelViewStack = RenderSystem.getModelViewStack();
-		modelViewStack.pushPose();
+		Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
+		modelViewStack.pushMatrix();
 		modelViewStack.translate(x + 8.0f, y + 8.0f, 150.0f);
-		modelViewStack.mulPoseMatrix((new Matrix4f()).scaling(1.0f, -1.0f, 1.0f));
+		modelViewStack.mul((new Matrix4f()).scaling(1.0f, -1.0f, 1.0f));
 		modelViewStack.scale(16.0f, 16.0f, 16.0f);
 		RenderSystem.applyModelViewMatrix();
 
@@ -160,7 +165,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 		if (flatLighting) { Lighting.setupFor3DItems(); }
 
-		modelViewStack.popPose();
+		modelViewStack.popMatrix();
 		RenderSystem.applyModelViewMatrix();
 	}
 
@@ -202,7 +207,7 @@ public class CustomItemRenderer extends ItemRenderer
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 
-		if (Player.getEquipmentSlotForItem(itemStack).isArmor())
+		if (ItemUtil.getEquipmentSlot(itemStack).isArmor())
 		{
 			if (updateArmorStand(itemStack))
 			{
@@ -297,12 +302,23 @@ public class CustomItemRenderer extends ItemRenderer
 				}
 			}
 
-			// If this is horse armor, render it here.
-			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof HorseArmorItem)
+			// If this is animal armor, render it here.
+			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof AnimalArmorItem animalArmor)
 			{
-				if (updateHorseArmor(itemStack))
+				switch (animalArmor.getBodyType())
 				{
-					renderEntityModel(horse, poseStack, bufferSource, packedLight);
+					case EQUESTRIAN:
+						if (updateHorseArmor(itemStack))
+						{
+							renderEntityModel(horse, poseStack, bufferSource, packedLight);
+						}
+						break;
+					case CANINE:
+						if (updateWolfArmor(itemStack))
+						{
+							renderEntityModel(wolf, poseStack, bufferSource, packedLight);
+						}
+						break;
 				}
 			}
 
@@ -330,7 +346,7 @@ public class CustomItemRenderer extends ItemRenderer
 			}
 
 			boolean isBlockItem = false, spawnsEntity = false, isArmor = false;
-			if (itemStack.getItem() instanceof BlockItem blockItem)
+			if (itemStack.getItem() instanceof BlockItem)
 			{
 				isBlockItem = true;
 			}
@@ -339,7 +355,7 @@ public class CustomItemRenderer extends ItemRenderer
 				spawnsEntity = true;
 			}
 
-			if (Player.getEquipmentSlotForItem(itemStack).isArmor())
+			if (ItemUtil.getEquipmentSlot(itemStack).isArmor())
 			{
 				isArmor = true;
 			}
@@ -374,7 +390,7 @@ public class CustomItemRenderer extends ItemRenderer
 			// Adjust the scale based on the armor type.
 			if (isArmor)
 			{
-				switch (Player.getEquipmentSlotForItem(itemStack))
+				switch (ItemUtil.getEquipmentSlot(itemStack))
 				{
 					case HEAD:
 						scale *= 0.75f;
@@ -422,15 +438,12 @@ public class CustomItemRenderer extends ItemRenderer
 		BlockEntity blockEntity = entityBlock.newBlockEntity(BlockPos.ZERO, blockState);
 		if (blockEntity != null)
 		{
-			if (itemStack.hasTag())
-			{
-				blockEntity.load(ItemUtil.getItemNBT(itemStack));
-			}
+			blockEntity.applyComponentsFromItemStack(itemStack);
 			
 			BlockEntityRenderer<BlockEntity> renderer = minecraft.getBlockEntityRenderDispatcher().getRenderer(blockEntity);
 			if (renderer != null)
 			{
-				renderer.render(blockEntity, minecraft.getFrameTime(), poseStack, bufferSource, packedLight, packedOverlay);
+				renderer.render(blockEntity, minecraft.getTimer().getRealtimeDeltaTicks(), poseStack, bufferSource, packedLight, packedOverlay);
 			}
 		}
 	}
@@ -440,29 +453,19 @@ public class CustomItemRenderer extends ItemRenderer
 	{
 		RenderType renderType = ItemBlockRenderTypes.getRenderType(itemStack, fabulous);
 		VertexConsumer vertexConsumer;
-		if (itemStack.is(ItemTags.COMPASSES) && itemStack.hasFoil())
+		if (hasAnimatedTexture(itemStack) && itemStack.hasFoil())
 		{
-			poseStack.pushPose();
-			PoseStack.Pose posestack$pose = poseStack.last();
+			PoseStack.Pose pose = poseStack.last().copy();
 			if (displayContext == ItemDisplayContext.GUI)
 			{
-				MatrixUtil.mulComponentWise(posestack$pose.pose(), 0.5F);
+				MatrixUtil.mulComponentWise(pose.pose(), 0.5F);
 			}
 			else if (displayContext.firstPerson())
 			{
-				MatrixUtil.mulComponentWise(posestack$pose.pose(), 0.75F);
+				MatrixUtil.mulComponentWise(pose.pose(), 0.75F);
 			}
 
-			if (fabulous)
-			{
-				vertexConsumer = getCompassFoilBufferDirect(bufferSource, renderType, posestack$pose);
-			}
-			else
-			{
-				vertexConsumer = getCompassFoilBuffer(bufferSource, renderType, posestack$pose);
-			}
-
-			poseStack.popPose();
+			vertexConsumer = getCompassFoilBuffer(bufferSource, renderType, pose);
 		}
 		else if (fabulous)
 		{
@@ -478,7 +481,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private boolean updateArmorStand(ItemStack itemStack)
 	{
-		EquipmentSlot equipmentSlot = Player.getEquipmentSlotForItem(itemStack);
+		EquipmentSlot equipmentSlot = ItemUtil.getEquipmentSlot(itemStack);
 		if (!equipmentSlot.isArmor())
 		{
 			// This isn't armor, so don't render anything.
@@ -499,7 +502,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 
 		// If the item has changed, then we need to update the armor stand.
-		if (cachedArmorStandItem != Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack)))
+		if (cachedArmorStandItem != Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack)))
 		{
 			// Clear the armor stand.
 			for (EquipmentSlot slot : EquipmentSlot.values())
@@ -510,7 +513,7 @@ public class CustomItemRenderer extends ItemRenderer
 			// Equip the armor stand with the armor.
 			armorStand.setItemSlot(equipmentSlot, itemStack);
 
-			cachedArmorStandItem = Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack));
+			cachedArmorStandItem = Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack));
 		}
 		return true;
 	}
@@ -531,7 +534,7 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private boolean updateEntity(ItemStack itemStack)
 	{
-		Pair<Item, CompoundTag> entityItem = Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack));
+		Pair<Item, DataComponentMap> entityItem = Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack));
 		if (entity == null || cachedEntityItem != entityItem)
 		{
 			entity = getEntityFromItem(itemStack);
@@ -545,7 +548,7 @@ public class CustomItemRenderer extends ItemRenderer
 	private boolean updateHorseArmor(ItemStack horseArmorItem)
 	{
 		// If this isn't a horse armor item, we can't render anything.
-		if (!(horseArmorItem.getItem() instanceof HorseArmorItem))
+		if (!(horseArmorItem.getItem() instanceof AnimalArmorItem animalArmor) || animalArmor.getBodyType() != BodyType.EQUESTRIAN)
 		{
 			return false;
 		}
@@ -564,12 +567,44 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 
 		// If the item has changed, then we need to update the horse.
-		if (cachedHorseArmorItem != Pair.of(horseArmorItem.getItem(), ItemUtil.getItemNBT(horseArmorItem)))
+		if (cachedHorseArmorItem != Pair.of(horseArmorItem.getItem(), ItemUtil.getItemComponents(horseArmorItem)))
 		{
 			// Equip the horse with the armor.
-			horse.setItemSlot(EquipmentSlot.CHEST, horseArmorItem);
+			horse.setBodyArmorItem(horseArmorItem);;
 
-			cachedHorseArmorItem = Pair.of(horseArmorItem.getItem(), ItemUtil.getItemNBT(horseArmorItem));
+			cachedHorseArmorItem = Pair.of(horseArmorItem.getItem(), ItemUtil.getItemComponents(horseArmorItem));
+		}
+		return true;
+	}
+
+	private boolean updateWolfArmor(ItemStack wolfArmorItem)
+	{
+		// If this isn't a wolf armor item, we can't render anything.
+		if (!(wolfArmorItem.getItem() instanceof AnimalArmorItem animalArmor) || animalArmor.getBodyType() != BodyType.CANINE)
+		{
+			return false;
+		}
+
+		if (wolf == null)
+		{
+			Minecraft minecraft = Minecraft.getInstance();
+			wolf = EntityType.WOLF.create(minecraft.level);
+			wolf.setInvisible(true);
+		}
+
+		// If somehow the wolf is still null, then we can't render anything.
+		if (wolf == null)
+		{
+			return false;
+		}
+
+		// If the item has changed, then we need to update the wolf.
+		if (cachedWolfArmorItem != Pair.of(wolfArmorItem.getItem(), ItemUtil.getItemComponents(wolfArmorItem)))
+		{
+			// Equip the horse with the armor.
+			wolf.setBodyArmorItem(wolfArmorItem);
+
+			cachedWolfArmorItem = Pair.of(wolfArmorItem.getItem(), ItemUtil.getItemComponents(wolfArmorItem));
 		}
 		return true;
 	}
@@ -611,7 +646,7 @@ public class CustomItemRenderer extends ItemRenderer
 	private ModelBounds getModelBounds(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack,
 									   Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
-		Pair<Item, CompoundTag> key = Pair.of(itemStack.getItem(), ItemUtil.getItemNBT(itemStack));
+		Pair<Item, DataComponentMap> key = Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack));
 		if (!modelBoundsCache.containsKey(key))
 		{
 			VertexCollector vertexCollector = VertexCollector.create();
@@ -635,22 +670,12 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 		catch (Throwable throwable)
 		{
-			CrashReport crashreport = CrashReport.forThrowable(throwable, "Rendering item");
-			CrashReportCategory crashreportcategory = crashreport.addCategory("Item being rendered");
-			crashreportcategory.setDetail("Item Type", () -> {
-				return String.valueOf((Object)stack.getItem());
-			});
-			crashreportcategory.setDetail("Registry Name", () -> String.valueOf(BuiltInRegistries.ITEM.getKey(stack.getItem())));
-			crashreportcategory.setDetail("Item Damage", () -> {
-				return String.valueOf(stack.getDamageValue());
-			});
-			crashreportcategory.setDetail("Item NBT", () -> {
-				return String.valueOf((Object)stack.getTag());
-			});
-			crashreportcategory.setDetail("Item Foil", () -> {
-				return String.valueOf(stack.hasFoil());
-			});
-			throw new ReportedException(crashreport);
+			CrashReport crashReport = CrashReport.forThrowable(throwable, "Rendering item");
+			CrashReportCategory crashReportCategory = crashReport.addCategory("Item being rendered");
+			crashReportCategory.setDetail("Item Type", () -> { return String.valueOf(stack.getItem()); });
+			crashReportCategory.setDetail("Item Components", () -> { return String.valueOf(stack.getComponents()); });
+			crashReportCategory.setDetail("Item Foil", () -> { return String.valueOf(stack.hasFoil()); });
+			throw new ReportedException(crashReport);
 		}
 	}
 
@@ -677,9 +702,9 @@ public class CustomItemRenderer extends ItemRenderer
 		RenderSystem.blendFuncSeparate(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA);
 		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-		PoseStack modelViewStack = RenderSystem.getModelViewStack();
-		modelViewStack.pushPose();
-		modelViewStack.setIdentity();
+		Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
+		modelViewStack.pushMatrix();
+		modelViewStack.identity();
 		modelViewStack.translate(48.0f, 48.0f, -2000.0f);
 		modelViewStack.scale(96.0f, 96.0f, 96.0f);
 		RenderSystem.applyModelViewMatrix();
@@ -700,7 +725,7 @@ public class CustomItemRenderer extends ItemRenderer
 			Lighting.setupFor3DItems();
 		}
 
-		modelViewStack.popPose();
+		modelViewStack.popMatrix();
 		RenderSystem.applyModelViewMatrix();
 		RenderSystem.restoreProjectionMatrix();
 

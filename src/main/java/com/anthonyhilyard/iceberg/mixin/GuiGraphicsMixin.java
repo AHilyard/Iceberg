@@ -8,16 +8,16 @@ import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.events.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.util.Tooltips;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 
+import org.joml.Matrix4fStack;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
@@ -133,7 +133,7 @@ public class GuiGraphicsMixin
 
 					if (minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
 					{
-						PoseStack poseStack = RenderSystem.getModelViewStack();
+						Matrix4fStack poseStack = RenderSystem.getModelViewStack();
 						xChange = (oldWidth - newRect.getWidth()) / 2;
 						yChange = oldHeight - newRect.getHeight();
 
@@ -245,7 +245,7 @@ public class GuiGraphicsMixin
 
 		if (FabricLoader.getInstance().isModLoaded("andromeda") && minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
 		{
-			PoseStack poseStack = RenderSystem.getModelViewStack();
+			Matrix4fStack poseStack = RenderSystem.getModelViewStack();
 			poseStack.translate(-xChange, -yChange, 0);
 			RenderSystem.applyModelViewMatrix();
 		}

@@ -19,7 +19,6 @@ public class VertexCollector implements MultiBufferSource
 	protected final Set<Vector3f> vertices = Sets.newHashSet();
 	protected final Vector3f currentVertex = new Vector3f();
 	protected int currentAlpha = 255;
-	protected int defaultAlpha = 255;
 
 	private static Boolean useSodiumVersion = null;
 
@@ -64,52 +63,34 @@ public class VertexCollector implements MultiBufferSource
 		return new VertexConsumer()
 		{
 			@Override
-			public VertexConsumer vertex(double x, double y, double z)
+			public VertexConsumer addVertex(float x, float y, float z)
 			{
-				currentVertex.set((float) x, (float) y, (float) z);
-				currentAlpha = defaultAlpha;
+				if (currentAlpha >= 25)
+				{
+					vertices.add(new Vector3f(currentVertex.set(x, y, z)));
+				}
+				currentAlpha = 255;
 				return this;
 			}
 
 			@Override
-			public VertexConsumer color(int r, int g, int b, int a)
+			public VertexConsumer setColor(int r, int g, int b, int a)
 			{
 				currentAlpha = a;
 				return this;
 			}
 
 			@Override
-			public VertexConsumer uv(float u, float v) { return this; }
+			public VertexConsumer setUv(float u, float v) { return this; }
 
 			@Override
-			public VertexConsumer overlayCoords(int x, int y) { return this; }
+			public VertexConsumer setUv1(int u, int v) { return this; }
 
 			@Override
-			public VertexConsumer uv2(int u, int v) { return this; }
+			public VertexConsumer setUv2(int u, int v) { return this; }
 
 			@Override
-			public VertexConsumer normal(float x, float y, float z) { return this; }
-
-			@Override
-			public void endVertex()
-			{
-				if (currentAlpha >= 25)
-				{
-					vertices.add(new Vector3f(currentVertex));
-				}
-			}
-
-			@Override
-			public void defaultColor(int r, int g, int b, int a)
-			{
-				defaultAlpha = a;
-			}
-
-			@Override
-			public void unsetDefaultColor()
-			{
-				defaultAlpha = 255;
-			}
+			public VertexConsumer setNormal(float x, float y, float z) { return this; }
 		};
 	}
 

@@ -25,35 +25,26 @@ public final class CheckedBufferSourceSodium extends CheckedBufferSource
 		VertexConsumer vertexConsumerWrap = new VertexConsumerSodium()
 		{
 			@Override
-			public VertexConsumer vertex(double x, double y, double z)
+			public VertexConsumer addVertex(float x, float y, float z)
 			{
 				hasRendered = true;
-				return vertexConsumer.vertex(x, y, z);
+				return vertexConsumer.addVertex(x, y, z);
 			}
 
 			@Override
-			public VertexConsumer color(int r, int g, int b, int a) { return vertexConsumer.color(r, g, b, a); }
+			public VertexConsumer setColor(int r, int g, int b, int a) { return vertexConsumer.setColor(r, g, b, a); }
 
 			@Override
-			public VertexConsumer uv(float u, float v) { return vertexConsumer.uv(u, v); }
+			public VertexConsumer setUv(float u, float v) { return vertexConsumer.setUv(u, v); }
 
 			@Override
-			public VertexConsumer overlayCoords(int x, int y) { return vertexConsumer.overlayCoords(x, y); }
+			public VertexConsumer setUv1(int u, int v) { return vertexConsumer.setUv1(u, v); }
 
 			@Override
-			public VertexConsumer uv2(int u, int v) { return vertexConsumer.uv2(u, v); }
+			public VertexConsumer setUv2(int u, int v) { return vertexConsumer.setUv2(u, v); }
 
 			@Override
-			public VertexConsumer normal(float x, float y, float z) { return vertexConsumer.normal(x, y, z); }
-
-			@Override
-			public void endVertex() { vertexConsumer.endVertex(); }
-
-			@Override
-			public void defaultColor(int r, int g, int b, int a) { vertexConsumer.defaultColor(r, g, b, a); }
-
-			@Override
-			public void unsetDefaultColor() { vertexConsumer.unsetDefaultColor(); }
+			public VertexConsumer setNormal(float x, float y, float z) { return vertexConsumer.setNormal(x, y, z); }
 
 			@Override
 			public void push(MemoryStack memoryStack, long pointer, int count, VertexFormatDescription format)

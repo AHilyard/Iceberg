@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSink;
 import net.minecraft.network.chat.Component;
@@ -112,7 +113,7 @@ public class ItemColor
 
 			try
 			{
-				lines = item.getTooltipLines(mc.player, TooltipFlag.Default.ADVANCED);
+				lines = item.getTooltipLines(TooltipContext.EMPTY, mc.player, TooltipFlag.Default.ADVANCED);
 			}
 			catch (Exception e)
 			{

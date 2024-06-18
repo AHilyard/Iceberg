@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.events;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
+import net.minecraft.client.DeltaTracker;
 
 public class RenderTickEvents
 {
@@ -18,6 +19,6 @@ public class RenderTickEvents
 	@FunctionalInterface
 	public interface Start
 	{
-		void onStart(float timer);
+		void onStart(DeltaTracker timer);
 	}
 }
