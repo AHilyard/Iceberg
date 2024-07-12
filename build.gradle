@@ -1,61 +1,49 @@
 plugins {
-	id 'fabric-loom' version '1.6-SNAPSHOT'
-	id 'maven-publish'
+	id 'dev.architectury.loom' version '1.6-SNAPSHOT' apply false
+	id 'architectury-plugin' version '3.4-SNAPSHOT'
+	id 'io.github.goooler.shadow' version '8.1.7' apply false
 }
 
-sourceCompatibility = JavaVersion.VERSION_21
-targetCompatibility = JavaVersion.VERSION_21
+architectury {
+	minecraft = project.minecraftVersion
+}
 
-archivesBaseName = project.name + '-' + project.mcVersion + '-fabric'
+allprojects {
+	group = rootProject.group
+	version = rootProject.modVersion
+}
 
-sourceSets.main.java.srcDirs += 'java'
-sourceSets.main.resources.srcDirs += 'resources'
+subprojects {
+	apply plugin: 'dev.architectury.loom'
+	apply plugin: 'architectury-plugin'
+	apply plugin: 'maven-publish'
 
-repositories {
-	maven {
-		name = "CurseMaven"
-		url = "https://www.cursemaven.com"
+	base {
+		archivesName = "$rootProject.name-$rootProject.minecraftVersion-$project.name"
+	}
+
+	repositories {
+		maven {
+			name "CurseMaven"
+			url "https://www.cursemaven.com"
+		}
+	}
+
+	dependencies {
+		minecraft "net.minecraft:minecraft:$rootProject.minecraftVersion"
+		mappings loom.officialMojangMappings()
+	}
+
+	java {
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		it.options.release = 21
+	}
+
+	remapJar {
+		destinationDirectory = file("$buildDir/../../output")
 	}
 }
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.mcVersion}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loaderVersion}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabricVersion}"
-	modImplementation files("libs/sodium-fabric-mc1.20.1-0.5.0.jar")
-}
-
-loom {
-	accessWidenerPath = file("src/main/resources/${project.name.toLowerCase()}.accesswidener")
-}
-
-processResources {
-	inputs.property 'version', project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.encoding = "UTF-8"
-	it.options.release = 21
-}
-
-jar {
-	from("LICENSE") {
-		rename { "${it}_${project.archivesBaseName}"}
-	}
-	manifest {
-		attributes(["Specification-Title":		project.name,
-					"Specification-Vendor":		project.author,
-					"Specification-Version":	project.version,
-					"Implementation-Title":		project.name,
-					"Implementation-Version":	project.version,
-					"Implementation-Vendor" :	project.author,
-					"Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")],)
-	}
-}
-
-java.withSourcesJar()

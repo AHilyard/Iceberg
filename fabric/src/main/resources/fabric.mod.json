@@ -1,0 +1,63 @@
+{
+	"schemaVersion": 1,
+	"id": "iceberg",
+	"version": "${version}",
+
+	"name": "Iceberg",
+	"description": "A library containing events, helpers, and utilities to make modding easier.",
+	"authors": [ "Grend" ],
+	"contact": {
+		"homepage": "https://anthonyhilyard.com/",
+		"sources": "https://github.com/AHilyard/Iceberg",
+		"discord": "https://discord.gg/S5NQjbXPnb"
+	},
+
+	"license": "CC BY-NC-ND 4.0",
+	"icon": "icon.png",
+
+	"environment": "*",
+
+	"entrypoints": {
+		"preLaunch": [
+			"com.anthonyhilyard.iceberg.fabric.IcebergFabric"
+		],
+		"main": [
+			"com.anthonyhilyard.iceberg.fabric.IcebergFabric"
+		],
+		"client": [
+			"com.anthonyhilyard.iceberg.fabric.client.IcebergFabricClient"
+		],
+		"server": [
+			"com.anthonyhilyard.iceberg.fabric.server.IcebergFabricServer"
+		]
+	},
+	"accessWidener": "iceberg.accesswidener",
+	"mixins": [
+		"iceberg.mixins.json",
+		"iceberg.fabric.mixins.json"
+	],
+
+	"depends": {
+		"fabricloader": ">=0.15.10",
+		"fabric": "*",
+		"minecraft": ">=1.21",
+		"java": ">=21"
+	},
+	"suggests": {
+		"sodium": ">=0.5.9",
+		"prism": ">=1.0.7"
+	},
+	"custom": {
+		"modupdater": {
+			"strategy": "curseforge",
+			"projectID": 539382,
+			"strict": false
+		},
+		"modmenu": {
+			"links": {
+				"modmenu.discord": "https://discord.gg/S5NQjbXPnb"
+			},
+			"badges": [ "library" ]
+		}
+	}
+}

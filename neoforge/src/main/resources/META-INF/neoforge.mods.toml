@@ -1,0 +1,35 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="CC BY-NC-ND 4.0"
+
+[[mods]]
+modId="iceberg"
+version="${version}"
+displayName="Iceberg"
+displayURL="https://anthonyhilyard.com/"
+updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
+logoFile="icon.png"
+authors="Grend"
+description="A library containing events, helpers, and utilities to make modding easier."
+
+[[dependencies.iceberg]]
+	modId="neoforge"
+	type="required"
+	versionRange="[21,)"
+	ordering="NONE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="minecraft"
+	type="required"
+	versionRange="[1.21,)"
+	ordering="NONE"
+	side="BOTH"
+
+[[mixins]]
+	config="iceberg.mixins.json"
+
+[modproperties.iceberg]
+	configuredProviders=[
+		"com.anthonyhilyard.iceberg.compat.configured.IcebergConfigProvider"
+	]

@@ -1,20 +1,19 @@
 # vscode
 bin
+output
 *.launch
-.settings
-.metadata
-.classpath
+**/.settings
+**/.metadata
+**/.classpath
 .project
 .vscode
 
 # gradle
-build
-.gradle
+**/build
+**/.gradle
 
 # other
 run
 logs
 libs
-
-# Files from Forge MDK
-forge*changelog.txt
+.architectury-transformer
