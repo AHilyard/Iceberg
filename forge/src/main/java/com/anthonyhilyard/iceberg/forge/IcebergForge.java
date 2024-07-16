@@ -16,6 +16,7 @@ import com.electronwill.nightconfig.core.Config;
 
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -32,12 +33,15 @@ public final class IcebergForge
 
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
+			IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+
 			// Common setup.
 			IcebergClient.init();
 
-			MinecraftForge.EVENT_BUS.register(IcebergForgeClient.class);
-			FMLJavaModLoadingContext.get().getModEventBus().register(ForgeKeyMappingRegistrar.class);
-			FMLJavaModLoadingContext.get().getModEventBus().register(ForgeReloadListenerRegistrar.class);
+			MinecraftForge.EVENT_BUS.register(IcebergForgeClient.ForgeEvents.class);
+			modBus.register(IcebergForgeClient.ModEvents.class);
+			modBus.register(ForgeKeyMappingRegistrar.class);
+			modBus.register(ForgeReloadListenerRegistrar.class);
 		}
 		else
 		{

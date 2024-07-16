@@ -45,13 +45,13 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 	{
 		if (registeredClasses.contains(subClass))
 		{
-			Iceberg.LOGGER.warn("Failed to register configuration: {} is already registered!", subClass.getName());
+			Iceberg.LOGGER.warn("Failed to register configuration: " + subClass.getName() + " is already registered!");
 			return false;
 		}
 
 		if (ConfigEvents.REGISTER.listenerCount() == 0)
 		{
-			Iceberg.LOGGER.warn("Failed to register configuration: Configuration register event has no listeners!");
+			Iceberg.LOGGER.warn("Failed to register configuration: " + subClass.getName() + " configuration register event has no listeners!");
 			return false;
 		}
 

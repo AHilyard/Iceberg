@@ -19,10 +19,10 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
-import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForge;
 
 @Mod(Iceberg.MODID)
 public final class IcebergNeoForge
@@ -36,9 +36,10 @@ public final class IcebergNeoForge
 			// Common setup.
 			IcebergClient.init();
 
-			modBus.register(IcebergNeoForgeClient.class);
-			ModLoadingContext.get().getActiveContainer().getEventBus().register(NeoForgeKeyMappingRegistrar.class);
-			ModLoadingContext.get().getActiveContainer().getEventBus().register(NeoForgeReloadListenerRegistrar.class);
+			NeoForge.EVENT_BUS.register(IcebergNeoForgeClient.NeoForgeEvents.class);
+			modBus.register(IcebergNeoForgeClient.ModEvents.class);
+			modBus.register(NeoForgeKeyMappingRegistrar.class);
+			modBus.register(NeoForgeReloadListenerRegistrar.class);
 		}
 		else
 		{
@@ -59,7 +60,7 @@ public final class IcebergNeoForge
 			
 			if (neoforgeSpec.isEmpty())
 			{
-				// This handles the case where a mod tries to register a config, without any options configured inside it.
+				// This handles the case where a mod tries to register a config without any options configured inside it.
 				Iceberg.LOGGER.debug("Attempted to register an empty config on mod {}", modid);
 				return;
 			}
