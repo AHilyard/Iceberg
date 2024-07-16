@@ -432,7 +432,29 @@ public class FabricIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifia
 				return (T) getRawEnum(config, path, (Class<Enum>) clazz, (Supplier<Enum>) defaultSupplier);
 			}
 
-			return config.getOrElse(path, defaultSupplier);
+			// Dumb but oh well. ¯\_(ツ)_/¯
+			Object value = config.getOrElse(path, defaultSupplier);
+			if (value instanceof Number number)
+			{
+				if (clazz == Integer.class)
+				{
+					return (T)(Object)number.intValue();
+				}
+				else if (clazz == Long.class)
+				{
+					return (T)(Object)number.longValue();
+				}
+				else if (clazz == Float.class)
+				{
+					return (T)(Object)number.floatValue();
+				}
+				else if (clazz == Double.class)
+				{
+					return (T)(Object)number.doubleValue();
+				}
+			}
+
+			return (T)value;
 		}
 
 		private <U extends Enum<U>> U getRawEnum(Config config, List<String> path, Class<U> clazz, Supplier<U> defaultSupplier)
@@ -562,6 +584,8 @@ public class FabricIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifia
 
 		private <T> Supplier<T> add(List<String> path, ValueSpec<T> value, Supplier<T> defaultSupplier, Class<T> clazz)
 		{
+			assert(defaultSupplier.get().getClass() == clazz);
+
 			if (!currentPath.isEmpty())
 			{
 				path.addAll(0, currentPath);
@@ -586,7 +610,7 @@ public class FabricIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifia
 		@SuppressWarnings("unchecked")
 		public <T> Supplier<T> add(String path, T defaultValue, Predicate<Object> validator)
 		{
-			return add(StringUtils.split(path, '.'), (Supplier<T>)(() -> defaultValue), validator, (Class<T>) defaultValue.getClass());
+			return add(StringUtils.split(path, '.'), (Supplier<T>)(() -> defaultValue), validator, (Class<T>)(validator instanceof Range<?> range ? range.getClazz() : defaultValue.getClass()));
 		}
 
 		@Override
