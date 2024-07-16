@@ -18,7 +18,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -271,33 +270,23 @@ public class EntityCollector extends Level
 	@Override
 	public ChunkSource getChunkSource() { return wrappedLevel.getChunkSource(); }
 
-
 	@Override
 	public void levelEvent(Player p_46771_, int p_46772_, BlockPos p_46773_, int p_46774_) { /* No events. */ }
-
 
 	@Override
 	public void gameEvent(Holder<GameEvent> holder, Vec3 vec3, Context context) { /* No events. */ }
 
-
 	@Override
 	public List<? extends Player> players() { return wrappedLevel.players(); }
 
-
 	@Override
 	public Holder<Biome> getUncachedNoiseBiome(int p_204159_, int p_204160_, int p_204161_) { return wrappedLevel.getUncachedNoiseBiome(p_204159_, p_204160_, p_204161_); }
-
-
-	@Override
-	public RegistryAccess registryAccess() { return wrappedLevel.registryAccess(); }
-
 
 	@Override
 	public FeatureFlagSet enabledFeatures() { return wrappedLevel.enabledFeatures(); }
 
 	@Override
 	public float getShade(Direction p_45522_, boolean p_45523_) { return wrappedLevel.getShade(p_45522_, p_45523_); }
-
 
 	@Override
 	public void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_) { /* No block updates. */ }
@@ -307,7 +296,6 @@ public class EntityCollector extends Level
 
 	@Override
 	public void playSeededSound(Player p_220372_, Entity p_220373_, Holder<SoundEvent> p_263500_, SoundSource p_220375_, float p_220376_, float p_220377_, long p_220378_) { /* No sounds. */ }
-
 
 	@Override
 	public String gatherChunkSourceStats() { return wrappedLevel.gatherChunkSourceStats(); }
@@ -326,7 +314,6 @@ public class EntityCollector extends Level
 
 	@Override
 	public void destroyBlockProgress(int p_46506_, BlockPos p_46507_, int p_46508_) { /* No block updates. */ }
-
 
 	@Override
 	public Scoreboard getScoreboard() { return wrappedLevel.getScoreboard(); }

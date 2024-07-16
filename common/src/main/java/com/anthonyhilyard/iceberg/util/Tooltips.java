@@ -458,20 +458,20 @@ public class Tooltips
 			return result;
 		}
 
-		// Find the title component, which is the first text component.
-		int titleIndex = 0;
+		// Find the first title component, which is the first text component.
+		int titleStart = 0;
 		for (ClientTooltipComponent clientTooltipComponent : components)
 		{
 			if (clientTooltipComponent instanceof ClientTextTooltip)
 			{
 				break;
 			}
-			titleIndex++;
+			titleStart++;
 		}
 
 		for (int i = 0; i < titleLines; i++)
 		{
-			ClientTooltipComponent titleComponent = components.get(titleIndex + i);
+			ClientTooltipComponent titleComponent = components.get(titleStart + i);
 
 			if (titleComponent != null)
 			{
@@ -491,7 +491,7 @@ public class Tooltips
 						break;
 					}
 				}
-				result.set(titleIndex + i, ClientTooltipComponent.create(title));
+				result.set(titleStart + i, ClientTooltipComponent.create(title));
 			}
 		}
 		return result;
