@@ -67,7 +67,7 @@ public class IcebergNeoForgeClient
 		{
 			for (Class<? extends TooltipComponent> type : RegisterTooltipComponentFactoryEvent.EVENT.getListenerTypes().keySet())
 			{
-				Iceberg.LOGGER.info("registering tooltip component: " + type.getName());
+				Iceberg.LOGGER.debug("Registering tooltip component: " + type.getName());
 				event.register(type, RegisterTooltipComponentFactoryEvent.EVENT.invoker()::getComponent);
 			}
 		}

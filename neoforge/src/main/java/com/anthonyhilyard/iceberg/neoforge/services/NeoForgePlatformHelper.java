@@ -7,6 +7,8 @@ import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import com.anthonyhilyard.iceberg.services.IPlatformHelper;
 
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.loading.LoadingModList;
+import net.neoforged.fml.loading.moddiscovery.ModInfo;
 
 public class NeoForgePlatformHelper implements IPlatformHelper
 {
@@ -15,10 +17,20 @@ public class NeoForgePlatformHelper implements IPlatformHelper
 	public String getPlatformName() { return "NeoForge"; }
 
 	@Override
-	public boolean isModLoaded(String modId) { return ModList.get().isLoaded(modId); }
+	public boolean isModLoaded(String modId) { return getAllModIds().contains(modId); }
 
 	@Override
-	public List<String> getAllModIds() { return ModList.get().applyForEachModContainer(mod -> mod.getModId()).toList(); }
+	public List<String> getAllModIds()
+	{
+		if (ModList.get() != null)
+		{
+			return ModList.get().applyForEachModContainer(mod -> mod.getModId()).toList();
+		}
+		else
+		{
+			return LoadingModList.get().getMods().stream().map(ModInfo::getModId).toList();
+		}
+	}
 
 	@Override
 	public boolean modVersionMeets(String modId, String versionString)

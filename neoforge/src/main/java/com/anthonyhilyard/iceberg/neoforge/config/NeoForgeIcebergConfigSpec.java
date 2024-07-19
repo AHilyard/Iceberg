@@ -270,11 +270,11 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 				specValue = valueSpec.getDefault();
 			}
 
-			if (specValue instanceof UnmodifiableConfig)
+			if (specValue instanceof UnmodifiableConfig specConfig)
 			{
 				if (configValue instanceof Config)
 				{
-					count += correct((UnmodifiableConfig)specValue, configValue instanceof CommentedConfig commentedConfig ? commentedConfig : CommentedConfig.copy((Config)configValue), parentPath, parentPathUnmodifiable, listener, commentListener, dryRun);
+					count += correct(specConfig, configValue instanceof CommentedConfig commentedConfig ? commentedConfig : CommentedConfig.copy((Config)configValue), parentPath, parentPathUnmodifiable, listener, commentListener, dryRun);
 					if (count > 0 && dryRun)
 					{
 						return count;
@@ -290,7 +290,16 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 					configMap.put(key, newValue);
 					listener.onCorrect(action, parentPathUnmodifiable, configValue, newValue);
 					count++;
-					count += correct((UnmodifiableConfig)specValue, newValue, parentPath, parentPathUnmodifiable, listener, commentListener, dryRun);
+
+					if (specConfig instanceof MutableSubconfig)
+					{
+						// Fill out subconfig default values.
+						specConfig.valueMap().forEach((k, v) -> newValue.valueMap().put(k, v instanceof ValueSpec vSpec ? vSpec.getDefault() : v));
+					}
+					else
+					{
+						count += correct((UnmodifiableConfig)specValue, newValue, parentPath, parentPathUnmodifiable, listener, commentListener, dryRun);
+					}
 				}
 
 				String newComment = subConfigComment == null ? levelComments.get(parentPath) : subConfigComment;
@@ -310,9 +319,8 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 					config.setComment(key, newComment);
 				}
 			}
-			else
+			else if (specValue instanceof ValueSpec valueSpec)
 			{
-				ValueSpec valueSpec = (ValueSpec)specValue;
 				if (!valueSpec.test(configValue))
 				{
 					if (dryRun)
@@ -339,6 +347,34 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 					}
 
 					config.setComment(key, valueSpec.getComment());
+				}
+			}
+			else if (spec instanceof MutableSubconfig subconfig)
+			{
+				// Check all subconfig entries.
+				if (configMap.containsKey(key))
+				{
+					if (!subconfig.keyValidator().test(key))
+					{
+						if (dryRun)
+						{
+							return 1;
+						}
+						listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, key, null);
+						configMap.remove(key);
+						count++;
+					}
+
+					if (!subconfig.valueValidator().test(configMap.get(key)))
+					{
+						if (dryRun)
+						{
+							return 1;
+						}
+						listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, configMap.get(key), null);
+						configMap.remove(key);
+						count++;
+					}
 				}
 			}
 
