@@ -3,14 +3,14 @@ loaderVersion="[1,)"
 license="CC BY-NC-ND 4.0"
 
 [[mods]]
-modId="iceberg"
-version="${version}"
-displayName="Iceberg"
-displayURL="https://anthonyhilyard.com/"
-updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
-logoFile="icon.png"
-authors="Grend"
-description="A library containing events, helpers, and utilities to make modding easier."
+	modId="iceberg"
+	version="${version}"
+	displayName="Iceberg"
+	displayURL="https://anthonyhilyard.com/"
+	updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
+	logoFile="icon.png"
+	authors="Grend"
+	description="A library containing events, helpers, and utilities to make modding easier."
 
 [[dependencies.iceberg]]
 	modId="neoforge"
@@ -28,6 +28,9 @@ description="A library containing events, helpers, and utilities to make modding
 
 [[mixins]]
 	config="iceberg.mixins.json"
+
+[[mixins]]
+	config="iceberg.neoforge.mixins.json"
 
 [modproperties.iceberg]
 	configuredProviders=[

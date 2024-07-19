@@ -26,7 +26,7 @@ public class Event<T>
 	public final T invoker() { return invoker; }
 
 	private final Function<T[], T> invokerFactory;
-	private final Object lock = new Object();
+	protected final Object lock = new Object();
 	private T[] listeners;
 
 	private void addListener(T listener)

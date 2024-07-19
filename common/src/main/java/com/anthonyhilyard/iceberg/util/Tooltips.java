@@ -61,7 +61,7 @@ public class Tooltips
 
 		public static void registerFactory()
 		{
-			RegisterTooltipComponentFactoryEvent.EVENT.register(data -> {
+			RegisterTooltipComponentFactoryEvent.EVENT.register(TitleBreakComponent.class, data -> {
 				if (data instanceof TitleBreakComponent titleBreakComponent)
 				{
 					return titleBreakComponent;

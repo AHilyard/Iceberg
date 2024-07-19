@@ -55,4 +55,5 @@ shadowJar {
 
 remapJar {
 	input.set shadowJar.archiveFile
+	atAccessWideners.add('iceberg.accesswidener')
 }

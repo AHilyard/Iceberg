@@ -32,18 +32,6 @@ public class TooltipRenderUtilMixin
 	@Final
 	private static int BORDER_COLOR_BOTTOM;
 
-	@Inject(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 0))
-	private static void icebergRenderTooltipBackgroundOne(GuiGraphics graphics, int x, int y, int width, int height, int z, CallbackInfo info)
-	{
-		horizontalLineColor = Tooltips.currentColors.backgroundColorStart();
-	}
-
-	@Inject(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 1))
-	private static void icebergRenderTooltipBackgroundTwo(GuiGraphics graphics, int x, int y, int width, int height, int z, CallbackInfo info)
-	{
-		horizontalLineColor = Tooltips.currentColors.backgroundColorEnd();
-	}
-
 	@Inject(method = "renderFrameGradient", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 0))
 	private static void icebergRenderFrameGradientOne(GuiGraphics graphics, int x, int y, int width, int height, int z, int color1, int color2, CallbackInfo info)
 	{

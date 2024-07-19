@@ -409,10 +409,11 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 			UnsafeUtil.setField(supplierField, result, defaultSupplier);
 			UnsafeUtil.setField(validatorField, result, validator);
 		}
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			Iceberg.LOGGER.warn("Failed to instantiate ValueSpec!");
 			Iceberg.LOGGER.warn(ExceptionUtils.getStackTrace(e));
-		 }
+		}
 
 		return result;
 	}
@@ -649,7 +650,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		public Supplier<Map<String, Object>> addSubconfig(List<String> path, Supplier<Map<String, Object>> defaultSupplier, Predicate<Object> keyValidator, Predicate<Object> valueValidator)
 		{
 			final UnmodifiableConfig defaultConfig = Config.of(defaultSupplier, TomlFormat.instance());
-			ConfigValue<MutableSubconfig> value = define(path, () -> MutableSubconfig.copy(defaultConfig, keyValidator, valueValidator), o -> o != null);
+			ConfigValue<Config> value = define(path, () -> MutableSubconfig.copy(defaultConfig, keyValidator, valueValidator), o -> o != null);
 			return () -> value.get().valueMap();
 		}
 	}

@@ -191,22 +191,22 @@ public class GuiGraphicsMixin
 
 		if (!containerStack.isEmpty())
 		{
-			int background = TooltipRenderUtil.BACKGROUND_COLOR;
-			int backgroundEnd = background;
+			int backgroundStart = TooltipRenderUtil.BACKGROUND_COLOR;
+			int backgroundEnd = backgroundStart;
 			int borderStart = TooltipRenderUtil.BORDER_COLOR_TOP;
 			int borderEnd = TooltipRenderUtil.BORDER_COLOR_BOTTOM;
 
 			// Do colors now, sure why not.
-			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(containerStack, self, x, y, font, background, backgroundEnd, borderStart, borderEnd, components, false, 0);
+			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(containerStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0);
 			if (result != null)
 			{
-				background = result.backgroundStart();
+				backgroundStart = result.backgroundStart();
 				backgroundEnd = result.backgroundEnd();
 				borderStart = result.borderStart();
 				borderEnd = result.borderEnd();
 			}
 
-			Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(background), TextColor.fromRgb(backgroundEnd), TextColor.fromRgb(borderStart), TextColor.fromRgb(borderEnd));
+			Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(backgroundStart), TextColor.fromRgb(backgroundEnd), TextColor.fromRgb(borderStart), TextColor.fromRgb(borderEnd));
 		}
 		else
 		{

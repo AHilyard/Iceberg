@@ -41,7 +41,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 		}
 	}
 
-	public static final boolean register(Class<? extends IcebergConfig<?>> subClass, @NotNull String modId)
+	public static synchronized final boolean register(Class<? extends IcebergConfig<?>> subClass, @NotNull String modId)
 	{
 		if (registeredClasses.contains(subClass))
 		{
@@ -51,7 +51,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 
 		if (ConfigEvents.REGISTER.listenerCount() == 0)
 		{
-			Iceberg.LOGGER.warn("Failed to register configuration: " + subClass.getName() + " configuration register event has no listeners!");
+			Iceberg.LOGGER.warn("Failed to register configuration: " + subClass.getName() + " configuration register event has no listeners!  (Ensure mod loads AFTER Iceberg)");
 			return false;
 		}
 

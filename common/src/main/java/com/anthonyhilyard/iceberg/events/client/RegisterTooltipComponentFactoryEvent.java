@@ -1,14 +1,14 @@
 package com.anthonyhilyard.iceberg.events.client;
 
-import com.anthonyhilyard.iceberg.events.Event;
 import com.anthonyhilyard.iceberg.events.EventFactory;
+import com.anthonyhilyard.iceberg.events.TypeTrackedEvent;
 
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
 public interface RegisterTooltipComponentFactoryEvent
 {
-	Event<RegisterTooltipComponentFactoryEvent> EVENT = EventFactory.create(RegisterTooltipComponentFactoryEvent.class,
+	TypeTrackedEvent<TooltipComponent, RegisterTooltipComponentFactoryEvent> EVENT = EventFactory.createTypeTracked(RegisterTooltipComponentFactoryEvent.class,
 		callbacks -> (data) -> {
 		for (RegisterTooltipComponentFactoryEvent callback : callbacks)
 		{

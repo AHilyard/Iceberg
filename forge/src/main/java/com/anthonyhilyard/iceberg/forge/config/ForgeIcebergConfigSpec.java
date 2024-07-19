@@ -649,7 +649,7 @@ public class ForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifiab
 		public Supplier<Map<String, Object>> addSubconfig(List<String> path, Supplier<Map<String, Object>> defaultSupplier, Predicate<Object> keyValidator, Predicate<Object> valueValidator)
 		{
 			final UnmodifiableConfig defaultConfig = Config.of(defaultSupplier, TomlFormat.instance());
-			ConfigValue<MutableSubconfig> value = define(path, () -> MutableSubconfig.copy(defaultConfig, keyValidator, valueValidator), o -> o != null);
+			ConfigValue<Config> value = define(path, () -> MutableSubconfig.copy(defaultConfig, keyValidator, valueValidator), o -> o != null);
 			return () -> value.get().valueMap();
 		}
 	}

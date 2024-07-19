@@ -23,4 +23,11 @@ public final class EventFactory
 		EVENTS.add(event);
 		return event;
 	}
+
+	public static <S, T> TypeTrackedEvent<S, T> createTypeTracked(Class<? super T> type, Function<T[], T> invokerFactory)
+	{
+		TypeTrackedEvent<S, T> event = new TypeTrackedEvent<>(type, invokerFactory);
+		EVENTS.add(event);
+		return event;
+	}
 }
