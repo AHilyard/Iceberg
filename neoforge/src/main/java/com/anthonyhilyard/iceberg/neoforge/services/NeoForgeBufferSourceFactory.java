@@ -19,9 +19,9 @@ public class NeoForgeBufferSourceFactory implements IBufferSourceFactory
 {
 
 	@Override
-	public CheckedBufferSource createCheckedBufferSource(MultiBufferSource bufferSource)
+	public CheckedBufferSource createCheckedBufferSource(Object bufferSource)
 	{
-		return new CheckedBufferSource(bufferSource) {
+		return new CheckedBufferSource((MultiBufferSource)bufferSource) {
 
 			@Override
 			public VertexConsumer getBuffer(RenderType renderType)

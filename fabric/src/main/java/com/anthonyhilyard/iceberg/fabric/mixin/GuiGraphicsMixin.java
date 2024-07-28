@@ -118,7 +118,7 @@ public class GuiGraphicsMixin
 		}
 		else
 		{
-			if (Services.PLATFORM.isModLoaded("andromeda") && icebergTooltipStack != null && !icebergTooltipStack.isEmpty())
+			if (Services.getPlatformHelper().isModLoaded("andromeda") && icebergTooltipStack != null && !icebergTooltipStack.isEmpty())
 			{
 				List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, Screen.getTooltipFromItem(minecraft, icebergTooltipStack), icebergTooltipStack.getTooltipImage(), x, width, height, null, font, -1);
 				if (newComponents != null && !newComponents.isEmpty())
@@ -255,7 +255,7 @@ public class GuiGraphicsMixin
 			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, storedPostPos.x(), storedPostPos.y(), font, storedTooltipWidth, storedTooltipHeight, components, false, 0);
 		}
 
-		if (Services.PLATFORM.isModLoaded("andromeda") && minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
+		if (Services.getPlatformHelper().isModLoaded("andromeda") && minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
 		{
 			Matrix4fStack poseStack = RenderSystem.getModelViewStack();
 			poseStack.translate(-xChange, -yChange, 0);

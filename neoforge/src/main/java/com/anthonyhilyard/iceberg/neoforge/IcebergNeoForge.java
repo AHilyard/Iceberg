@@ -55,17 +55,7 @@ public final class IcebergNeoForge
 		if (container.isPresent())
 		{
 			Config.setInsertionOrderPreserved(true);
-
-			NeoForgeIcebergConfigSpec neoforgeSpec = (NeoForgeIcebergConfigSpec)spec;
-			
-			if (neoforgeSpec.isEmpty())
-			{
-				// This handles the case where a mod tries to register a config without any options configured inside it.
-				Iceberg.LOGGER.debug("Attempted to register an empty config on mod {}", modid);
-				return;
-			}
-
-			container.get().addConfig(new ModConfig(ModConfig.Type.COMMON, neoforgeSpec, container.get(), String.format(Locale.ROOT, "%s.toml", modid)));
+			container.get().registerConfig(ModConfig.Type.COMMON, (NeoForgeIcebergConfigSpec)spec, String.format(Locale.ROOT, "%s.toml", modid));
 		}
 	}
 }

@@ -20,19 +20,19 @@ public class IcebergClient
 		RenderTooltipEvents.GATHER.register(IcebergClient::onGatherComponentsEventEnd);
 
 		// Event testing.
-		// CriterionCallback.EVENT.register((player, advancement, criterion) -> { Iceberg.LOGGER.info("CriterionCallback: {}, {}, {}", player.getName().getString(), advancement.getId().toString(), criterion); });
-		// NewItemPickupCallback.EVENT.register((uuid, itemStack) -> { Iceberg.LOGGER.info("NewItemPickupCallback: {}, {}", uuid.toString(), itemStack.getDisplayName().getString()); });
+		// CriterionEvent.EVENT.register((player, advancement, criterion) -> { Iceberg.LOGGER.info("CriterionCallback: {}, {}, {}", player.getName().getString(), advancement.id().toString(), criterion); });
+		// NewItemPickupEvent.EVENT.register((uuid, itemStack) -> { Iceberg.LOGGER.info("NewItemPickupCallback: {}, {}", uuid.toString(), itemStack.getDisplayName().getString()); });
 		// RenderTickEvents.START.register((timer) -> { Iceberg.LOGGER.info("RenderTickEvents.START: {}", timer); });
-		// RenderTooltipEvents.PRE.register((stack, components, poseStack, x, y, screenWidth, screenHeight, maxWidth, font, comparison) -> {
-		// 	Iceberg.LOGGER.info("RenderTooltipEvents.PRE: {}, {}, {}, {}, {}, {}, {}, {}, {}, {}", stack.getDisplayName().getString(), components.stream().map(Object::toString).collect(Collectors.joining()), poseStack, x, y, screenWidth, screenHeight, maxWidth, font, comparison);
-		// 	return InteractionResult.SUCCESS;
+		// RenderTooltipEvents.PREEXT.register((stack, graphics, x, y, screenWidth, screenHeight, font, components, positioner, comparison, index) -> {
+		// 	Iceberg.LOGGER.info("RenderTooltipEvents.PRE: {}, {}, {}, {}, {}, {}, {}, {}", stack.getDisplayName().getString(), String.join(", ", components.stream().map(Object::toString).toList()), x, y, screenWidth, screenHeight, font, comparison);
+		// 	return new PreExtResult(InteractionResult.PASS, index, y, screenWidth, screenHeight, font);
 		// });
-		// RenderTooltipEvents.COLOR.register((stack, components, poseStack, x, y, font, background, borderStart, borderEnd, comparison) -> {
-		// 	Iceberg.LOGGER.info("RenderTooltipEvents.COLOR: {}, {}, {}, {}, {}, {}, {}, {}, {}, {}", stack.getDisplayName().getString(), components.stream().map(Object::toString).collect(Collectors.joining()), poseStack, x, y, font, borderStart, borderEnd, comparison);
-		// 	return null;
+		// RenderTooltipEvents.COLOREXT.register((stack, graphics, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, comparison, index) -> {
+		// 	Iceberg.LOGGER.info("RenderTooltipEvents.COLOR: {}, {}, {}, {}, {}, {}, {}, {}, {}", stack.getDisplayName().getString(), String.join(", ", components.stream().map(Object::toString).toList()), x, y, font, borderStart, borderEnd, comparison);
+		// 	return new ColorExtResult(backgroundStart, backgroundEnd, borderStart, borderEnd);
 		// });
-		// RenderTooltipEvents.POST.register((stack, components, poseStack, x, y, font, width, height, comparison) -> {
-		// 	Iceberg.LOGGER.info("RenderTooltipEvents.POST: {}, {}, {}, {}, {}, {}, {}, {}, {}", stack.getDisplayName().getString(), components.stream().map(Object::toString).collect(Collectors.joining()), poseStack, x, y, font, width, height, comparison);
+		// RenderTooltipEvents.POSTEXT.register((stack, graphics, x, y, font, width, height, components, comparison, index) -> {
+		// 	Iceberg.LOGGER.info("RenderTooltipEvents.POST: {}, {}, {}, {}, {}, {}, {}, {}", stack.getDisplayName().getString(), String.join(", ", components.stream().map(Object::toString).toList()), x, y, font, width, height, comparison);
 		// });
 	}
 

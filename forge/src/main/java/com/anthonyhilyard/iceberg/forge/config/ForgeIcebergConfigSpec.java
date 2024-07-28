@@ -445,10 +445,11 @@ public class ForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifiab
 			UnsafeUtil.setField(supplierField, result, defaultSupplier);
 			UnsafeUtil.setField(validatorField, result, validator);
 		}
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			Iceberg.LOGGER.warn("Failed to instantiate ValueSpec!");
 			Iceberg.LOGGER.warn(ExceptionUtils.getStackTrace(e));
-		 }
+		}
 
 		return result;
 	}

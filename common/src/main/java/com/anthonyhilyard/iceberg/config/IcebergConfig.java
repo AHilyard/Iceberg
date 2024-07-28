@@ -55,7 +55,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 			return false;
 		}
 
-		Pair<IcebergConfig<?>, IIcebergConfigSpec> specPair = Services.CONFIG_SPEC_BUILDER.finish((builder) ->
+		Pair<IcebergConfig<?>, IIcebergConfigSpec> specPair = Services.getConfigSpecBuilder().finish((builder) ->
 		{
 			IcebergConfig<?> result = null;
 			try
@@ -66,7 +66,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 			}
 			catch (Exception e)
 			{
-				Iceberg.LOGGER.warn("Failed to register configuration: {}", e);
+				Iceberg.LOGGER.warn("Failed to register configuration:", e);
 			}
 			return result;
 		});
@@ -97,7 +97,7 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 
 		registeredClasses.add(subClass);
 
-		Services.CONFIG_SPEC_BUILDER.reset();
+		Services.getConfigSpecBuilder().reset();
 		return true;
 	}
 }

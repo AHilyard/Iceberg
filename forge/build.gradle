@@ -46,57 +46,11 @@ processResources {
 	}
 }
 
-import dev.architectury.loom.extensions.ModBuildExtensions
-
 shadowJar {
 	configurations = [project.configurations.shadowBundle]
-	archiveClassifier = ""
-	destinationDirectory = file("$buildDir/../../output")
-
-	// Forge is broken in this version of the Architectury plugin, so we have to manually
-	// convert the access widener to an access transformer.
-	doLast {
-		if (gradle.startParameter.taskNames.contains('build') && !gradle.startParameter.refreshDependencies)
-		{
-			def remapJarTask = tasks.findByPath('remapJar')
-			if (remapJarTask)
-			{
-				def uuidProperty = project.objects.property(String)
-				uuidProperty.set(getMappingBuildServiceUuid())
-
-				ModBuildExtensions.convertAwToAt(remapJarTask.atAccessWideners, archiveFile.get().getAsFile().toPath(), uuidProperty)
-			}
-		}
-	}
 }
 
 remapJar {
-	enabled = false
 	input.set shadowJar.archiveFile
 	atAccessWideners.add('iceberg.accesswidener')
-}
-
-import net.fabricmc.loom.task.RemapJarTask
-import net.fabricmc.loom.util.service.UnsafeWorkQueueHelper
-import net.fabricmc.loom.task.service.MappingsService
-
-def getMappingBuildServiceUuid()
-{
-	def remapJarTask = tasks.findByPath('remapJar')
-	if (remapJarTask)
-	{
-		def serviceManagerField = RemapJarTask.getDeclaredField("serviceManagerProvider")
-		serviceManagerField.setAccessible(true)
-		def serviceManagerProvider = serviceManagerField.get(remapJarTask)
-
-		return UnsafeWorkQueueHelper.create(
-				MappingsService.createDefault(
-					project,
-					serviceManagerProvider.get().get(),
-					"named", "named"
-				)
-			)
-	}
-
-	return null
 }

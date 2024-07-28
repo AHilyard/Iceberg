@@ -15,7 +15,7 @@ license="CC BY-NC-ND 4.0"
 [[dependencies.iceberg]]
 	modId="neoforge"
 	type="required"
-	versionRange="[21,)"
+	versionRange="[21.0.116,)"
 	ordering="NONE"
 	side="BOTH"
 
@@ -24,6 +24,41 @@ license="CC BY-NC-ND 4.0"
 	type="required"
 	versionRange="[1.21,)"
 	ordering="NONE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="advancementplaques"
+	type="optional"
+	versionRange="[1.6.3,)"
+	ordering="BEFORE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="legendarytooltips"
+	type="optional"
+	versionRange="[1.4.8,)"
+	ordering="BEFORE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="equipmentcompare"
+	type="optional"
+	versionRange="[1.3.10,)"
+	ordering="BEFORE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="merchantmarkers"
+	type="optional"
+	versionRange="[1.3.4,)"
+	ordering="BEFORE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="itemborders"
+	type="optional"
+	versionRange="[1.2.4,)"
+	ordering="BEFORE"
 	side="BOTH"
 
 [[mixins]]

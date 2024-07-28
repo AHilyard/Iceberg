@@ -56,7 +56,7 @@ public class TooltipRenderUtilMixin
 		catch (Exception e) {}
 	}
 
-	@Inject(method = "renderRectangle(Lnet/minecraft/client/gui/GuiGraphics;IIIIIII)V", at = @At(value = "HEAD"), cancellable = true, remap = false)
+	@Inject(method = "renderRectangleGradient(Lnet/minecraft/client/gui/GuiGraphics;IIIIIII)V", at = @At(value = "HEAD"), cancellable = true, remap = false)
 	private static void icebergRenderRectangle(GuiGraphics graphics, int x, int y, int width, int height, int z, int colorFrom, int colorTo, CallbackInfo info)
 	{
 		if (colorFrom != BACKGROUND_COLOR && colorTo != BACKGROUND_COLOR)

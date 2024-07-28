@@ -1,5 +1,9 @@
 architectury {
-	common rootProject.enabledPlatforms.split(',')
+	common {
+		clear()
+		add(rootProject.enabledPlatforms.split(','))
+		forgeUsesMojangMappings = true
+	}
 }
 
 loom {

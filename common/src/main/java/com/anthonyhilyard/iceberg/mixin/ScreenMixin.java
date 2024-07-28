@@ -24,7 +24,7 @@ public class ScreenMixin
 	@Inject(method = "getTooltipFromItem", at = @At(value = "HEAD"))
 	private static List<Component> getTooltipFromItem(Minecraft minecraft, ItemStack itemStack, CallbackInfoReturnable<List<Component>> info)
 	{
-		if (Services.PLATFORM.isModLoaded("andromeda"))
+		if (Services.getPlatformHelper().isModLoaded("andromeda"))
 		{
 			try
 			{

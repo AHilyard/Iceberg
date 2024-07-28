@@ -4,12 +4,10 @@ import com.anthonyhilyard.iceberg.renderer.CheckedBufferSource;
 import com.anthonyhilyard.iceberg.renderer.VertexCollector;
 import com.anthonyhilyard.iceberg.services.IBufferSourceFactory;
 
-import net.minecraft.client.renderer.MultiBufferSource;
-
 public class ForgeBufferSourceFactory implements IBufferSourceFactory
 {
 	@Override
-	public CheckedBufferSource createCheckedBufferSource(MultiBufferSource bufferSource)
+	public CheckedBufferSource createCheckedBufferSource(Object bufferSource)
 	{
 		throw new UnsupportedOperationException("This version of Iceberg is incompatible with Rubidium/Embeddium.");
 	}

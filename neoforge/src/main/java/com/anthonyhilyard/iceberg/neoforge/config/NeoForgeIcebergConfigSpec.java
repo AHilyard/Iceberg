@@ -1,6 +1,5 @@
 package com.anthonyhilyard.iceberg.neoforge.config;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,6 +16,7 @@ import java.util.function.Supplier;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.anthonyhilyard.iceberg.Iceberg;
@@ -30,10 +30,10 @@ import com.electronwill.nightconfig.core.ConfigFormat;
 import com.electronwill.nightconfig.core.ConfigSpec.CorrectionAction;
 import com.electronwill.nightconfig.core.ConfigSpec.CorrectionListener;
 import com.electronwill.nightconfig.core.InMemoryFormat;
+import com.electronwill.nightconfig.core.UnmodifiableCommentedConfig;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.electronwill.nightconfig.core.file.FileWatcher;
-import com.electronwill.nightconfig.core.utils.UnmodifiableConfigWrapper;
 import com.electronwill.nightconfig.toml.TomlFormat;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -54,19 +54,23 @@ import net.neoforged.neoforge.common.ModConfigSpec.ValueSpec;
 /*
  * Basically an improved ModConfigSpec that supports subconfigs.
  */
-public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<UnmodifiableConfig> implements IConfigSpec<NeoForgeIcebergConfigSpec>, IIcebergConfigSpec
+public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpec
 {
-	private Map<List<String>, String> levelComments;
-	private Map<List<String>, String> levelTranslationKeys;
+	private final Map<List<String>, String> levelComments;
+	private final Map<List<String>, String> levelTranslationKeys;
 
-	private UnmodifiableConfig values;
-	private Config childConfig;
+	private final UnmodifiableConfig spec;
+	private final UnmodifiableConfig values;
 
-	private boolean isCorrecting = false;
+	@Nullable
+	private ILoadedConfig loadedConfig;
 
-	private NeoForgeIcebergConfigSpec(UnmodifiableConfig storage, UnmodifiableConfig values, Map<List<String>, String> levelComments, Map<List<String>, String> levelTranslationKeys)
+	@SuppressWarnings("unused")
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	private NeoForgeIcebergConfigSpec(UnmodifiableConfig spec, UnmodifiableConfig values, Map<List<String>, String> levelComments, Map<List<String>, String> levelTranslationKeys)
 	{
-		super(Config.copy(storage));
+		this.spec = Config.copy(spec);
 		this.values = Config.copy(values);
 		this.levelComments = Map.copyOf(levelComments);
 		this.levelTranslationKeys = Map.copyOf(levelTranslationKeys);
@@ -80,95 +84,39 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		catch (Exception e) {}
 	}
 
-	public String getLevelComment(List<String> path)
-	{
-		return levelComments.get(path);
-	}
+	@Override
+	public boolean isEmpty() { return spec.isEmpty(); }
 
-	public String getLevelTranslationKey(List<String> path)
-	{
-		return levelTranslationKeys.get(path);
-	}
+	public String getLevelComment(List<String> path) { return levelComments.get(path); }
 
-	public void setConfig(CommentedConfig config)
+	public String getLevelTranslationKey(List<String> path) { return levelTranslationKeys.get(path); }
+
+	@Override
+	public void acceptConfig(@Nullable ILoadedConfig config)
 	{
-		this.childConfig = config;
-		if (config != null && !isCorrect(config))
+		loadedConfig = config;
+		if (config != null && !isCorrect(config.config()))
 		{
-			String configName = config instanceof FileConfig fileConfig ? fileConfig.getNioPath().toString() : config.toString();
-			Iceberg.LOGGER.warn("Configuration file {} is not correct. Correcting", configName);
-			correct(config,
+			String configName = config.config() instanceof FileConfig fileConfig ? fileConfig.getNioPath().toString() : config.toString();
+			Iceberg.LOGGER.warn("Configuration file {} is not correct. Correcting ", configName);
+			correct(config.config(),
 					(action, path, incorrectValue, correctedValue) ->
 							Iceberg.LOGGER.warn("Incorrect key {} was corrected from {} to its default, {}. {}", DOT_JOINER.join( path ), incorrectValue, correctedValue, incorrectValue == correctedValue ? "This seems to be an error." : ""),
 					(action, path, incorrectValue, correctedValue) ->
 							Iceberg.LOGGER.debug("The comment on key {} does not match the spec. This may create a backup.", DOT_JOINER.join( path )));
 
-			if (config instanceof FileConfig fileConfig)
-			{
-				fileConfig.save();
-			}
+			config.save();
 		}
 		this.afterReload();
 	}
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public <T> T getRaw(List<String> path)
-	{
-		T value = super.getRaw(path);
-		if (value != null)
-		{
-			return value;
-		}
-		// Try to "recursively" get the value if needed.
-		List<String> subPath = path.subList(0, path.size() - 1);
-		Object test = super.getRaw(subPath);
-		if (test instanceof ValueSpec valueSpec && valueSpec.getDefault() instanceof MutableSubconfig subconfig)
-		{
-			// Okay, this is a dynamic subconfig.  That means that only values defined in the default have
-			// an actual value spec.
-			value = subconfig.getRaw(path.get(path.size() - 1));
+	public boolean isLoaded() { return loadedConfig != null; }
 
-			// Value will be null here for non-default entries.  In that case, just return a default value spec.
-			if (value == null)
-			{
-				value = (T) subconfig.defaultValueSpec();
-			}
-			return value;
-		}
-		return null;
-	}
+	public UnmodifiableConfig getSpec() { return spec; }
 
-	@Override
-	public void acceptConfig(final CommentedConfig data)
-	{
-		setConfig(data);
-	}
+	public UnmodifiableConfig getValues() { return values; }
 
-	public boolean isCorrecting()
-	{
-		return isCorrecting;
-	}
-
-	public boolean isLoaded()
-	{
-		return childConfig != null;
-	}
-
-	public UnmodifiableConfig getSpec()
-	{
-		return this.config;
-	}
-
-	public UnmodifiableConfig getValues()
-	{
-		return this.values;
-	}
-
-	public void afterReload()
-	{
-		this.resetCaches(getValues().valueMap().values());
-	}
+	public void afterReload() { this.resetCaches(getValues().valueMap().values()); }
 
 	private void resetCaches(final Iterable<Object> configValues)
 	{
@@ -187,65 +135,35 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 
 	public void save()
 	{
-		Preconditions.checkNotNull(childConfig, "Cannot save config value without assigned Config object present!");
-		if (childConfig instanceof FileConfig fileConfig)
-		{
-			fileConfig.save();
-		}
+		Preconditions.checkNotNull(loadedConfig, "Cannot save config value without assigned Config object present");
+		loadedConfig.save();
 	}
 
-	public synchronized boolean isCorrect(CommentedConfig config)
+	@Override
+	public boolean isCorrect(UnmodifiableCommentedConfig config)
 	{
-		LinkedList<String> parentPath = new LinkedList<>();
-
-		// Forge's config watcher isn't properly atomic, so sometimes this method can give false negatives leading
-		// to the entire config file reverting to defaults.  To prevent this, we'll check for an invalid state and
-		// skip the correction process when that happens.
-		if (config.valueMap().isEmpty() && config instanceof FileConfig fileConfig)
-		{
-			File configFile = fileConfig.getFile();
-
-			// Sleep for 10 ms to give it a chance to catch up.  This shouldn't cause any issues since
-			// this method only runs when the file changes and at startup.
-			try { Thread.sleep(10); } catch (Exception e) { }
-
-			// The file isn't actually empty, so this is an invalid state.  Skip this correction phase.
-			if (configFile.length() > 0)
-			{
-				return true;
-			}
-		}
-
-		return correct(this.config, config, parentPath, Collections.unmodifiableList( parentPath ), (a, b, c, d) -> {}, null, true) == 0;
+		LinkedList<String> parentPath = Lists.newLinkedList();
+		return correct(spec, config, parentPath, Collections.unmodifiableList(parentPath), (a, b, c, d) -> {}, null, true) == 0;
 	}
 
-	public synchronized int correct(CommentedConfig config)
+	@Override
+	public void correct(CommentedConfig config)
 	{
-		return correct(config, (action, path, incorrectValue, correctedValue) -> {}, null);
+		correct(config, (action, path, incorrectValue, correctedValue) -> {}, null);
 	}
 
-	public synchronized int correct(CommentedConfig config, CorrectionListener listener)
+	public int correct(CommentedConfig config, CorrectionListener listener)
 	{
 		return correct(config, listener, null);
 	}
 
-	public synchronized int correct(CommentedConfig config, CorrectionListener listener, CorrectionListener commentListener)
+	public int correct(CommentedConfig config, CorrectionListener listener, CorrectionListener commentListener)
 	{
-		LinkedList<String> parentPath = new LinkedList<>();
-		int ret = -1;
-		try
-		{
-			isCorrecting = true;
-			ret = correct(this.config, config, parentPath, Collections.unmodifiableList(parentPath), listener, commentListener, false);
-		}
-		finally
-		{
-			isCorrecting = false;
-		}
-		return ret;
+		LinkedList<String> parentPath = Lists.newLinkedList();
+		return correct(spec, config, parentPath, Collections.unmodifiableList(parentPath), listener, commentListener, false);
 	}
 
-	private synchronized int correct(UnmodifiableConfig spec, CommentedConfig config, LinkedList<String> parentPath, List<String> parentPathUnmodifiable, CorrectionListener listener, CorrectionListener commentListener, boolean dryRun)
+	private int correct(UnmodifiableConfig spec, UnmodifiableCommentedConfig config, LinkedList<String> parentPath, List<String> parentPathUnmodifiable, CorrectionListener listener, @Nullable CorrectionListener commentListener, boolean dryRun)
 	{
 		int count = 0;
 
@@ -270,7 +188,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 				specValue = valueSpec.getDefault();
 			}
 
-			if (specValue instanceof UnmodifiableConfig specConfig)
+			if (specValue instanceof Config specConfig)
 			{
 				if (configValue instanceof Config)
 				{
@@ -286,7 +204,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 				}
 				else
 				{
-					CommentedConfig newValue = config.createSubConfig();
+					CommentedConfig newValue = ((CommentedConfig)config).createSubConfig();
 					configMap.put(key, newValue);
 					listener.onCorrect(action, parentPathUnmodifiable, configValue, newValue);
 					count++;
@@ -304,7 +222,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 
 				String newComment = subConfigComment == null ? levelComments.get(parentPath) : subConfigComment;
 				String oldComment = config.getComment(key);
-				if (!stringsMatchIgnoringNewlines(oldComment, newComment))
+				if (!stringsMatchNormalizingNewLines(oldComment, newComment))
 				{
 					if (commentListener != null)
 					{
@@ -316,7 +234,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 						return 1;
 					}
 
-					config.setComment(key, newComment);
+					((CommentedConfig)config).setComment(key, newComment);
 				}
 			}
 			else if (specValue instanceof ValueSpec valueSpec)
@@ -334,7 +252,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 					count++;
 				}
 				String oldComment = config.getComment(key);
-				if (!stringsMatchIgnoringNewlines(oldComment, valueSpec.getComment()))
+				if (!stringsMatchNormalizingNewLines(oldComment, valueSpec.getComment()))
 				{
 					if (commentListener != null)
 					{
@@ -346,7 +264,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 						return 1;
 					}
 
-					config.setComment(key, valueSpec.getComment());
+					((CommentedConfig)config).setComment(key, valueSpec.getComment());
 				}
 			}
 			else if (spec instanceof MutableSubconfig subconfig)
@@ -404,21 +322,22 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		return count;
 	}
 
-	private boolean stringsMatchIgnoringNewlines(@Nullable Object obj1, @Nullable Object obj2)
+	private boolean stringsMatchNormalizingNewLines(@Nullable String string1, @Nullable String string2)
 	{
-		if (obj1 instanceof String && obj2 instanceof String)
+		boolean blank1 = string1 == null || string1.isBlank();
+		boolean blank2 = string2 == null || string2.isBlank();
+		if (blank1 != blank2)
 		{
-			String string1 = (String) obj1;
-			String string2 = (String) obj2;
-
-			if (string1.length() > 0 && string2.length() > 0)
-			{
-				return string1.replaceAll("\r\n", "\n").equals(string2.replaceAll("\r\n", "\n"));
-			}
+			return false;
 		}
-
-		// Fallback for when we're not given Strings, or one of them is empty
-		return Objects.equals(obj1, obj2);
+		else if (blank1 && blank2)
+		{
+			return true;
+		}
+		else
+		{
+			return string1.replaceAll("\r\n", "\n").equals(string2.replaceAll("\r\n", "\n"));
+		}
 	}
 
 	public static ValueSpec createValueSpec(String comment, String langKey, boolean worldRestart, Class<?> clazz, Supplier<?> defaultSupplier, Predicate<Object> validator)
@@ -452,6 +371,11 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		}
 
 		return result;
+	}
+
+	public ILoadedConfig loadedConfig()
+	{
+		return loadedConfig;
 	}
 
 	public static class Builder extends ModConfigSpec.Builder implements IIcebergConfigSpecBuilder
@@ -511,7 +435,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 			try
 			{
 				Field valuesField = ModConfigSpec.Builder.class.getDeclaredField("values");
-				Field storageField = ModConfigSpec.Builder.class.getDeclaredField("storage");
+				Field storageField = ModConfigSpec.Builder.class.getDeclaredField("spec");
 				Field levelCommentsField = ModConfigSpec.Builder.class.getDeclaredField("levelComments");
 				Field levelTranslationKeysField = ModConfigSpec.Builder.class.getDeclaredField("levelTranslationKeys");
 
@@ -521,28 +445,19 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 				Map<List<String>, String> levelComments = UnsafeUtil.getField(levelCommentsField, this);
 				Map<List<String>, String> levelTranslationKeys = UnsafeUtil.getField(levelTranslationKeysField, this);
 
+				@SuppressWarnings("deprecation")
 				Config valueCfg = Config.of(Config.getDefaultMapCreator(true, true), InMemoryFormat.withSupport(ConfigValue.class::isAssignableFrom));
 				values.forEach(v -> valueCfg.set(v.getPath(), v));
 
-				final NeoForgeIcebergConfigSpec ret = new NeoForgeIcebergConfigSpec(storage, valueCfg, levelComments, levelTranslationKeys);
+				final NeoForgeIcebergConfigSpec ret = new NeoForgeIcebergConfigSpec(storage.unmodifiable(), valueCfg.unmodifiable(), Collections.unmodifiableMap(levelComments), Collections.unmodifiableMap(levelTranslationKeys));
 
 				Field specField = ConfigValue.class.getDeclaredField("spec");
-				values.forEach(v -> {
-					try
-					{
-						UnsafeUtil.setField(specField, v, ret);
-					}
-					catch (Exception e)
-					{
-						Iceberg.LOGGER.warn("Failed to create spec field {}!", v.toString());
-						Iceberg.LOGGER.warn(ExceptionUtils.getStackTrace(e));
-					}
-				});
+				values.forEach(v -> UnsafeUtil.setField(specField, v, ret));
 				result = ret;
 			}
 			catch (Exception e)
 			{
-				Iceberg.LOGGER.warn("Failed to build IcebergConfigSpec!");
+				Iceberg.LOGGER.warn("Failed to build NeoForgeIcebergConfigSpec!");
 				Iceberg.LOGGER.warn(ExceptionUtils.getStackTrace(e));
 			}
 
@@ -556,7 +471,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 			try
 			{
 				Field valuesField = ModConfigSpec.Builder.class.getDeclaredField("values");
-				Field storageField = ModConfigSpec.Builder.class.getDeclaredField("storage");
+				Field storageField = ModConfigSpec.Builder.class.getDeclaredField("spec");
 				Field levelCommentsField = ModConfigSpec.Builder.class.getDeclaredField("levelComments");
 				Field levelTranslationKeysField = ModConfigSpec.Builder.class.getDeclaredField("levelTranslationKeys");
 
@@ -583,88 +498,95 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 			return Pair.of(o, this.finishBuild());
 		}
 
+		private <T, S extends ConfigValue<T>> ConfigValueWrapper<T, S> wrap(S value)
+		{
+			return new ConfigValueWrapper<>(value);
+		}
+
 		@Override
 		public <T> Supplier<T> add(String path, T defaultValue)
 		{
 			ConfigValue<T> value = define(path, defaultValue);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public <T> Supplier<T> add(String path, T defaultValue, Predicate<Object> validator)
 		{
 			ConfigValue<T> value = define(path, defaultValue, validator);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public <V extends Comparable<? super V>> Supplier<V> addInRange(String path, V defaultValue, V min, V max, Class<V> clazz)
 		{
 			ConfigValue<V> value = defineInRange(path, defaultValue, min, max, clazz);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public <T> Supplier<T> addInList(String path, T defaultValue, Collection<? extends T> acceptableValues)
 		{
 			ConfigValue<T> value = defineInList(path, defaultValue, acceptableValues);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
+		@SuppressWarnings("deprecation")
 		public <T> Supplier<List<? extends T>> addList(String path, List<? extends T> defaultValue, Predicate<Object> elementValidator)
 		{
 			ConfigValue<List<? extends T>> value = defineList(path, defaultValue, elementValidator);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
+		@SuppressWarnings("deprecation")
 		public <T> Supplier<List<? extends T>> addListAllowEmpty(String path, List<? extends T> defaultValue, Predicate<Object> elementValidator)
 		{
 			ConfigValue<List<? extends T>> value = defineListAllowEmpty(path, defaultValue, elementValidator);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public <V extends Enum<V>> Supplier<V> addEnum(String path, V defaultValue)
 		{
 			EnumValue<V> value = defineEnum(path, defaultValue);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public <V extends Enum<V>> Supplier<V> addEnum(String path, V defaultValue, Predicate<Object> validator)
 		{
 			EnumValue<V> value = defineEnum(path, defaultValue, validator);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public Supplier<Boolean> add(String path, boolean defaultValue)
 		{
 			BooleanValue value = define(path, defaultValue);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public Supplier<Double> addInRange(String path, double defaultValue, double min, double max)
 		{
 			DoubleValue value = defineInRange(path, defaultValue, min, max);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public Supplier<Integer> addInRange(String path, int defaultValue, int min, int max)
 		{
 			IntValue value = defineInRange(path, defaultValue, min, max);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
 		public Supplier<Long> addInRange(String path, long defaultValue, long min, long max)
 		{
 			LongValue value = defineInRange(path, defaultValue, min, max);
-			return () -> value.get();
+			return () -> wrap(value).get();
 		}
 
 		@Override
@@ -687,7 +609,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		{
 			final UnmodifiableConfig defaultConfig = Config.of(defaultSupplier, TomlFormat.instance());
 			ConfigValue<Config> value = define(path, () -> MutableSubconfig.copy(defaultConfig, keyValidator, valueValidator), o -> o != null);
-			return () -> value.get().valueMap();
+			return () -> wrap(value).get().valueMap();
 		}
 	}
 
@@ -707,6 +629,7 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		 * @param toCopy       the config to copy
 		 * @param configFormat the config's format
 		 */
+		@SuppressWarnings("deprecation")
 		MutableSubconfig(UnmodifiableConfig toCopy, ConfigFormat<?> configFormat, boolean concurrent, Predicate<Object> keyValidator, Predicate<Object> valueValidator)
 		{
 			super(toCopy, concurrent);
@@ -760,6 +683,8 @@ public class NeoForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodif
 		public AbstractCommentedConfig clone() { throw new UnsupportedOperationException("Can't clone a mutable subconfig!"); }
 	}
 
+	@SuppressWarnings("unused")
+	private static final Joiner LINE_JOINER = Joiner.on("\n");
 	private static final Joiner DOT_JOINER = Joiner.on(".");
 	private static final Splitter DOT_SPLITTER = Splitter.on(".");
 	private static List<String> split(String path)

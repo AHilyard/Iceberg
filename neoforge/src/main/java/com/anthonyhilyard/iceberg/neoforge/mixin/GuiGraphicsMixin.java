@@ -78,7 +78,7 @@ public class GuiGraphicsMixin
 			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, storedPostPos.x(), storedPostPos.y(), font, storedTooltipWidth, storedTooltipHeight, components, false, 0);
 		}
 
-		if (Services.PLATFORM.isModLoaded("andromeda") && minecraft.player != null && tooltipStack == minecraft.player.getMainHandItem())
+		if (Services.getPlatformHelper().isModLoaded("andromeda") && minecraft.player != null && tooltipStack == minecraft.player.getMainHandItem())
 		{
 			Matrix4fStack poseStack = RenderSystem.getModelViewStack();
 			poseStack.translate(-xChange, -yChange, 0);

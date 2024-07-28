@@ -28,10 +28,10 @@ public class CheckedBufferSource implements MultiBufferSource
 			try
 			{
 				// If Sodium 0.5.9+ is installed on Fabric, use the Sodium implementation.
-				useSodiumVersion = Services.PLATFORM.getPlatformName().contentEquals("Fabric") && Services.PLATFORM.isModLoaded("sodium") && Services.PLATFORM.modVersionMeets("sodium", "0.5.9");
+				useSodiumVersion = Services.getPlatformHelper().getPlatformName().contentEquals("Fabric") && Services.getPlatformHelper().isModLoaded("sodium") && Services.getPlatformHelper().modVersionMeets("sodium", "0.5.9");
 
 				// If Embeddium 1.0+ is installed on NeoForge, also use the Sodium implementation.
-				useSodiumVersion |= Services.PLATFORM.getPlatformName().contentEquals("NeoForge") && Services.PLATFORM.isModLoaded("embeddium") && Services.PLATFORM.modVersionMeets("embeddium", "1.0.0");
+				useSodiumVersion |= Services.getPlatformHelper().getPlatformName().contentEquals("NeoForge") && Services.getPlatformHelper().isModLoaded("embeddium") && Services.getPlatformHelper().modVersionMeets("embeddium", "1.0.0");
 			}
 			catch (Exception e)
 			{
@@ -44,7 +44,7 @@ public class CheckedBufferSource implements MultiBufferSource
 			// Instantiate the Sodium implementation using our factory service.
 			try
 			{
-				return Services.BUFFER_SOURCE_FACTORY.createCheckedBufferSource(bufferSource);
+				return Services.getBufferSourceFactory().createCheckedBufferSource(bufferSource);
 			}
 			catch (Exception e)
 			{
