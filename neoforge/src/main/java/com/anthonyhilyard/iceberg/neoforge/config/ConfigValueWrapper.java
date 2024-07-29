@@ -87,7 +87,8 @@ public class ConfigValueWrapper<T, S extends ConfigValue<T>> implements Supplier
 				if (cachedValue == null)
 				{
 					NeoForgeIcebergConfigSpec spec = (NeoForgeIcebergConfigSpec) UnsafeUtil.getField(specFields.get(configValueClass), configValue);
-					Preconditions.checkState(spec != null && spec.loadedConfig() != null, "Cannot get config value before config is loaded.");
+					Preconditions.checkState(spec != null, "Cannot get config value before spec is built.");
+					Preconditions.checkState(spec.loadedConfig() != null, "Cannot get config value before config is loaded.");
 
 					List<String> path = (List<String>) UnsafeUtil.getField(pathFields.get(configValueClass), configValue);
 					Supplier<T> defaultSupplier = (Supplier<T>) UnsafeUtil.getField(defaultSupplierFields.get(configValueClass), configValue);

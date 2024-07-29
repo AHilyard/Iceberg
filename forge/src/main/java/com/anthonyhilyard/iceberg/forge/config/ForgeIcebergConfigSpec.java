@@ -150,6 +150,7 @@ public class ForgeIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifiab
 		return isCorrecting;
 	}
 
+	@Override
 	public boolean isLoaded()
 	{
 		return childConfig != null;

@@ -17,6 +17,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import com.anthonyhilyard.iceberg.Iceberg;
@@ -42,6 +43,7 @@ import com.google.common.collect.Lists;
 
 import net.neoforged.fml.Logging;
 import net.neoforged.fml.config.IConfigSpec;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.BooleanValue;
 import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
@@ -49,6 +51,7 @@ import net.neoforged.neoforge.common.ModConfigSpec.DoubleValue;
 import net.neoforged.neoforge.common.ModConfigSpec.EnumValue;
 import net.neoforged.neoforge.common.ModConfigSpec.IntValue;
 import net.neoforged.neoforge.common.ModConfigSpec.LongValue;
+import net.neoforged.neoforge.common.ModConfigSpec.RestartType;
 import net.neoforged.neoforge.common.ModConfigSpec.ValueSpec;
 
 /*
@@ -110,25 +113,42 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 		this.afterReload();
 	}
 
+	@Override
+	public void validateSpec(ModConfig config)
+	{
+		// Spec is valid since we only have common config types here.
+	}
+
+	@Override
 	public boolean isLoaded() { return loadedConfig != null; }
 
 	public UnmodifiableConfig getSpec() { return spec; }
 
 	public UnmodifiableConfig getValues() { return values; }
 
-	public void afterReload() { this.resetCaches(getValues().valueMap().values()); }
-
-	private void resetCaches(final Iterable<Object> configValues)
+	private void forEachValue(Iterable<Object> configValues, Consumer<ConfigValue<?>> consumer)
 	{
-		configValues.forEach(value ->
-		{
+		configValues.forEach(value -> {
 			if (value instanceof ConfigValue<?> configValue)
 			{
-				configValue.clearCache();
+				consumer.accept(configValue);
 			}
 			else if (value instanceof Config innerConfig)
 			{
-				this.resetCaches(innerConfig.valueMap().values());
+				forEachValue(innerConfig.valueMap().values(), consumer);
+			}
+		});
+	}
+
+	public void afterReload() { resetCaches(RestartType.NONE); }
+
+	@ApiStatus.Internal
+	public void resetCaches(RestartType restartType)
+	{
+		forEachValue(getValues().valueMap().values(), configValue -> {
+			if (configValue.getSpec() == null || configValue.getSpec().restartType() == restartType)
+			{
+				configValue.clearCache();
 			}
 		});
 	}
@@ -340,7 +360,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 		}
 	}
 
-	public static ValueSpec createValueSpec(String comment, String langKey, boolean worldRestart, Class<?> clazz, Supplier<?> defaultSupplier, Predicate<Object> validator)
+	public static ValueSpec createValueSpec(String comment, String langKey, boolean worldRestart, Class<?> clazz, Supplier<?> defaultSupplier, Predicate<Object> validator, RestartType restartType)
 	{
 		Objects.requireNonNull(defaultSupplier, "Default supplier can not be null!");
 		Objects.requireNonNull(validator, "Validator can not be null!");
@@ -356,6 +376,8 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 			Field clazzField = ValueSpec.class.getDeclaredField("clazz");
 			Field supplierField = ValueSpec.class.getDeclaredField("supplier");
 			Field validatorField = ValueSpec.class.getDeclaredField("validator");
+			Field restartTypeField = ValueSpec.class.getDeclaredField("restartType");
+
 			UnsafeUtil.setField(commentField, result, comment);
 			UnsafeUtil.setField(langKeyField, result, langKey);
 			UnsafeUtil.setField(rangeField, result, null);
@@ -363,6 +385,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 			UnsafeUtil.setField(clazzField, result, clazz);
 			UnsafeUtil.setField(supplierField, result, defaultSupplier);
 			UnsafeUtil.setField(validatorField, result, validator);
+			UnsafeUtil.setField(restartTypeField, result, restartType);
 		}
 		catch (Exception e)
 		{
@@ -643,7 +666,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 		{
 			if (defaultValueSpec == null)
 			{
-				defaultValueSpec = createValueSpec(null, null, false, Object.class, () -> null, valueValidator);
+				defaultValueSpec = createValueSpec(null, null, false, Object.class, () -> null, valueValidator, RestartType.NONE);
 			}
 			return defaultValueSpec;
 		}

@@ -383,6 +383,12 @@ public class FabricIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifia
 		});
 	}
 
+	@Override
+	public boolean isLoaded()
+	{
+		return true;
+	}
+
 	public static class ConfigValue<T> implements Supplier<T>
 	{
 		private final Builder parent;
@@ -818,20 +824,27 @@ public class FabricIcebergConfigSpec extends UnmodifiableConfigWrapper<Unmodifia
 		public void setClazz(Class<?> clazz) { this.clazz = clazz; }
 		public Class<?> getClazz(){ return this.clazz; }
 
-		public void ensureEmpty() {
+		public void ensureEmpty()
+		{
 			validate(hasComment(), "Non-empty comment when empty expected");
 			validate(langKey, "Non-null translation key when null expected");
 			validate(range, "Non-null range when null expected");
 			validate(worldRestart, "Dangling world restart value set to true");
 		}
 
-		private void validate(Object value, String message) {
+		private void validate(Object value, String message)
+		{
 			if (value != null)
+			{
 				throw new IllegalStateException(message);
+			}
 		}
-		private void validate(boolean value, String message) {
+		private void validate(boolean value, String message)
+		{
 			if (value)
+			{
 				throw new IllegalStateException(message);
+			}
 		}
 	}
 }

@@ -7,7 +7,6 @@ import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.client.IcebergClient;
 import com.anthonyhilyard.iceberg.config.IIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.config.IcebergConfig;
-import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
 import com.anthonyhilyard.iceberg.neoforge.client.IcebergNeoForgeClient;
 import com.anthonyhilyard.iceberg.neoforge.config.NeoForgeIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.neoforge.server.IcebergNeoForgeServer;
@@ -29,8 +28,6 @@ public final class IcebergNeoForge
 {
 	public IcebergNeoForge(IEventBus modBus)
 	{
-		ConfigEvents.REGISTER.register(this::registerConfig);
-
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
 			// Common setup.
@@ -47,7 +44,8 @@ public final class IcebergNeoForge
 		}
 	}
 
-	private void registerConfig(Class<? extends IcebergConfig<?>> clazz, IIcebergConfigSpec spec, String modid)
+	@SuppressWarnings("unused")
+	private static void registerConfig(Class<? extends IcebergConfig<?>> clazz, IIcebergConfigSpec spec, String modid)
 	{
 		// Get the mod container for the appropriate mod.
 		Optional<? extends ModContainer> container = ModList.get().getModContainerById(modid);

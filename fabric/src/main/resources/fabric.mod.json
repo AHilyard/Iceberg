@@ -18,9 +18,6 @@
 	"environment": "*",
 
 	"entrypoints": {
-		"preLaunch": [
-			"com.anthonyhilyard.iceberg.fabric.IcebergFabric"
-		],
 		"client": [
 			"com.anthonyhilyard.iceberg.fabric.client.IcebergFabricClient"
 		],

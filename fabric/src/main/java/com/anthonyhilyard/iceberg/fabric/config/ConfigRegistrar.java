@@ -5,7 +5,8 @@ import com.anthonyhilyard.iceberg.config.IcebergConfig;
 
 public class ConfigRegistrar
 {
-	public static void registerConfig(Class<? extends IcebergConfig<?>> clazz, IIcebergConfigSpec spec, String modid)
+	@SuppressWarnings("unused")
+	private static void registerConfig(Class<? extends IcebergConfig<?>> clazz, IIcebergConfigSpec spec, String modid)
 	{
 		ConfigTracker.INSTANCE.registerConfig((FabricIcebergConfigSpec)spec, modid);
 	}

@@ -1,6 +1,7 @@
 package com.anthonyhilyard.iceberg.config;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
@@ -8,9 +9,11 @@ import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
 import com.anthonyhilyard.iceberg.services.IIcebergConfigSpecBuilder;
 import com.anthonyhilyard.iceberg.services.Services;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,6 +44,13 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 		}
 	}
 
+	public boolean isLoaded()
+	{
+		return configSpecs.containsKey(modId) && configSpecs.get(modId).isLoaded();
+	}
+
+	private static Method registerConfig = null;
+
 	public static synchronized final boolean register(Class<? extends IcebergConfig<?>> subClass, @NotNull String modId)
 	{
 		if (registeredClasses.contains(subClass))
@@ -51,8 +61,48 @@ public abstract class IcebergConfig<T extends IcebergConfig<?>>
 
 		if (ConfigEvents.REGISTER.listenerCount() == 0)
 		{
-			Iceberg.LOGGER.warn("Failed to register configuration: " + subClass.getName() + " configuration register event has no listeners!  (Ensure mod loads AFTER Iceberg)");
-			return false;
+			// Not my favorite solution in the world, but at least it means mod loading order isn't as important.
+			String classTarget;
+			switch (Services.getPlatformHelper().getPlatformName())
+			{
+				case "Fabric":
+					classTarget = "com.anthonyhilyard.iceberg.fabric.config.ConfigRegistrar";
+					break;
+				case "Forge":
+					classTarget = "com.anthonyhilyard.iceberg.forge.IcebergForge";
+					break;
+				case "NeoForge":
+					classTarget = "com.anthonyhilyard.iceberg.neoforge.IcebergNeoForge";
+					break;
+				default:
+					throw new IllegalStateException("Unable to determine modloader when registering config!");
+			}
+
+			try
+			{
+				registerConfig = Class.forName(classTarget).getDeclaredMethod("registerConfig", Class.class, IIcebergConfigSpec.class, String.class);
+				registerConfig.setAccessible(true);
+			}
+			catch (Exception e)
+			{
+				Iceberg.LOGGER.error(ExceptionUtils.getStackTrace(e));
+			}
+
+			Preconditions.checkNotNull(registerConfig);
+
+			ConfigEvents.REGISTER.register((clazz, spec, modid) -> {
+				if (registerConfig != null)
+				{
+					try
+					{
+						registerConfig.invoke(null, clazz, spec, modid);
+					}
+					catch (Exception e)
+					{
+						Iceberg.LOGGER.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			});
 		}
 
 		Pair<IcebergConfig<?>, IIcebergConfigSpec> specPair = Services.getConfigSpecBuilder().finish((builder) ->
