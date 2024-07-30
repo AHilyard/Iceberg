@@ -11,7 +11,8 @@
 		"ClientPacketListenerMixin",
 		"TextColorMixin",
 		"MinecraftMixin",
-		"TooltipRenderUtilMixin"
+		"TooltipRenderUtilMixin",
+		"GuiGraphicsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
