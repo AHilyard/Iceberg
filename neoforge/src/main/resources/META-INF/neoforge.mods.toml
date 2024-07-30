@@ -36,14 +36,14 @@ license="CC BY-NC-ND 4.0"
 [[dependencies.iceberg]]
 	modId="legendarytooltips"
 	type="optional"
-	versionRange="[1.4.8,)"
+	versionRange="[1.4.10,)"
 	ordering="BEFORE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="equipmentcompare"
 	type="optional"
-	versionRange="[1.3.10,)"
+	versionRange="[1.3.11,)"
 	ordering="BEFORE"
 	side="BOTH"
 

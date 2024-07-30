@@ -43,8 +43,8 @@
 	},
 	"breaks": {
 		"advancementplaques": "<1.6.3",
-		"legendarytooltips": "<1.4.8",
-		"equipmentcompare": "<1.3.10",
+		"legendarytooltips": "<1.4.10",
+		"equipmentcompare": "<1.3.11",
 		"merchantmarkers": "<1.3.4",
 		"itemborders": "<1.2.4"
 	},
