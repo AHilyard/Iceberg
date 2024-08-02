@@ -40,7 +40,7 @@ public final class IcebergNeoForge
 		}
 		else
 		{
-			modBus.register(IcebergNeoForgeServer.class);
+			NeoForge.EVENT_BUS.register(IcebergNeoForgeServer.class);
 		}
 	}
 
