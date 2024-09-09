@@ -469,6 +469,12 @@ public class Tooltips
 			titleStart++;
 		}
 
+		// Verify that there actually is at least one text component.
+		if (titleStart >= components.size())
+		{
+			return result;
+		}
+
 		for (int i = 0; i < titleLines; i++)
 		{
 			ClientTooltipComponent titleComponent = components.get(titleStart + i);

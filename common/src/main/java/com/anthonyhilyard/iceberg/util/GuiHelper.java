@@ -4,6 +4,7 @@ import net.minecraft.client.renderer.GameRenderer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -28,7 +29,7 @@ public class GuiHelper
 		RenderSystem.disableBlend();
 	}
 
-	public static void drawGradientRect(Matrix4f mat, BufferBuilder bufferBuilder, int left, int top, int right, int bottom, int zLevel, int startColor, int endColor)
+	public static void drawGradientRect(Matrix4f mat, VertexConsumer vertexConsumer, int left, int top, int right, int bottom, int zLevel, int startColor, int endColor)
 	{
 		float startAlpha = (float)(startColor >> 24 & 255) / 255.0F;
 		float startRed   = (float)(startColor >> 16 & 255) / 255.0F;
@@ -39,10 +40,10 @@ public class GuiHelper
 		float endGreen   = (float)(endColor   >>  8 & 255) / 255.0F;
 		float endBlue    = (float)(endColor         & 255) / 255.0F;
 
-		bufferBuilder.addVertex(mat, right,    top, zLevel).setColor(startRed, startGreen, startBlue, startAlpha);
-		bufferBuilder.addVertex(mat,  left,    top, zLevel).setColor(startRed, startGreen, startBlue, startAlpha);
-		bufferBuilder.addVertex(mat,  left, bottom, zLevel).setColor(  endRed,   endGreen,   endBlue,   endAlpha);
-		bufferBuilder.addVertex(mat, right, bottom, zLevel).setColor(  endRed,   endGreen,   endBlue,   endAlpha);
+		vertexConsumer.addVertex(mat, right,    top, zLevel).setColor(startRed, startGreen, startBlue, startAlpha);
+		vertexConsumer.addVertex(mat,  left,    top, zLevel).setColor(startRed, startGreen, startBlue, startAlpha);
+		vertexConsumer.addVertex(mat,  left, bottom, zLevel).setColor(  endRed,   endGreen,   endBlue,   endAlpha);
+		vertexConsumer.addVertex(mat, right, bottom, zLevel).setColor(  endRed,   endGreen,   endBlue,   endAlpha);
 	}
 
 	public static void drawGradientRectHorizontal(Matrix4f mat, int zLevel, int left, int top, int right, int bottom, int startColor, int endColor)
