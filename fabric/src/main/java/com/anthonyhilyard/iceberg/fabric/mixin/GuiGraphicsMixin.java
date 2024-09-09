@@ -84,7 +84,10 @@ public class GuiGraphicsMixin
 			}
 		}
 
-		List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, textComponents, itemComponent, x, currentScreen.width, currentScreen.height, null, font, -1);
+		int screenWidth = currentScreen != null ? currentScreen.width : minecraft.getWindow().getGuiScaledWidth();
+		int screenHeight = currentScreen != null ? currentScreen.height : minecraft.getWindow().getGuiScaledHeight();
+
+		List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, textComponents, itemComponent, x, screenWidth, screenHeight, null, font, -1);
 		if (newComponents != null && !newComponents.isEmpty())
 		{
 			components.clear();
