@@ -33,7 +33,7 @@ repositories {
 
 dependencies {
 	neoForge "net.neoforged:neoforge:$rootProject.neoforgeVersion"
-	modImplementation "curse.maven:embeddium-908741:5456706"
+	modImplementation files("../libs/sodium-neoforge-0.6.0-beta.2+mc1.21.1.jar")
 	implementation "net.bytebuddy:byte-buddy:1.14.18"
 
 	common(project(path: ':common', configuration: 'namedElements')) { transitive false }

@@ -8,10 +8,10 @@ import com.anthonyhilyard.iceberg.renderer.VertexCollector;
 import com.anthonyhilyard.iceberg.services.IBufferSourceFactory;
 import com.anthonyhilyard.iceberg.util.UnsafeUtil;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormatElement;
 
-import net.caffeinemc.mods.sodium.api.vertex.attributes.CommonVertexAttribute;
 import net.caffeinemc.mods.sodium.api.vertex.buffer.VertexBufferWriter;
-import net.caffeinemc.mods.sodium.api.vertex.format.VertexFormatDescription;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -53,7 +53,7 @@ public class FabricBufferSourceFactory implements IBufferSourceFactory
 					public VertexConsumer setNormal(float x, float y, float z) { return vertexConsumer.setNormal(x, y, z); }
 
 					@Override
-					public void push(MemoryStack memoryStack, long pointer, int count, VertexFormatDescription format)
+					public void push(MemoryStack memoryStack, long pointer, int count, VertexFormat format)
 					{
 						hasRendered = true;
 						((VertexBufferWriter)vertexConsumer).push(memoryStack, pointer, count, format);
@@ -106,19 +106,19 @@ public class FabricBufferSourceFactory implements IBufferSourceFactory
 					public VertexConsumer setNormal(float x, float y, float z) { return this; }
 
 					@Override
-					public void push(MemoryStack memoryStack, long pointer, int count, VertexFormatDescription format)
+					public void push(MemoryStack memoryStack, long pointer, int count, VertexFormat format)
 					{
 						// Loop over each vertex, and add it to the list if it's opaque.
 						// To determine this, we need to check the vertex format to find the vertex position and alpha.
 						for (int i = 0; i < count; i++)
 						{
 							// Get the vertex position.
-							float x = UnsafeUtil.readFloat(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.POSITION));
-							float y = UnsafeUtil.readFloat(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.POSITION) + 4);
-							float z = UnsafeUtil.readFloat(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.POSITION) + 8);
+							float x = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.POSITION));
+							float y = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.POSITION) + 4);
+							float z = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.POSITION) + 8);
 
 							// Get the vertex alpha.
-							int a = UnsafeUtil.readByte(pointer + i * format.stride() + format.getElementOffset(CommonVertexAttribute.COLOR) + 3) & 0xFF;
+							int a = UnsafeUtil.readByte(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.COLOR) + 3) & 0xFF;
 
 							// Add the vertex to the list if it's opaque.
 							if (a >= 25)

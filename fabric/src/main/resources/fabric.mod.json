@@ -38,7 +38,7 @@
 		"java": ">=21"
 	},
 	"suggests": {
-		"sodium": ">=0.5.9",
+		"sodium": ">=0.6.0",
 		"prism": ">=1.0.8"
 	},
 	"breaks": {

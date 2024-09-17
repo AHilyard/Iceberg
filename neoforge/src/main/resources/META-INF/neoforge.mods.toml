@@ -15,14 +15,14 @@ license="CC BY-NC-ND 4.0"
 [[dependencies.iceberg]]
 	modId="neoforge"
 	type="required"
-	versionRange="[21.0.143,)"
+	versionRange="[21.1.0,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	type="required"
-	versionRange="[1.21,)"
+	versionRange="[1.21.1,)"
 	ordering="NONE"
 	side="BOTH"
 
@@ -59,6 +59,14 @@ license="CC BY-NC-ND 4.0"
 	type="optional"
 	versionRange="[1.2.4,)"
 	ordering="BEFORE"
+	side="BOTH"
+
+[[dependencies.iceberg]]
+	modId="embeddium"
+	type="incompatible"
+	reason="Use Sodium 0.6+ instead."
+	versionRange=""
+	ordering="NONE"
 	side="BOTH"
 
 [[mixins]]

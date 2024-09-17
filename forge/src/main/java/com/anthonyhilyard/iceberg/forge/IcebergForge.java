@@ -17,7 +17,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -26,11 +25,13 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 @Mod(Iceberg.MODID)
 public final class IcebergForge
 {
-	public IcebergForge()
+	private static FMLJavaModLoadingContext context;
+	public IcebergForge(FMLJavaModLoadingContext context)
 	{
+		IcebergForge.context = context;
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
-			IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+			IEventBus modBus = context.getModEventBus();
 
 			// Common setup.
 			IcebergClient.init();
@@ -60,7 +61,7 @@ public final class IcebergForge
 			return;
 		}
 
-		ModContainer container = ModLoadingContext.get().getActiveContainer();
+		ModContainer container = context.getContainer();
 		container.addConfig(new ModConfig(ModConfig.Type.COMMON, forgeSpec, container, String.format(Locale.ROOT, "%s.toml", modid)));
 	}
 }
