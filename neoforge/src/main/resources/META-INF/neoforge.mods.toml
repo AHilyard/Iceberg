@@ -61,14 +61,6 @@ license="CC BY-NC-ND 4.0"
 	ordering="BEFORE"
 	side="BOTH"
 
-[[dependencies.iceberg]]
-	modId="embeddium"
-	type="incompatible"
-	reason="Use Sodium 0.6+ instead."
-	versionRange=""
-	ordering="NONE"
-	side="BOTH"
-
 [[mixins]]
 	config="iceberg.mixins.json"
 

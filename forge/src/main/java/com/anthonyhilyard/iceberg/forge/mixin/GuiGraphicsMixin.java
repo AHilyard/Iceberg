@@ -28,6 +28,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositione
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.event.RenderTooltipEvent;
+import net.minecraftforge.eventbus.api.Event;
 
 @Mixin(GuiGraphics.class)
 public class GuiGraphicsMixin
@@ -52,6 +53,14 @@ public class GuiGraphicsMixin
 		storedTooltipHeight = tooltipHeight2;
 		storedPostPos = postPos;
 	}
+
+	@Group(name = "storeLocals", min = 1, max = 1)
+	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE", target = "Lorg/joml/Vector2ic;x()I", shift = Shift.BEFORE, remap = false), locals = LocalCapture.CAPTURE_FAILSOFT)
+	private void storeLocalsOptifine(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info, Event preEvent, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
+	{
+		storeLocals(font, components, x, y, positioner, info, (RenderTooltipEvent.Pre)preEvent, tooltipWidth, tooltipHeight, tooltipWidth2, tooltipHeight2, postPos);
+	}
+
 
 	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"))
 	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info)
