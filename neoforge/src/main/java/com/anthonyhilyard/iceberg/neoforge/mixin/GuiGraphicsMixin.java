@@ -25,6 +25,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.event.RenderTooltipEvent;
@@ -46,7 +47,7 @@ public class GuiGraphicsMixin
 
 	@Group(name = "storeLocals", min = 1, max = 1)
 	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE", target = "Lorg/joml/Vector2ic;x()I", shift = Shift.BEFORE, remap = false), locals = LocalCapture.CAPTURE_FAILSOFT)
-	private void storeLocals(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info, RenderTooltipEvent.Pre preEvent, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
+	private void storeLocals(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info, RenderTooltipEvent.Pre preEvent, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
 	{
 		storedTooltipWidth = tooltipWidth2;
 		storedTooltipHeight = tooltipHeight2;
@@ -54,7 +55,7 @@ public class GuiGraphicsMixin
 	}
 
 	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"))
-	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info)
+	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
 		Screen currentScreen = minecraft.screen;
@@ -82,7 +83,6 @@ public class GuiGraphicsMixin
 		{
 			Matrix4fStack poseStack = RenderSystem.getModelViewStack();
 			poseStack.translate(-xChange, -yChange, 0);
-			RenderSystem.applyModelViewMatrix();
 		}
 
 		tooltipStack = ItemStack.EMPTY;

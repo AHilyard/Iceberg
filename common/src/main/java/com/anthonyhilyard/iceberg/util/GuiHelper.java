@@ -1,6 +1,6 @@
 package com.anthonyhilyard.iceberg.util;
 
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.CoreShaders;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -19,7 +19,7 @@ public class GuiHelper
 		RenderSystem.enableDepthTest();
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
-		RenderSystem.setShader(GameRenderer::getPositionColorShader);
+		RenderSystem.setShader(CoreShaders.POSITION_COLOR);
 
 		Tesselator tessellator = Tesselator.getInstance();
 		BufferBuilder bufferBuilder = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
@@ -60,7 +60,7 @@ public class GuiHelper
 		RenderSystem.enableDepthTest();
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
-		RenderSystem.setShader(GameRenderer::getPositionColorShader);
+		RenderSystem.setShader(CoreShaders.POSITION_COLOR);
 
 		Tesselator tessellator = Tesselator.getInstance();
 		BufferBuilder bufferBuilder = tessellator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
@@ -82,7 +82,7 @@ public class GuiHelper
 
 	private static void innerBlit(PoseStack poseStack, int x0, int x1, int y0, int y1, int z, float u0, float u1, float v0, float v1)
 	{
-		RenderSystem.setShader(GameRenderer::getPositionTexShader);
+		RenderSystem.setShader(CoreShaders.POSITION_TEX);
 		Matrix4f matrix4f = poseStack.last().pose();
 		BufferBuilder bufferBuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
 		bufferBuilder.addVertex(matrix4f, (float)x0, (float)y0, (float)z).setUv(u0, v0);

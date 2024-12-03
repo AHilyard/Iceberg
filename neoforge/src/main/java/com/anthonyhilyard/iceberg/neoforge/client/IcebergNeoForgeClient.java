@@ -3,7 +3,6 @@ package com.anthonyhilyard.iceberg.neoforge.client;
 import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.events.client.RegisterTooltipComponentFactoryEvent;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.GatherResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
@@ -39,16 +38,6 @@ public class IcebergNeoForgeClient
 			event.setX(result.x());
 			event.setY(result.y());
 			event.setCanceled(result.result() != InteractionResult.PASS);
-		}
-
-		@SubscribeEvent(priority = EventPriority.HIGH)
-		public static void tooltipColorEvent(RenderTooltipEvent.Color event)
-		{
-			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(event.getItemStack(), event.getGraphics(), event.getX(), event.getY(), event.getFont(), event.getBackgroundStart(), event.getBackgroundEnd(), event.getBorderStart(), event.getBorderEnd(), event.getComponents(), false, 0);
-			event.setBackgroundStart(result.backgroundStart());
-			event.setBackgroundEnd(result.backgroundEnd());
-			event.setBorderStart(result.borderStart());
-			event.setBorderEnd(result.borderEnd());
 		}
 
 		@SubscribeEvent(priority = EventPriority.HIGH)

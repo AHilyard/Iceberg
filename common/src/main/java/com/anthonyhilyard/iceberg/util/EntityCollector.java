@@ -19,6 +19,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.sounds.SoundEvent;
@@ -27,7 +28,9 @@ import net.minecraft.util.AbortableIterationConsumer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.TickRateManager;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.decoration.Painting;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import net.minecraft.world.entity.player.Player;
@@ -38,13 +41,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.item.crafting.RecipeManager;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.item.crafting.RecipeAccess;
+import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.entity.EntityTypeTest;
@@ -85,11 +89,10 @@ public class EntityCollector extends Level
 			@Override public boolean isRaining() { return false; }
 			@Override public void setRaining(boolean isRaining) {}
 			@Override public boolean isHardcore() { return false; }
-			@Override public GameRules getGameRules() { return new GameRules(); }
 			@Override public Difficulty getDifficulty() { return Difficulty.EASY; }
 			@Override public boolean isDifficultyLocked() { return false; }
 			@Override public void setSpawn(BlockPos blockPos, float f) {}
-		}, null, wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), wrapped.getProfilerSupplier(), false, wrapped.isDebug(), 0, 0);
+		}, null, wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), false, wrapped.isDebug(), 0, 0);
 		wrappedLevel = wrapped;
 	}
 
@@ -128,7 +131,7 @@ public class EntityCollector extends Level
 
 				if (item instanceof SpawnEggItem spawnEggItem)
 				{
-					entities.add(spawnEggItem.getType(dummyStack).create(levelWrapper));
+					entities.add(spawnEggItem.getType(dummyStack).create(levelWrapper, EntitySpawnReason.COMMAND));
 				}
 				else
 				{
@@ -319,9 +322,6 @@ public class EntityCollector extends Level
 	public Scoreboard getScoreboard() { return wrappedLevel.getScoreboard(); }
 
 	@Override
-	public RecipeManager getRecipeManager() { return wrappedLevel.getRecipeManager(); }
-
-	@Override
 	public TickRateManager tickRateManager() { return wrappedLevel.tickRateManager(); }
 
 	@Override
@@ -352,4 +352,18 @@ public class EntityCollector extends Level
 		};
 
 	}
+
+	@Override
+	public int getSeaLevel() { return wrappedLevel.getSeaLevel(); }
+
+	@Override
+	public void explode(Entity arg0, DamageSource arg1, ExplosionDamageCalculator arg2, double arg3, double arg4,
+			double arg5, float arg6, boolean arg7, ExplosionInteraction arg8, ParticleOptions arg9,
+			ParticleOptions arg10, Holder<SoundEvent> arg11) {}
+
+	@Override
+	public FuelValues fuelValues() { return wrappedLevel.fuelValues(); }
+
+	@Override
+	public RecipeAccess recipeAccess() { return wrappedLevel.recipeAccess(); }
 }

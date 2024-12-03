@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[51,)"
+loaderVersion="[53,)"
 license="CC BY-NC-ND 4.0"
 
 [[mods]]
@@ -15,50 +15,15 @@ description="A library containing events, helpers, and utilities to make modding
 [[dependencies.iceberg]]
 	modId="forge"
 	mandatory=true
-	versionRange="[51,)"
+	versionRange="[53,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	mandatory=true
-	versionRange="[1.21.1,)"
+	versionRange="[1.21.3,)"
 	ordering="NONE"
-	side="BOTH"
-
-[[dependencies.iceberg]]
-	modId="advancementplaques"
-	mandatory=false
-	versionRange="[1.6.3,)"
-	ordering="BEFORE"
-	side="BOTH"
-
-[[dependencies.iceberg]]
-	modId="legendarytooltips"
-	mandatory=false
-	versionRange="[1.4.10,)"
-	ordering="BEFORE"
-	side="BOTH"
-
-[[dependencies.iceberg]]
-	modId="equipmentcompare"
-	mandatory=false
-	versionRange="[1.3.11,)"
-	ordering="BEFORE"
-	side="BOTH"
-
-[[dependencies.iceberg]]
-	modId="merchantmarkers"
-	mandatory=false
-	versionRange="[1.3.4,)"
-	ordering="BEFORE"
-	side="BOTH"
-
-[[dependencies.iceberg]]
-	modId="itemborders"
-	mandatory=false
-	versionRange="[1.2.4,)"
-	ordering="BEFORE"
 	side="BOTH"
 
 [modproperties.iceberg]

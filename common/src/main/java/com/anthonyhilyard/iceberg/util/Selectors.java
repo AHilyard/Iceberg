@@ -10,6 +10,7 @@ import java.util.List;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NumericTag;
@@ -19,7 +20,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.Item.TooltipContext;
@@ -245,7 +245,7 @@ public class Selectors
 		// Item tag
 		else if (selector.startsWith("$"))
 		{
-			Optional<TagKey<Item>> matchingTag = BuiltInRegistries.ITEM.getTagNames().filter(tagKey -> tagKey.location().equals(ResourceLocation.parse(selector.substring(1)))).findFirst();
+			Optional<HolderSet.Named<Item>> matchingTag = BuiltInRegistries.ITEM.getTags().filter(tagKey -> tagKey.key().location().equals(ResourceLocation.parse(selector.substring(1)))).findFirst();
 			if (matchingTag.isPresent() && item.is(matchingTag.get()))
 			{
 				return true;

@@ -1,107 +1,50 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import org.spongepowered.asm.mixin.Final;
+import java.util.function.Function;
+
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 import com.anthonyhilyard.iceberg.util.Tooltips;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
-import net.minecraft.network.chat.TextColor;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 
 @Mixin(TooltipRenderUtil.class)
 public class TooltipRenderUtilMixin
 {
-	@Unique
-	private static TextColor horizontalLineColor;
-	
-	@Shadow
-	@Final
-	private static int BACKGROUND_COLOR;
-
-	@Shadow
-	@Final
-	private static int BORDER_COLOR_TOP;
-
-	@Shadow
-	@Final
-	private static int BORDER_COLOR_BOTTOM;
-
-	@Inject(method = "renderFrameGradient", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 0))
-	private static void icebergRenderFrameGradientOne(GuiGraphics graphics, int x, int y, int width, int height, int z, int color1, int color2, CallbackInfo info)
+	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/ResourceLocation;IIII)V", ordinal = 0))
+	private static void icebergRenderBackground(GuiGraphics instance, Function<ResourceLocation, RenderType> renderTypeLookup, ResourceLocation sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
 	{
-		horizontalLineColor = Tooltips.currentColors.borderColorStart();
-	}
-
-	@Inject(method = "renderFrameGradient", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 1))
-	private static void icebergRenderFrameGradientTwo(GuiGraphics graphics, int x, int y, int width, int height, int z, int color1, int color2, CallbackInfo info)
-	{
-		horizontalLineColor = Tooltips.currentColors.borderColorEnd();
-	}
-
-	@Inject(method = "renderHorizontalLine", at = @At(value = "HEAD"), cancellable = true)
-	private static void icebergRenderHorizontalLine(GuiGraphics graphics, int x, int y, int width, int z, int color, CallbackInfo info)
-	{
-		if (color != BACKGROUND_COLOR && color != BORDER_COLOR_TOP && color != BORDER_COLOR_BOTTOM)
+		if (Tooltips.gradientBackground)
 		{
-			// Do default behavior so other mods that change colors can still work.
+			instance.pose().pushPose();
+			instance.pose().translate(0.0f, 0.0f, -z);
+			Tooltips.renderGradientBackground(instance, x, y, width, height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
+			instance.pose().popPose();
 		}
 		else
 		{
-			// Replace the rendered colors with the ones previously stored.
-			int renderColor = horizontalLineColor.getValue();
-			graphics.fillGradient(x, y, x + width, y + 1, z, renderColor, renderColor);
-			info.cancel();
+			instance.blitSprite(renderTypeLookup, sprite, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
 		}
 	}
 
-	@Inject(method = "renderRectangle", at = @At(value = "HEAD"), cancellable = true)
-	private static void icebergRenderRectangle(GuiGraphics graphics, int x, int y, int width, int height, int z, int color, CallbackInfo info)
+	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/ResourceLocation;IIII)V", ordinal = 1))
+	private static void icebergRenderBorder(GuiGraphics instance, Function<ResourceLocation, RenderType> renderTypeLookup, ResourceLocation sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
 	{
-		if (color != BACKGROUND_COLOR)
+		if (Tooltips.gradientBorder)
 		{
-			// Do default behavior so other mods that change colors can still work.
+			instance.pose().pushPose();
+			instance.pose().translate(0.0f, 0.0f, -z);
+			Tooltips.renderGradientBorder(instance, x, y, width, height, z, Tooltips.currentColors.borderColorStart().getValue(), Tooltips.currentColors.borderColorEnd().getValue());
+			instance.pose().popPose();
 		}
 		else
 		{
-			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + width, y + height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
-			info.cancel();
-		}
-	}
-
-	@Inject(method = "renderVerticalLine", at = @At(value = "HEAD"), cancellable = true)
-	private static void icebergRenderVerticalLine(GuiGraphics graphics, int x, int y, int height, int z, int color, CallbackInfo info)
-	{
-		if (color != BACKGROUND_COLOR)
-		{
-			// Do default behavior so other mods that change colors can still work.
-		}
-		else
-		{
-			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + 1, y + height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
-			info.cancel();
-		}
-	}
-
-	@Inject(method = "renderVerticalLineGradient", at = @At(value = "HEAD"), cancellable = true)
-	private static void icebergRenderVerticalLineGradient(GuiGraphics graphics, int x, int y, int height, int z, int startColor, int endColor, CallbackInfo info)
-	{
-		if (startColor != BORDER_COLOR_TOP || endColor != BORDER_COLOR_BOTTOM)
-		{
-			// Do default behavior so other mods that change colors can still work.
-		}
-		else
-		{
-			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + 1, y + height, z, Tooltips.currentColors.borderColorStart().getValue(), Tooltips.currentColors.borderColorEnd().getValue());
-			info.cancel();
+			instance.blitSprite(renderTypeLookup, sprite, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
 		}
 	}
 }

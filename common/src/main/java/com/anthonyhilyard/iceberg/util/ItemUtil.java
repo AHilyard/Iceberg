@@ -1,10 +1,11 @@
 package com.anthonyhilyard.iceberg.util;
 
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.Equipable;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.equipment.Equippable;
 
 public class ItemUtil
 {
@@ -15,10 +16,10 @@ public class ItemUtil
 
 	public static EquipmentSlot getEquipmentSlot(ItemStack itemStack)
 	{
-		Equipable equipable = Equipable.get(itemStack);
-		if (equipable != null)
+		Equippable equippable = (Equippable)itemStack.get(DataComponents.EQUIPPABLE);
+		if (equippable != null)
 		{
-			return equipable.getEquipmentSlot();
+			return equippable.slot();
 		}
 
 		return EquipmentSlot.MAINHAND;

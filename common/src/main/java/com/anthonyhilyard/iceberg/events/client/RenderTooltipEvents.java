@@ -11,6 +11,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
@@ -50,11 +51,11 @@ public final class RenderTooltipEvents
 		});
 
 	public static final Event<RenderTooltipEvents.ColorExt> COLOREXT = EventFactory.create(RenderTooltipEvents.ColorExt.class,
-		callbacks -> (stack, graphics, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, comparison, index) -> {
-			ColorExtResult result = new ColorExtResult(backgroundStart, backgroundEnd, borderStart, borderEnd);
+		callbacks -> (stack, graphics, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, comparison, index, tooltipResource, gradientBackground, gradientBorder) -> {
+			ColorExtResult result = new ColorExtResult(backgroundStart, backgroundEnd, borderStart, borderEnd, gradientBackground, gradientBorder);
 			for (RenderTooltipEvents.ColorExt callback : callbacks)
 			{
-				result = callback.onColor(stack, graphics, x, y, font, result.backgroundStart, result.backgroundEnd, result.borderStart, result.borderEnd, components, comparison, index);
+				result = callback.onColor(stack, graphics, x, y, font, result.backgroundStart, result.backgroundEnd, result.borderStart, result.borderEnd, components, comparison, index, tooltipResource, result.gradientBackground, result.gradientBorder);
 			}
 			return result;
 	});
@@ -82,7 +83,7 @@ public final class RenderTooltipEvents
 	@FunctionalInterface
 	public interface ColorExt
 	{
-		ColorExtResult onColor(ItemStack stack, GuiGraphics graphics, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison, int index);
+		ColorExtResult onColor(ItemStack stack, GuiGraphics graphics, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison, int index, ResourceLocation tooltipResource, boolean gradientBackground, boolean gradientBorder);
 	}
 
 	@FunctionalInterface
@@ -93,5 +94,5 @@ public final class RenderTooltipEvents
 
 	public record GatherResult(InteractionResult result, int maxWidth, List<Either<FormattedText, TooltipComponent>> tooltipElements) {}
 	public record PreExtResult(InteractionResult result, int x, int y, int screenWidth, int screenHeight, Font font) {}
-	public record ColorExtResult(int backgroundStart, int backgroundEnd, int borderStart, int borderEnd) {}
+	public record ColorExtResult(int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, boolean gradientBackground, boolean gradientBorder) {}
 }

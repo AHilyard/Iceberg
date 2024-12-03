@@ -3,8 +3,7 @@
 	"package": "com.anthonyhilyard.iceberg.fabric.mixin",
 	"compatibilityLevel": "JAVA_17",
 	"client": [
-		"GuiGraphicsMixin",
-		"TooltipRenderUtilMixin"
+		"GuiGraphicsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

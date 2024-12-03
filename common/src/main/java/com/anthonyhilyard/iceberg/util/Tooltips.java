@@ -32,6 +32,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -43,18 +44,20 @@ import org.jetbrains.annotations.NotNull;
 public class Tooltips
 {
 	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
-	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0x505000FF), TextColor.fromRgb(0x5028007F));
+	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF));
 
 	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
 	private static ItemRenderer itemRenderer = null;
 	private static boolean tooltipWidthWarningShown = false;
 
 	public static TooltipColors currentColors = DEFAULT_COLORS;
+	public static boolean gradientBackground = false;
+	public static boolean gradientBorder = false;
 
 	public static class TitleBreakComponent implements TooltipComponent, ClientTooltipComponent
 	{
 		@Override
-		public int getHeight() { return 0; }
+		public int getHeight(Font font) { return 0; }
 
 		@Override
 		public int getWidth(Font font) { return 0; }
@@ -154,12 +157,43 @@ public class Tooltips
 		return titleLines;
 	}
 
-	@SuppressWarnings("deprecation")
+	public static void renderGradientBackground(GuiGraphics graphics, int x, int y, int width, int height, int z, int topColor, int bottomColor)
+	{
+		// Center rectangle.
+		graphics.fillGradient(x - 4, y - 3, x + width + 4, y + height + 3, z, topColor, bottomColor);
+
+		// Render lines above and below.
+		graphics.fillGradient(x - 3, y - 4, x + width + 3, y - 3, z, topColor, topColor);
+		graphics.fillGradient(x - 3, y + height + 3, x + width + 3, y + height + 4, z, bottomColor, bottomColor);
+	}
+
+	public static void renderGradientBorder(GuiGraphics graphics, int x, int y, int width, int height, int z, int topColor, int bottomColor)
+	{
+		// Horizontal lines.
+		graphics.fillGradient(x - 2, y - 3, x + width + 2, y - 2, z, topColor, topColor);
+		graphics.fillGradient(x - 2, y + height + 2, x + width + 2, y + height + 3, z, bottomColor, bottomColor);
+
+		// Vertical lines.
+		graphics.fillGradient(x - 3, y - 3, x - 2, y + height + 3, z, topColor, bottomColor);
+		graphics.fillGradient(x + width + 2, y - 3, x + width + 3, y + height + 3, z, topColor, bottomColor);
+	}
+
 	public static void renderItemTooltip(@NotNull final ItemStack stack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
 										GuiGraphics graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index)
+	{
+		renderItemTooltip(stack, info, rect, screenWidth, screenHeight, backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, graphics, positioner, comparison, constrain, centeredTitle, index, null, true, true);
+	}
+
+
+	public static void renderItemTooltip(@NotNull final ItemStack stack, TooltipInfo info,
+										Rect2i rect, int screenWidth, int screenHeight,
+										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
+										GuiGraphics graphics, ClientTooltipPositioner positioner,
+										boolean comparison, boolean constrain, boolean centeredTitle, int index,
+										ResourceLocation tooltipResource, boolean gradientBackground, boolean gradientBorder)
 	{
 		if (info.getComponents().isEmpty())
 		{
@@ -197,21 +231,29 @@ public class Tooltips
 		poseStack.pushPose();
 		final int zLevel = 400;
 
-		ColorExtResult colors = RenderTooltipEvents.COLOREXT.invoker().onColor(stack, graphics, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, info.getComponents(), comparison, index);
+		ColorExtResult colors = RenderTooltipEvents.COLOREXT.invoker().onColor(stack, graphics, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, info.getComponents(), comparison, index, tooltipResource, gradientBackground, gradientBorder);
 
 		backgroundColorStart = colors.backgroundStart();
 		backgroundColorEnd = colors.backgroundEnd();
 		borderColorStart = colors.borderStart();
 		borderColorEnd = colors.borderEnd();
+		gradientBackground = colors.gradientBackground();
+		gradientBorder = colors.gradientBorder();
 
 		currentColors = new TooltipColors(TextColor.fromRgb(backgroundColorStart), TextColor.fromRgb(backgroundColorEnd), TextColor.fromRgb(borderColorStart), TextColor.fromRgb(borderColorEnd));
+		Tooltips.gradientBackground = gradientBackground;
+		Tooltips.gradientBorder = gradientBorder;
 
 		final int finalRectX = rectX;
 		final int finalRectY = rectY;
 
-		graphics.drawManaged(() -> {
-			TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), zLevel);
+		graphics.drawSpecial(bufferSource -> {
+			TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), zLevel, null);
 		});
+
+		currentColors = DEFAULT_COLORS;
+		Tooltips.gradientBackground = false;
+		Tooltips.gradientBorder = false;
 
 		BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
 		poseStack.translate(0.0f, 0.0f, zLevel);
@@ -223,7 +265,7 @@ public class Tooltips
 		{
 			ClientTooltipComponent textComponent = info.getComponents().get(componentNumber);
 			textComponent.renderText(preResult.font(), rectX, tooltipTop, poseStack.last().pose(), bufferSource);
-			tooltipTop += textComponent.getHeight();
+			tooltipTop += textComponent.getHeight(preResult.font());
 			if ((textComponent instanceof ClientTextTooltip || textComponent instanceof InlineComponent) && titleLines > 0)
 			{
 				titleLines -= (textComponent instanceof InlineComponent) ? 2 : 1;
@@ -239,8 +281,8 @@ public class Tooltips
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent imageComponent = (ClientTooltipComponent)info.getComponents().get(componentNumber);
-			imageComponent.renderImage(info.getFont(), rectX, tooltipTop, graphics);
-			tooltipTop += imageComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
+			imageComponent.renderImage(info.getFont(), rectX, tooltipTop, rect.getWidth(), rect.getHeight(), graphics);
+			tooltipTop += imageComponent.getHeight(info.getFont()) + (componentNumber == 0 ? 2 : 0);
 		}
 
 		poseStack.popPose();
@@ -425,7 +467,7 @@ public class Tooltips
 				tooltipTextWidth = componentWidth;
 			}
 
-			tooltipHeight += component.getHeight();
+			tooltipHeight += component.getHeight(font);
 		}
 
 		int tooltipX = mouseX + 12;

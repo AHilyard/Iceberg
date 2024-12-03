@@ -11,7 +11,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.profiling.ProfilerFiller;
 
 public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 {
@@ -22,10 +21,9 @@ public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 		{
 			@Override
 			public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier,
-					ResourceManager resourceManager, ProfilerFiller profilerFiller, ProfilerFiller profilerFiller2,
-					Executor executor, Executor executor2)
+					ResourceManager resourceManager, Executor executor, Executor executor2)
 			{
-				return listener.reload(preparationBarrier, resourceManager, profilerFiller, profilerFiller2, executor, executor2);
+				return listener.reload(preparationBarrier, resourceManager, executor, executor2);
 			}
 
 			@Override

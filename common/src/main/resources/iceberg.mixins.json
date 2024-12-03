@@ -12,7 +12,8 @@
 		"TextColorMixin",
 		"MinecraftMixin",
 		"TooltipRenderUtilMixin",
-		"GuiGraphicsMixin"
+		"GuiGraphicsMixin",
+		"LevelRendererMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
