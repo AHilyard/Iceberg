@@ -14,7 +14,7 @@ import net.minecraft.client.renderer.LevelRenderer;
 public class LevelRendererMixin
 {
 	@Inject(method = "getItemEntityTarget", at = @At(value = "HEAD"), cancellable = true)
-	public void swapTarget(CallbackInfoReturnable<RenderTarget> callbackInfo)
+	public void swapItemEntityTarget(CallbackInfoReturnable<RenderTarget> callbackInfo)
 	{
 		if (CustomItemRenderer.swapFrameBuffer)
 		{

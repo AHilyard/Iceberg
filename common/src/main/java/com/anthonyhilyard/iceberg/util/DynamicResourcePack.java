@@ -15,7 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
+import net.minecraft.server.packs.metadata.MetadataSectionType;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.resources.IoSupplier;
 
@@ -143,7 +143,7 @@ public class DynamicResourcePack implements PackResources
 	}
 
 	@Override
-	public <T> T getMetadataSection(MetadataSectionSerializer<T> p_10291_) throws IOException
+	public <T> T getMetadataSection(MetadataSectionType<T> p_10291_) throws IOException
 	{
 		// Does nothing for now.
 		// TODO: Add metadata?  Probably not needed right?

@@ -27,6 +27,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
@@ -184,7 +185,7 @@ public class Tooltips
 										GuiGraphics graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index)
 	{
-		renderItemTooltip(stack, info, rect, screenWidth, screenHeight, backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, graphics, positioner, comparison, constrain, centeredTitle, index, null, true, true);
+		renderItemTooltip(stack, info, rect, screenWidth, screenHeight, backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, graphics, positioner, comparison, constrain, centeredTitle, index, stack.get(DataComponents.TOOLTIP_STYLE), true, true);
 	}
 
 
@@ -247,9 +248,12 @@ public class Tooltips
 		final int finalRectX = rectX;
 		final int finalRectY = rectY;
 
-		graphics.drawSpecial(bufferSource -> {
-			TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), zLevel, null);
-		});
+		if (backgroundColorStart != 0 || backgroundColorEnd != 0 || borderColorStart != 0 || borderColorEnd != 0)
+		{
+			graphics.drawSpecial(bufferSource -> {
+				TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), zLevel, tooltipResource);
+			});
+		}
 
 		currentColors = DEFAULT_COLORS;
 		Tooltips.gradientBackground = false;

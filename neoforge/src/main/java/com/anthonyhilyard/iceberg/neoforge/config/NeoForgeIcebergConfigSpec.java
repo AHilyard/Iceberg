@@ -8,10 +8,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -33,6 +35,7 @@ import com.electronwill.nightconfig.core.ConfigSpec.CorrectionListener;
 import com.electronwill.nightconfig.core.InMemoryFormat;
 import com.electronwill.nightconfig.core.UnmodifiableCommentedConfig;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.UnmodifiableConfig.Entry;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.electronwill.nightconfig.core.file.FileWatcher;
 import com.electronwill.nightconfig.toml.TomlFormat;
@@ -126,7 +129,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 
 	public UnmodifiableConfig getValues() { return values; }
 
-	private void forEachValue(Iterable<Object> configValues, Consumer<ConfigValue<?>> consumer)
+	private void forEachValue(Set<? extends Entry> configValues, Consumer<ConfigValue<?>> consumer)
 	{
 		configValues.forEach(value -> {
 			if (value instanceof ConfigValue<?> configValue)
@@ -135,7 +138,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 			}
 			else if (value instanceof Config innerConfig)
 			{
-				forEachValue(innerConfig.valueMap().values(), consumer);
+				forEachValue(innerConfig.entrySet(), consumer);
 			}
 		});
 	}
@@ -145,7 +148,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 	@ApiStatus.Internal
 	public void resetCaches(RestartType restartType)
 	{
-		forEachValue(getValues().valueMap().values(), configValue -> {
+		forEachValue(getValues().entrySet(), configValue -> {
 			if (configValue.getSpec() == null || configValue.getSpec().restartType() == restartType)
 			{
 				configValue.clearCache();
@@ -183,12 +186,13 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 		return correct(spec, config, parentPath, Collections.unmodifiableList(parentPath), listener, commentListener, false);
 	}
 
+	@SuppressWarnings("deprecation")
 	private int correct(UnmodifiableConfig spec, UnmodifiableCommentedConfig config, LinkedList<String> parentPath, List<String> parentPathUnmodifiable, CorrectionListener listener, @Nullable CorrectionListener commentListener, boolean dryRun)
 	{
 		int count = 0;
 
-		Map<String, Object> specMap = spec.valueMap();
-		Map<String, Object> configMap = config.valueMap();
+		Map<String, Object> specMap = spec.entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+		Map<String, Object> configMap = config.entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
 		for (Map.Entry<String, Object> specEntry : specMap.entrySet())
 		{
@@ -632,7 +636,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 		{
 			final UnmodifiableConfig defaultConfig = Config.of(defaultSupplier, TomlFormat.instance());
 			ConfigValue<Config> value = define(path, () -> MutableSubconfig.copy(defaultConfig, keyValidator, valueValidator), o -> o != null);
-			return () -> wrap(value).get().valueMap();
+			return () -> wrap(value).get().entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 		}
 	}
 

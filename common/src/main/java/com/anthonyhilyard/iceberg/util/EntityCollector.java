@@ -1,14 +1,13 @@
 package com.anthonyhilyard.iceberg.util;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import com.anthonyhilyard.iceberg.Iceberg;
+import com.anthonyhilyard.iceberg.events.common.LevelEvents;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.authlib.GameProfile;
@@ -18,10 +17,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.AbortableIterationConsumer;
@@ -31,8 +30,7 @@ import net.minecraft.world.TickRateManager;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.decoration.Painting;
-import net.minecraft.world.entity.decoration.PaintingVariant;
+import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.flag.FeatureFlagSet;
@@ -40,6 +38,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.alchemy.PotionBrewing;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.RecipeAccess;
 import net.minecraft.world.level.ExplosionDamageCalculator;
@@ -75,6 +74,7 @@ public class EntityCollector extends Level
 	private static final Map<ItemClassPair, Boolean> itemCreatesEntityResultCache = Maps.newHashMap();
 
 	private static Map<Pair<Item, DataComponentMap>, List<Entity>> entityCache = Maps.newHashMap();
+	private static boolean listenerRegistered = false;
 
 	private record ItemClassPair(Item item, DataComponentMap components, Class<?> targetClass) {}
 
@@ -92,8 +92,14 @@ public class EntityCollector extends Level
 			@Override public Difficulty getDifficulty() { return Difficulty.EASY; }
 			@Override public boolean isDifficultyLocked() { return false; }
 			@Override public void setSpawn(BlockPos blockPos, float f) {}
-		}, null, wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), false, wrapped.isDebug(), 0, 0);
+		}, wrapped.dimension(), wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), false, wrapped.isDebug(), 0, 0);
 		wrappedLevel = wrapped;
+
+		if (!listenerRegistered)
+		{
+			LevelEvents.UNLOAD.register(level -> wrappedLevelsMap.clear());
+			listenerRegistered = true;
+		}
 	}
 
 	public static EntityCollector of(Level wrappedLevel)
@@ -106,7 +112,7 @@ public class EntityCollector extends Level
 		return wrappedLevelsMap.get(wrappedLevel);
 	}
 
-	public static List<Entity> collectEntitiesFromItem(ItemStack itemStack)
+	public static List<Entity> collectEntitiesFromItem(ItemStack itemStack, HolderLookup.Provider provider)
 	{
 		Pair<Item, DataComponentMap> key = Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack));
 
@@ -116,22 +122,23 @@ public class EntityCollector extends Level
 			List<Entity> entities = Lists.newArrayList();
 			Item item = itemStack.getItem();
 			ItemStack dummyStack = new ItemStack(item, itemStack.getCount());
-			dummyStack.applyComponents(ItemUtil.getItemComponents(itemStack));
+			DataComponentMap itemComponents = ItemUtil.getItemComponents(itemStack);
+			dummyStack.applyComponents(itemComponents);
 
 			try
 			{
-				Player dummyPlayer = new Player(minecraft.player.level(), BlockPos.ZERO, 0.0f, new GameProfile(UUID.randomUUID(), "_dummy")) {
+				EntityCollector levelWrapper = EntityCollector.of(minecraft.player.level());
+
+				Player dummyPlayer = new Player(levelWrapper, BlockPos.ZERO, 0.0f, new GameProfile(UUID.randomUUID(), "_dummy")) {
 					@Override public boolean isSpectator() { return false; }
 					@Override public boolean isCreative() { return false; }
 				};
 
 				dummyPlayer.setItemInHand(InteractionHand.MAIN_HAND, dummyStack);
 
-				EntityCollector levelWrapper = EntityCollector.of(dummyPlayer.level());
-
 				if (item instanceof SpawnEggItem spawnEggItem)
 				{
-					entities.add(spawnEggItem.getType(dummyStack).create(levelWrapper, EntitySpawnReason.COMMAND));
+					entities.add(spawnEggItem.getType(provider, dummyStack).create(levelWrapper, EntitySpawnReason.COMMAND));
 				}
 				else
 				{
@@ -144,7 +151,7 @@ public class EntityCollector extends Level
 				if (entities.isEmpty())
 				{
 					levelWrapper.setBlockState(Blocks.RAIL.defaultBlockState());
-					dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyPlayer.getItemInHand(InteractionHand.MAIN_HAND), new BlockHitResult(Vec3.ZERO, Direction.DOWN, BlockPos.ZERO, false)));
+					dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyStack, new BlockHitResult(Vec3.ZERO, Direction.DOWN, BlockPos.ZERO, false)));
 					levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
 
 					entities.addAll(levelWrapper.getCollectedEntities());
@@ -154,31 +161,18 @@ public class EntityCollector extends Level
 				if (entities.isEmpty())
 				{
 					levelWrapper.setBlockState(Blocks.STONE.defaultBlockState());
-					dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyPlayer.getItemInHand(InteractionHand.MAIN_HAND), new BlockHitResult(Vec3.ZERO, Direction.NORTH, BlockPos.ZERO, false)));
+					dummyStack.useOn(new UseOnContext(levelWrapper, dummyPlayer, InteractionHand.MAIN_HAND, dummyStack, new BlockHitResult(Vec3.ZERO, Direction.NORTH, BlockPos.ZERO, false)));
 					levelWrapper.setBlockState(Blocks.AIR.defaultBlockState());
 
 					entities.addAll(levelWrapper.getCollectedEntities());
 
-					CompoundTag itemTag = (CompoundTag)dummyStack.saveOptional(dummyPlayer.level().registryAccess());
-					if (itemTag != null && itemTag.contains("EntityTag", 10))
+					CustomData customData = (CustomData)itemComponents.getOrDefault(DataComponents.ENTITY_DATA, CustomData.EMPTY);
+					if (!customData.isEmpty())
 					{
-						CompoundTag entityTag = itemTag.getCompound("EntityTag");
-
-						Optional<Holder<PaintingVariant>> loadedVariant = Painting.VARIANT_CODEC.parse(NbtOps.INSTANCE, entityTag).result();
-						if (loadedVariant.isPresent())
+						// Entities collected here should be updated in case the item used a specific variant.
+						for (Entity entity : entities)
 						{
-							// Entities collected here should be updated in case the item used a specific variant.
-							for (Entity entity : entities)
-							{
-								if (entity instanceof Painting paintingEntity)
-								{
-									paintingEntity.setVariant(loadedVariant.get());
-								}
-							}
-						}
-						else
-						{
-							entities.clear();
+							customData.loadInto(entity);
 						}
 					}
 					else
@@ -192,8 +186,8 @@ public class EntityCollector extends Level
 			}
 			catch (Exception e)
 			{
-				// Ignore any errors.
-				Iceberg.LOGGER.error(ExceptionUtils.getStackTrace(e));
+				// Log any errors.
+				Iceberg.LOGGER.info("Unable to collect entities from \"" + itemStack.getItem().getName(itemStack).getString() + "\": " + e.getMessage());
 			}
 
 			entityCache.put(key, entities);
@@ -202,14 +196,14 @@ public class EntityCollector extends Level
 		return entityCache.get(key);
 	}
 
-	public static <T extends Entity> boolean itemCreatesEntity(ItemStack itemStack, Class<T> targetClass)
+	public static <T extends Entity> boolean itemCreatesEntity(ItemStack itemStack, Class<T> targetClass, HolderLookup.Provider provider)
 	{
 		ItemClassPair key = new ItemClassPair(itemStack.getItem(), ItemUtil.getItemComponents(itemStack), targetClass);
 		boolean result = false;
 		if (!itemCreatesEntityResultCache.containsKey(key))
 		{
 			// Return true if any collected entities from this item are a subclass of the given type.
-			for (Entity entity : collectEntitiesFromItem(itemStack))
+			for (Entity entity : collectEntitiesFromItem(itemStack, provider))
 			{
 				if (targetClass.isInstance(entity))
 				{
@@ -366,4 +360,7 @@ public class EntityCollector extends Level
 
 	@Override
 	public RecipeAccess recipeAccess() { return wrappedLevel.recipeAccess(); }
+
+	@Override
+	public Collection<EnderDragonPart> dragonParts() { return wrappedLevel.dragonParts(); }
 }

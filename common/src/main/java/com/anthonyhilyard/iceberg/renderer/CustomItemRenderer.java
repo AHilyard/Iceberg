@@ -1,59 +1,54 @@
 package com.anthonyhilyard.iceberg.renderer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import com.anthonyhilyard.iceberg.util.EntityCollector;
-import com.anthonyhilyard.iceberg.util.GuiHelper;
-import com.anthonyhilyard.iceberg.util.ItemUtil;
-import com.google.common.collect.Maps;
 
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.datafixers.util.Pair;
-import com.mojang.math.Axis;
-import com.mojang.math.MatrixUtil;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.anthonyhilyard.iceberg.util.EntityCollector;
+import com.anthonyhilyard.iceberg.util.GuiHelper;
+import com.anthonyhilyard.iceberg.util.ItemUtil;
+import com.google.common.collect.Maps;
 import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.pipeline.MainTarget;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
 import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
+import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
+import com.mojang.blaze3d.platform.Lighting;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.math.Axis;
 
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.color.item.ItemColors;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockModelShaper;
+import net.minecraft.client.renderer.block.model.ItemTransform;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState.FoilType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -61,14 +56,12 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.AnimalArmorItem;
+import net.minecraft.world.item.AnimalArmorItem.BodyType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.AnimalArmorItem.BodyType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -81,8 +74,20 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
  * An extended ItemRenderer with extra functionality, such as allowing items to be rendered to a RenderTarget
  * before drawing to screen for alpha support, and allowing handheld item models to be rendered into the gui.
  */
-public class CustomItemRenderer extends ItemRenderer
+public class CustomItemRenderer extends ItemRenderer implements ResourceManagerReloadListener
 {
+	private static CustomItemRenderer INSTANCE = null;
+	public static CustomItemRenderer getInstance()
+	{
+		if (INSTANCE == null)
+		{
+			Minecraft minecraft = Minecraft.getInstance();
+			INSTANCE = new CustomItemRenderer(minecraft, minecraft.getModelManager(), minecraft.getItemModelResolver());
+		}
+
+		return INSTANCE;
+	}
+
 	/* Cylindrical bounds for a model. */
 	private record ModelBounds(Vector3f center, float height, float radius) {}
 
@@ -97,44 +102,22 @@ public class CustomItemRenderer extends ItemRenderer
 	private static Pair<Item, DataComponentMap> cachedWolfArmorItem = null;
 	private static Pair<Item, DataComponentMap> cachedEntityItem = null;
 	private static Map<Pair<Item, DataComponentMap>, ModelBounds> modelBoundsCache = Maps.newHashMap();
-
-	private static final List<Direction> quadDirections;
-
-	static
-	{
-		quadDirections = new ArrayList<>(Arrays.asList(Direction.values()));
-		quadDirections.add(null);
-	}
+	private static Map<BakedModel, Boolean> testedModels = Maps.newHashMap();
 
 	private Minecraft minecraft;
 	private final ModelManager modelManager;
-	private final BlockEntityWithoutLevelRenderer blockEntityRenderer;
 
-	public CustomItemRenderer(Minecraft mcIn, ModelManager modelManagerIn, ItemColors itemColorsIn, BlockEntityWithoutLevelRenderer blockEntityRendererIn)
+	@Deprecated(forRemoval = true, since = "1.2.12")
+	public CustomItemRenderer(Minecraft mcIn, ModelManager modelManagerIn, ItemModelResolver itemModelResolver)
 	{
-		super(modelManagerIn, itemColorsIn, blockEntityRendererIn);
+		super(itemModelResolver);
+
 		minecraft = mcIn;
 		modelManager = modelManagerIn;
-		blockEntityRenderer = blockEntityRendererIn;
-		if (minecraft.getResourceManager() instanceof ReloadableResourceManager resourceManager)
-		{
-			resourceManager.registerReloadListener(this);
-		}
-
-		// Initialize the icon framebuffer if needed.
-		if (iconFrameBuffer == null)
-		{
-			// Use 96 x 96 pixels for the icon frame buffer so at 1.5 scale we get 4x resolution (for smooth icons on larger gui scales).
-			iconFrameBuffer = new MainTarget(96, 96);
-			iconFrameBuffer.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-			iconFrameBuffer.clear();
-		}
 	}
 
-	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternionf rotation, BakedModel bakedModel, GuiGraphics graphics)
+	private void renderGuiModel(ItemStack itemStack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
 	{
-		minecraft.getTextureManager().getTexture(InventoryMenu.BLOCK_ATLAS).setFilter(false, false);
-		RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
 		RenderSystem.enableBlend();
 		RenderSystem.blendFunc(SourceFactor.SRC_ALPHA, DestFactor.ONE_MINUS_SRC_ALPHA);
 		RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -145,18 +128,9 @@ public class CustomItemRenderer extends ItemRenderer
 		modelViewStack.mul((new Matrix4f()).scaling(1.0f, -1.0f, 1.0f));
 		modelViewStack.scale(16.0f, 16.0f, 16.0f);
 
-		BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-		boolean flatLighting = !bakedModel.usesBlockLight();
-		if (flatLighting) { Lighting.setupForFlatItems(); }
-
-		PoseStack poseStack = new PoseStack();
-		renderModel(itemStack, ItemDisplayContext.GUI, false, poseStack, rotation, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
-
 		RenderSystem.disableDepthTest();
-		bufferSource.endBatch();
+		graphics.drawSpecial(bufferSource -> renderModel(itemStack, ItemDisplayContext.GUI, false, new PoseStack(), rotation, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY));
 		RenderSystem.enableDepthTest();
-
-		if (flatLighting) { Lighting.setupFor3DItems(); }
 
 		modelViewStack.popMatrix();
 	}
@@ -193,8 +167,7 @@ public class CustomItemRenderer extends ItemRenderer
 	}
 
 	private <T extends MultiBufferSource> void renderModelInternal(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack,
-																   Quaternionf rotation, T bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel,
-																   Predicate<T> bufferSourceReady)
+																   T bufferSource, int packedLight, int packedOverlay, Predicate<T> bufferSourceReady)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 
@@ -209,128 +182,126 @@ public class CustomItemRenderer extends ItemRenderer
 			}
 		}
 
-		if (!bakedModel.isCustomRenderer() && !itemStack.is(Items.TRIDENT))
+		if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof BlockItem blockItem)
 		{
-			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof BlockItem blockItem)
+			Block block = blockItem.getBlock();
+			BakedModel blockModel = null;
+			BlockModelShaper blockModelShaper = minecraft.getBlockRenderer().getBlockModelShaper();
+			boolean isBlockEntity = false;
+
+			blockModel = blockModelShaper.getBlockModel(block.defaultBlockState());
+			if (blockModel == modelManager.getMissingModel())
 			{
-				Block block = blockItem.getBlock();
-				BakedModel blockModel = null;
-				BlockModelShaper blockModelShaper = minecraft.getBlockRenderer().getBlockModelShaper();
-				boolean isBlockEntity = false;
+				blockModel = minecraft.getModelManager().getModel(BlockModelShaper.stateToModelLocation(blockItem.getBlock().defaultBlockState()));
+			}
 
-				blockModel = blockModelShaper.getBlockModel(block.defaultBlockState());
-				if (blockModel != modelManager.getMissingModel())
+			if (blockModel == modelManager.getMissingModel())
+			{
+				blockModel = null;
+			}
+
+			if (block.defaultBlockState().hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
+			{
+				// This is a double block, so we'll need to render both halves.
+				// First render the bottom half.
+				BlockState bottomState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER);
+				BakedModel bottomModel = blockModelShaper.getBlockModel(bottomState);
+				renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bottomModel);
+
+				// Then render the top half.
+				poseStack.pushPose();
+				poseStack.translate(0.0f, 1.0f, 0.0f);
+				BlockState topState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER);
+				BakedModel topModel = blockModelShaper.getBlockModel(topState);
+				renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, topModel);
+				poseStack.popPose();
+			}
+
+			if (blockItem.getBlock() instanceof EntityBlock entityBlock)
+			{
+				isBlockEntity = true;
+				try
 				{
-					// First try rendering via the BlockEntityWithoutLevelRenderer.
-					try
-					{
-						blockEntityRenderer.renderByItem(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay);
-					}
-					catch (Exception e)
-					{
-						// Do nothing if an exception occurs.
-					}
+					renderBlockEntity(itemStack, poseStack, bufferSource, packedLight, packedOverlay, minecraft, entityBlock, blockItem.getBlock().defaultBlockState());
 				}
-				else
+				catch (Exception e)
 				{
-					blockModel = null;
-				}
-
-				if (block.defaultBlockState().hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
-				{
-					// This is a double block, so we'll need to render both halves.
-					// First render the bottom half.
-					BlockState bottomState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER);
-					BakedModel bottomModel = blockModelShaper.getBlockModel(bottomState);
-					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bottomModel);
-
-					// Then render the top half.
-					poseStack.pushPose();
-					poseStack.translate(0.0f, 1.0f, 0.0f);
-					BlockState topState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER);
-					BakedModel topModel = blockModelShaper.getBlockModel(topState);
-					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, topModel);
-					poseStack.popPose();
-				}
-
-				if (blockItem.getBlock() instanceof EntityBlock entityBlock)
-				{
-					isBlockEntity = true;
-					try
-					{
-						renderBlockEntity(itemStack, poseStack, bufferSource, packedLight, packedOverlay, minecraft, entityBlock, blockItem.getBlock().defaultBlockState());
-					}
-					catch (Exception e)
-					{
-						// This can fail for things like beacons that require a level.  We'll just ignore it.
-					}
-				}
-
-				// If we still haven't rendered anything or this is a block entity, try rendering the block model.
-				if (blockModel != null && (bufferSourceReady.test(bufferSource) || isBlockEntity))
-				{
-					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, blockModel);
+					// This can fail for things like beacons that require a level.  We'll just ignore it.
 				}
 			}
 
-			// Now try rendering entity models for items that spawn entities.
-			if (bufferSourceReady.test(bufferSource) && EntityCollector.itemCreatesEntity(itemStack, Entity.class))
+			// If we still haven't rendered anything or this is a block entity, try rendering the block model.
+			if (blockModel != null && (bufferSourceReady.test(bufferSource) || isBlockEntity))
 			{
-				if (updateEntity(itemStack))
-				{
-					renderEntityModel(entity, poseStack, bufferSource, packedLight);
-				}
-			}
-
-			// If this is animal armor, render it here.
-			if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof AnimalArmorItem animalArmor)
-			{
-				switch (animalArmor.bodyType)
-				{
-					case BodyType.EQUESTRIAN:
-						if (updateHorseArmor(itemStack))
-						{
-							renderEntityModel(horse, poseStack, bufferSource, packedLight);
-						}
-						break;
-					case BodyType.CANINE:
-						if (updateWolfArmor(itemStack))
-						{
-							renderEntityModel(wolf, poseStack, bufferSource, packedLight);
-						}
-						break;
-				}
-			}
-
-			// Finally, fall back to just rendering the item model.
-			if (bufferSourceReady.test(bufferSource))
-			{
-				renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel);
+				renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, blockModel);
 			}
 		}
-		else if (bufferSourceReady.test(bufferSource))
+
+		// Now try rendering entity models for items that spawn entities.
+		if (minecraft.level != null && bufferSourceReady.test(bufferSource) && EntityCollector.itemCreatesEntity(itemStack, Entity.class, minecraft.level.registryAccess()))
 		{
-			blockEntityRenderer.renderByItem(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay);
+			if (updateEntity(itemStack))
+			{
+				renderEntityModel(entity, poseStack, bufferSource, packedLight);
+			}
+		}
+
+		// If this is animal armor, render it here.
+		if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof AnimalArmorItem animalArmor)
+		{
+			switch (animalArmor.bodyType)
+			{
+				case BodyType.EQUESTRIAN:
+					if (updateHorseArmor(itemStack))
+					{
+						renderEntityModel(horse, poseStack, bufferSource, packedLight);
+					}
+					break;
+				case BodyType.CANINE:
+					if (updateWolfArmor(itemStack))
+					{
+						renderEntityModel(wolf, poseStack, bufferSource, packedLight);
+					}
+					break;
+			}
+		}
+
+		// Finally, fall back to just rendering the item model.
+		if (bufferSourceReady.test(bufferSource))
+		{
+			displayContext = ItemDisplayContext.FIRST_PERSON_LEFT_HAND;
+			renderModelNoTransform(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay);
 		}
 	}
 
-	private void renderModel(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack, Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+	private ItemTransform getItemTransform(ItemStack itemStack, ItemDisplayContext displayContext)
+	{
+		resolver.updateForTopItem(scratchItemStackRenderState, itemStack, displayContext, false, null, null, 0);
+		return scratchItemStackRenderState.transform();
+	}
+
+	private void renderModel(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack, Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay)
 	{
 		if (!itemStack.isEmpty())
 		{
+			Minecraft minecraft = Minecraft.getInstance();
+
 			// If this model doesn't have a special transform for the given context type (most likely GUI), default to ground instead.
 			ItemDisplayContext previewContext = displayContext;
-			if (!bakedModel.getTransforms().hasTransform(displayContext))
-			{
-				previewContext = ItemDisplayContext.GROUND;
-			}
+			ItemTransform itemTransform = getItemTransform(itemStack, previewContext);
 
 			boolean isBlockItem = false, spawnsEntity = false, isArmor = false;
 			if (itemStack.getItem() instanceof BlockItem)
 			{
 				isBlockItem = true;
+
+				if (itemTransform != ItemTransform.NO_TRANSFORM)
+				{
+					previewContext = ItemDisplayContext.GROUND;
+					itemTransform = getItemTransform(itemStack, previewContext);
+				}
 			}
-			else if (EntityCollector.itemCreatesEntity(itemStack, Entity.class))
+			else if (minecraft.level != null && EntityCollector.itemCreatesEntity(itemStack, Entity.class, minecraft.level.registryAccess()))
 			{
 				spawnsEntity = true;
 			}
@@ -350,12 +321,12 @@ public class CustomItemRenderer extends ItemRenderer
 			}
 			else
 			{
-				bakedModel.getTransforms().getTransform(previewContext).apply(leftHanded, poseStack);
+				itemTransform.apply(leftHanded, poseStack);
 			}
 			poseStack.translate(-0.5f, -0.5f, -0.5f);
 
 			// Get the model bounds.
-			ModelBounds modelBounds = getModelBounds(itemStack, previewContext, leftHanded, poseStack, rotation, bufferSource, packedLight, packedOverlay, bakedModel);
+			ModelBounds modelBounds = getModelBounds(itemStack, previewContext, leftHanded, poseStack, rotation, packedLight, packedOverlay);
 
 			// Undo the camera transforms now that we have the model bounds.
 			poseStack.popPose();
@@ -400,12 +371,12 @@ public class CustomItemRenderer extends ItemRenderer
 			}
 			else
 			{
-				bakedModel.getTransforms().getTransform(previewContext).apply(leftHanded, poseStack);
+				itemTransform.apply(leftHanded, poseStack);
 			}
 			poseStack.translate(-0.5f, -0.5f, -0.5f);
 
 			CheckedBufferSource checkedBufferSource = CheckedBufferSource.create(bufferSource);
-			renderModelInternal(itemStack, previewContext, leftHanded, poseStack, rotation, checkedBufferSource, packedLight, packedOverlay, bakedModel, b -> !b.hasRendered());
+			renderModelInternal(itemStack, previewContext, leftHanded, poseStack, checkedBufferSource, packedLight, packedOverlay, b -> !b.hasRendered());
 
 			poseStack.popPose();
 		}
@@ -428,31 +399,67 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
+	private void renderBakedModelSafe(ItemStack itemStack, ItemDisplayContext displayContext, PoseStack poseStack,
+									  MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+	{
+		if (!testedModels.containsKey(bakedModel))
+		{
+			try
+			{
+				renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel);
+				testedModels.put(bakedModel, true);
+			}
+			catch (Exception e)
+			{
+				// If the model failed to render, make a note of it.
+				testedModels.put(bakedModel, false);
+			}
+		}
+		else if (testedModels.get(bakedModel))
+		{
+			renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel);
+		}
+	}
+
+	private static int[] tints = new int[0];
+
 	private void renderBakedModel(ItemStack itemStack, ItemDisplayContext displayContext, PoseStack poseStack,
 								  MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
 	{
 		RenderType renderType = ItemBlockRenderTypes.getRenderType(itemStack);
-		VertexConsumer vertexConsumer;
-		if (hasAnimatedTexture(itemStack) && itemStack.hasFoil())
-		{
-			PoseStack.Pose pose = poseStack.last().copy();
-			if (displayContext == ItemDisplayContext.GUI)
-			{
-				MatrixUtil.mulComponentWise(pose.pose(), 0.5F);
-			}
-			else if (displayContext.firstPerson())
-			{
-				MatrixUtil.mulComponentWise(pose.pose(), 0.75F);
-			}
+		renderItem(displayContext, poseStack, bufferSource, packedLight, packedOverlay, tints, bakedModel, renderType, FoilType.NONE);
+	}
 
-			vertexConsumer = getCompassFoilBuffer(bufferSource, renderType, pose);
-		}
-		else
+	private void renderModelNoTransform(ItemStack itemStack, ItemDisplayContext displayContext, PoseStack poseStack,
+								  MultiBufferSource multiBufferSource, int packedLight, int packedOverlay)
+	{
+		resolver.updateForTopItem(scratchItemStackRenderState, itemStack, displayContext, false, null, null, 0);
+
+		boolean flatLighting = !scratchItemStackRenderState.usesBlockLight();
+		if (flatLighting)
 		{
-			vertexConsumer = getFoilBuffer(bufferSource, renderType, true, itemStack.hasFoil());
+			if (multiBufferSource instanceof BufferSource bufferSource)
+			{
+				bufferSource.endBatch();
+			}
+			Lighting.setupForFlatItems();
 		}
 
-		renderModelLists(bakedModel, itemStack, packedLight, packedOverlay, poseStack, vertexConsumer);
+		for (int k = 0; k < scratchItemStackRenderState.activeLayerCount; ++k)
+		{
+			ILayerRenderState layer = (ILayerRenderState)scratchItemStackRenderState.layers[k];
+			layer.renderWithoutTransform(poseStack, displayContext, multiBufferSource, packedLight, packedOverlay);
+		}
+
+		if (multiBufferSource instanceof BufferSource bufferSource)
+		{
+			bufferSource.endBatch();
+		}
+
+		if (flatLighting)
+		{
+			Lighting.setupFor3DItems();
+		}
 	}
 
 	private boolean updateArmorStand(ItemStack itemStack)
@@ -496,8 +503,10 @@ public class CustomItemRenderer extends ItemRenderer
 
 	private Entity getEntityFromItem(ItemStack itemStack)
 	{
+		Minecraft minecraft = Minecraft.getInstance();
+
 		Entity collectedEntity = null;
-		List<Entity> collectedEntities = EntityCollector.collectEntitiesFromItem(itemStack);
+		List<Entity> collectedEntities = minecraft.level == null ? List.of() : EntityCollector.collectEntitiesFromItem(itemStack, minecraft.level.registryAccess());
 		if (!collectedEntities.isEmpty())
 		{
 			// Just return the first entity collected.
@@ -620,13 +629,13 @@ public class CustomItemRenderer extends ItemRenderer
 	}
 
 	private ModelBounds getModelBounds(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack,
-									   Quaternionf rotation, MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel)
+									   Quaternionf rotation, int packedLight, int packedOverlay)
 	{
 		Pair<Item, DataComponentMap> key = Pair.of(itemStack.getItem(), ItemUtil.getItemComponents(itemStack));
 		if (!modelBoundsCache.containsKey(key))
 		{
 			VertexCollector vertexCollector = VertexCollector.create();
-			renderModelInternal(itemStack, displayContext, leftHanded, poseStack, rotation, vertexCollector, packedLight, packedOverlay, bakedModel, b -> b.getVertices().isEmpty());
+			renderModelInternal(itemStack, displayContext, leftHanded, poseStack, vertexCollector, packedLight, packedOverlay, b -> b.getVertices().isEmpty());
 
 			// Now store the bounds in the cache.
 			modelBoundsCache.put(key, boundsFromVertices(vertexCollector.getVertices()));
@@ -637,12 +646,9 @@ public class CustomItemRenderer extends ItemRenderer
 
 	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
 	{
-		Minecraft minecraft = Minecraft.getInstance();
-		BakedModel bakedModel = minecraft.getItemRenderer().getModel(stack, minecraft.level, minecraft.player, 0);
-
 		try
 		{
-			renderGuiModel(stack, x, y, rotation, bakedModel, graphics);
+			renderGuiModel(stack, x, y, rotation, graphics);
 		}
 		catch (Throwable throwable)
 		{
@@ -657,7 +663,14 @@ public class CustomItemRenderer extends ItemRenderer
 
 	public void renderItemModelIntoGUIWithAlpha(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha)
 	{
-		BakedModel bakedModel = minecraft.getItemRenderer().getModel(stack, null, null, 0);
+		// Initialize the icon framebuffer if needed.
+		if (iconFrameBuffer == null)
+		{
+			// Use 96 x 96 pixels for the icon frame buffer so at 1.5 scale we get 4x resolution (for smooth icons on larger gui scales).
+			iconFrameBuffer = new MainTarget(96, 96);
+			iconFrameBuffer.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		}
+
 		RenderTarget lastFrameBuffer = minecraft.getMainRenderTarget();
 
 		// Bind the icon framebuffer so we can render to texture.
@@ -681,24 +694,25 @@ public class CustomItemRenderer extends ItemRenderer
 		modelViewStack.translate(48.0f, 48.0f, -2000.0f);
 		modelViewStack.scale(96.0f, 96.0f, 96.0f);
 
-		boolean flatLighting = !bakedModel.usesBlockLight();
+		swapFrameBuffer = true;
+
+		resolver.updateForTopItem(scratchItemStackRenderState, stack, ItemDisplayContext.GUI, false, null, null, 0);
+
+		boolean flatLighting = !scratchItemStackRenderState.usesBlockLight();
 		if (flatLighting)
 		{
+			graphics.flush();
 			Lighting.setupForFlatItems();
 		}
 
-		swapFrameBuffer = true;
-
-		graphics.drawSpecial(bufferSource -> {
-			render(stack, ItemDisplayContext.GUI, false, new PoseStack(), bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, bakedModel);
-		});
-
-		swapFrameBuffer = false;
+		graphics.drawSpecial(bufferSource -> scratchItemStackRenderState.render(new PoseStack(), bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY));
 
 		if (flatLighting)
 		{
 			Lighting.setupFor3DItems();
 		}
+
+		swapFrameBuffer = false;
 
 		modelViewStack.popMatrix();
 		RenderSystem.restoreProjectionMatrix();
@@ -728,13 +742,10 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	 @Override
+	@Override
 	public void onResourceManagerReload(ResourceManager resourceManager)
 	{
-		super.onResourceManagerReload(resourceManager);
-
 		// Clear the model bounds cache.
 		modelBoundsCache.clear();
 	}
-
 }

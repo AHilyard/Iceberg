@@ -7,6 +7,7 @@ import com.anthonyhilyard.iceberg.client.IcebergClient;
 import com.anthonyhilyard.iceberg.config.IIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.config.IcebergConfig;
 import com.anthonyhilyard.iceberg.forge.client.IcebergForgeClient;
+import com.anthonyhilyard.iceberg.forge.common.IcebergForgeCommon;
 import com.anthonyhilyard.iceberg.forge.config.ForgeIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.forge.server.IcebergForgeServer;
 import com.anthonyhilyard.iceberg.forge.services.ForgeKeyMappingRegistrar;
@@ -29,11 +30,15 @@ public final class IcebergForge
 	public IcebergForge(FMLJavaModLoadingContext context)
 	{
 		IcebergForge.context = context;
+
+		// Common environment-agnostic setup.
+		MinecraftForge.EVENT_BUS.register(IcebergForgeCommon.class);
+
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
 			IEventBus modBus = context.getModEventBus();
 
-			// Common setup.
+			// Client loader-agnostic setup.
 			IcebergClient.init();
 
 			MinecraftForge.EVENT_BUS.register(IcebergForgeClient.ForgeEvents.class);
