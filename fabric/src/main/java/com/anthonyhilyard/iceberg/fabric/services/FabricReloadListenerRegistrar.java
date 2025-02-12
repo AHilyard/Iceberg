@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.fabric.services;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 import com.anthonyhilyard.iceberg.services.IReloadListenerRegistrar;
 
@@ -31,6 +32,26 @@ public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 
 			@Override
 			public String getName() { return listener.getName(); }
+		});
+	}
+
+	@Override
+	public void registerListener(Supplier<PreparableReloadListener> listener, ResourceLocation listenerId)
+	{
+		ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new IdentifiableResourceReloadListener()
+		{
+			@Override
+			public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier,
+					ResourceManager resourceManager, Executor executor, Executor executor2)
+			{
+				return listener.get().reload(preparationBarrier, resourceManager, executor, executor2);
+			}
+
+			@Override
+			public ResourceLocation getFabricId() { return listenerId; }
+
+			@Override
+			public String getName() { return listener.get().getName(); }
 		});
 	}
 }

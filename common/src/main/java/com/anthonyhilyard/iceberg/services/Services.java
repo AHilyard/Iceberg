@@ -8,7 +8,7 @@ import com.anthonyhilyard.iceberg.Iceberg;
 
 public class Services
 {
-	private static final ConcurrentHashMap<Class<?>, Supplier<?>> serviceCache = new ConcurrentHashMap<>();
+	protected static final ConcurrentHashMap<Class<?>, Supplier<?>> serviceCache = new ConcurrentHashMap<>();
 
 	public static IPlatformHelper getPlatformHelper() { return (IPlatformHelper) serviceCache.computeIfAbsent(IPlatformHelper.class, x -> createLazySupplier(x)).get(); }
 	public static IBufferSourceFactory getBufferSourceFactory() { return (IBufferSourceFactory) serviceCache.computeIfAbsent(IBufferSourceFactory.class, x -> createLazySupplier(x)).get(); }
@@ -28,7 +28,7 @@ public class Services
 		return loadedService;
 	}
 
-	private static <T> Supplier<T> createLazySupplier(Class<T> clazz)
+	protected static <T> Supplier<T> createLazySupplier(Class<T> clazz)
 	{
 		return new Supplier<T>() {
 			private volatile T instance;
