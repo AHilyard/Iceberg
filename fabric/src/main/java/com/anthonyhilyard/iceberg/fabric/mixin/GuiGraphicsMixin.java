@@ -143,16 +143,7 @@ public class GuiGraphicsMixin
 	private void preFillGradient(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
-		Screen currentScreen = minecraft.screen;
 		ItemStack containerStack = ItemStack.EMPTY;
-		// if (currentScreen != null && currentScreen instanceof AbstractContainerScreen<?> containerScreen)
-		// {
-		// 	Slot hoveredSlot = containerScreen.hoveredSlot;
-		// 	if (hoveredSlot != null)
-		// 	{
-		// 		containerStack = hoveredSlot.getItem();
-		// 	}
-		// }
 
 		if (containerStack.isEmpty())
 		{
