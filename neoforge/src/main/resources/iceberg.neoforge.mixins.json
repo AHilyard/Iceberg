@@ -4,7 +4,7 @@
 	"compatibilityLevel": "JAVA_17",
 	"client": [
 		"TooltipRenderUtilMixin",
-		"GuiGraphicsMixin"
+		"ClientHooksMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

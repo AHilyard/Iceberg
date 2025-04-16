@@ -9,6 +9,8 @@ import net.fabricmc.loader.api.metadata.version.VersionPredicate;
 
 public class FabricPlatformHelper implements IPlatformHelper
 {
+	private List<String> cachedModList = null;
+
 	@Override
 	public String getPlatformName() { return "Fabric"; }
 
@@ -16,7 +18,15 @@ public class FabricPlatformHelper implements IPlatformHelper
 	public boolean isModLoaded(String modId) { return FabricLoader.getInstance().isModLoaded(modId); }
 
 	@Override
-	public List<String> getAllModIds() { return FabricLoader.getInstance().getAllMods().stream().map(mod -> mod.getMetadata().getId()).toList(); }
+	public List<String> getAllModIds()
+	{
+		if (cachedModList == null)
+		{
+			cachedModList = FabricLoader.getInstance().getAllMods().stream().map(mod -> mod.getMetadata().getId()).toList();
+		}
+
+		return cachedModList;
+	}
 
 	@Override
 	public boolean modVersionMeets(String modId, String versionString)

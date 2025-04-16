@@ -6,6 +6,8 @@ import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResu
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.GatherResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
+import com.anthonyhilyard.iceberg.util.Tooltips;
+import com.anthonyhilyard.iceberg.util.Tooltips.TooltipRenderContext;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionResult;
@@ -32,7 +34,8 @@ public class IcebergForgeClient
 		@SubscribeEvent(priority = EventPriority.HIGH)
 		public static void tooltipPreRenderEvent(RenderTooltipEvent.Pre event)
 		{
-			PreExtResult result = RenderTooltipEvents.PREEXT.invoker().onPre(event.getItemStack(), event.getGraphics(), event.getX(), event.getY(), event.getScreenWidth(), event.getScreenHeight(), event.getFont(), event.getComponents(), event.getTooltipPositioner(), false, 0);
+			TooltipRenderContext context = Tooltips.getCurrentRenderContext();
+			PreExtResult result = RenderTooltipEvents.PREEXT.invoker().onPre(event.getItemStack(), event.getGraphics(), event.getX(), event.getY(), event.getScreenWidth(), event.getScreenHeight(), event.getFont(), event.getComponents(), event.getTooltipPositioner(), context.comparison(), context.index());
 			event.setFont(result.font());
 			event.setX(result.x());
 			event.setY(result.y());

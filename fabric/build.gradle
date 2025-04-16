@@ -33,11 +33,13 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabricVersion"
 	
 	shadowBundle "com.electronwill.night-config:core:${project.nightconfigVersion}"
-	shadowBundle "com.electronwill.night-config:toml:${project.nightconfigVersion}"	
+	shadowBundle "com.electronwill.night-config:toml:${project.nightconfigVersion}"
 	modImplementation "com.electronwill.night-config:core:${project.nightconfigVersion}"
 	modImplementation "com.electronwill.night-config:toml:${project.nightconfigVersion}"
 
 	modImplementation files("../libs/sodium-fabric-0.6.0-beta.2+mc1.21.1.jar")
+
+	modImplementation "curse.maven:modern-keybinding-fabric-695433:6016136"
 
 	common(project(path: ':common', configuration: 'namedElements')) { transitive false }
 	shadowBundle project(path: ':common', configuration: 'transformProductionFabric')

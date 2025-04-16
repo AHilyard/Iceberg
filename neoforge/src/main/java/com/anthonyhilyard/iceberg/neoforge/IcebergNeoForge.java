@@ -7,7 +7,9 @@ import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.client.IcebergClient;
 import com.anthonyhilyard.iceberg.config.IIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.config.IcebergConfig;
+import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.neoforge.client.IcebergNeoForgeClient;
+import com.anthonyhilyard.iceberg.neoforge.common.IcebergNeoForgeCommon;
 import com.anthonyhilyard.iceberg.neoforge.config.NeoForgeIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.neoforge.server.IcebergNeoForgeServer;
 import com.anthonyhilyard.iceberg.neoforge.services.NeoForgeKeyMappingRegistrar;
@@ -28,15 +30,20 @@ public final class IcebergNeoForge
 {
 	public IcebergNeoForge(IEventBus modBus)
 	{
+		// Common environment-agnostic setup.
+		NeoForge.EVENT_BUS.register(IcebergNeoForgeCommon.class);
+
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
-			// Common setup.
+			// Client loader-agnostic setup.
 			IcebergClient.init();
 
 			NeoForge.EVENT_BUS.register(IcebergNeoForgeClient.NeoForgeEvents.class);
 			modBus.register(IcebergNeoForgeClient.ModEvents.class);
 			modBus.register(NeoForgeKeyMappingRegistrar.class);
 			modBus.register(NeoForgeReloadListenerRegistrar.class);
+
+			RenderTooltipEvents.GATHER.register(IcebergNeoForgeClient.ModEvents::tooltipGatherEvent);
 		}
 		else
 		{

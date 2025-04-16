@@ -66,7 +66,7 @@ public class TooltipRenderUtilMixin
 		else
 		{
 			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + width, y + height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
+			graphics.fillGradient(x, y, x + width, y + height, z, Tooltips.currentColors.backgroundColorStart(), Tooltips.currentColors.backgroundColorEnd());
 			info.cancel();
 		}
 	}

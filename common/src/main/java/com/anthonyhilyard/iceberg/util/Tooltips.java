@@ -8,30 +8,25 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.anthonyhilyard.iceberg.Iceberg;
+import com.anthonyhilyard.iceberg.component.IExtendedText;
+import com.anthonyhilyard.iceberg.component.TitleBreakComponent;
+import com.anthonyhilyard.iceberg.component.IExtendedText.TextAlignment;
 import com.anthonyhilyard.iceberg.events.client.RegisterTooltipComponentFactoryEvent;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.GatherResult;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.anthonyhilyard.iceberg.mixin.GuiGraphicsInvoker;
 import com.mojang.datafixers.util.Either;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
-import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -39,46 +34,27 @@ import net.minecraft.world.item.ItemStack;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector2i;
+import org.joml.Vector2ic;
 
 public class Tooltips
 {
-	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
-	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0xF0100010), TextColor.fromRgb(0x505000FF), TextColor.fromRgb(0x5028007F));
+	public record TooltipColors(int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd) {}
+	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(0xF0100010, 0xF0100010, 0x505000FF, 0x5028007F);
 
 	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
-	private static ItemRenderer itemRenderer = null;
 	private static boolean tooltipWidthWarningShown = false;
 
 	public static TooltipColors currentColors = DEFAULT_COLORS;
 
-	public static class TitleBreakComponent implements TooltipComponent, ClientTooltipComponent
-	{
-		@Override
-		public int getHeight() { return 0; }
-
-		@Override
-		public int getWidth(Font font) { return 0; }
-
-		public static void registerFactory()
-		{
-			RegisterTooltipComponentFactoryEvent.EVENT.register(TitleBreakComponent.class, data -> {
-				if (data instanceof TitleBreakComponent titleBreakComponent)
-				{
-					return titleBreakComponent;
-				}
-				return null;
-			});
-		}
-	}
-
-	public static interface InlineComponent { }
-
+	@Deprecated(forRemoval = true, since = "1.3.0")
 	public static class TooltipInfo
 	{
-		private int tooltipWidth = 0;
-		private int titleLines = 1;
+		private int tooltipWidth;
+		private int titleLines;
+		private int titleStart;
 		private Font font;
-		private List<ClientTooltipComponent> components = new ArrayList<>();
+		private List<ClientTooltipComponent> components;
 
 		public TooltipInfo(List<ClientTooltipComponent> components, Font font)
 		{
@@ -87,15 +63,22 @@ public class Tooltips
 
 		public TooltipInfo(List<ClientTooltipComponent> components, Font font, int titleLines)
 		{
+			this(components, font, titleLines, calculateTitleStart(components));
+		}
+
+		public TooltipInfo(List<ClientTooltipComponent> components, Font font, int titleLines, int titleStart)
+		{
 			this.components = components;
 			this.font = font;
 			this.titleLines = titleLines;
+			this.titleStart = titleStart;
 			this.tooltipWidth = getMaxLineWidth();
 		}
 
 		public int getTooltipWidth() { return tooltipWidth; }
 		public int getTooltipHeight() { return components.size() > titleLines ? components.size() * 10 + 2 : 8; }
 		public int getTitleLines() { return titleLines; }
+		public int getTitleStart() { return titleStart; }
 		public Font getFont() { return font; }
 		public List<ClientTooltipComponent> getComponents() { return components; }
 
@@ -121,6 +104,31 @@ public class Tooltips
 		}
 	}
 
+	public record TooltipRenderContext(int maxWidth, int maxHeight, boolean comparison, int index) {}
+	public static final TooltipRenderContext EMPTY_CONTEXT = new TooltipRenderContext(0, 0, false, 0);
+	public static final TooltipRenderContext CALCULATE_RECT_CONTEXT = new TooltipRenderContext(0, 0, false, 0);
+
+	private static TooltipRenderContext currentRenderContext = EMPTY_CONTEXT;
+	public static TooltipRenderContext getCurrentRenderContext()
+	{
+		return currentRenderContext;
+	}
+
+	private static Rect2i currentRect = new Rect2i(0, 0, 0, 0);
+	public static void setCurrentRect(int x, int y, int width, int height)
+	{
+		currentRect.setX(x);
+		currentRect.setY(y);
+		currentRect.setWidth(width);
+		currentRect.setHeight(height);
+	}
+
+	public static Rect2i getCurrentRect() { return currentRect; }
+
+	private static boolean tooltipsOnscreen = false;
+	public static boolean anyTooltipsVisible() { return tooltipsOnscreen; }
+	public static void setAnyTooltipsVisible(boolean visible) { tooltipsOnscreen = visible; }
+
 	public static int calculateTitleLines(List<ClientTooltipComponent> components)
 	{
 		if (components == null || components.isEmpty())
@@ -143,6 +151,10 @@ public class Tooltips
 				foundTitleBreak = true;
 				break;
 			}
+			else
+			{
+				titleLines = 0;
+			}
 		}
 
 		// We didn't find a title break (shouldn't happen normally), so default to 1.
@@ -154,112 +166,154 @@ public class Tooltips
 		return titleLines;
 	}
 
-	@SuppressWarnings("deprecation")
+	public static int calculateTitleStart(List<ClientTooltipComponent> components)
+	{
+		if (components == null || components.isEmpty())
+		{
+			return 0;
+		}
+
+		// Determine the index of the first "title line".
+		// If there is a title break component, it will be the first text component in a contiguous
+		// collection of text components before that.  Otherwise, it's just the first text component.
+		int firstTextIndex = -1;
+		int currentTextRunStart = -1;
+
+		for (int i = 0; i < components.size(); i++)
+		{
+			ClientTooltipComponent component = components.get(i);
+
+			if (component instanceof TitleBreakComponent)
+			{
+				// If we're in a run of text, return its start; otherwise 0.
+				return currentTextRunStart == -1 ? 0 : currentTextRunStart;
+			}
+			else if (component instanceof ClientTextTooltip)
+			{
+				// Start a run if we aren't in one.
+				if (currentTextRunStart == -1)
+				{
+					currentTextRunStart = i;
+				}
+				// Track the first text index if we haven't set it yet.
+				if (firstTextIndex == -1)
+				{
+					firstTextIndex = i;
+				}
+			}
+			else
+			{
+				// Non-text (not a break), so end the current run.
+				currentTextRunStart = -1;
+			}
+		}
+
+		// If we finished without finding a TitleBreakComponent,
+		// return the first text index or 0 if there was no text at all.
+		return firstTextIndex == -1 ? 0 : firstTextIndex;
+	}
+
+	public static int getTitleOffset(int tooltipWidth, int textWidth, int leftPadding, int rightPadding, TextAlignment textAlignment)
+	{
+		int offset = leftPadding;
+
+		switch (textAlignment)
+		{
+			case CENTER:
+				offset += (tooltipWidth - textWidth - leftPadding - rightPadding) / 2;
+				break;
+			case RIGHT:
+				offset += tooltipWidth - textWidth - rightPadding;
+				break;
+			default:
+				break;
+		}
+
+		return Math.max(leftPadding, offset);
+	}
+
+	public static int getTitleWidth(ClientTextTooltip title, Font font)
+	{
+		int textWidth = font.width(title.text);
+
+		if (title instanceof IExtendedText extendedTitle)
+		{
+			int leftPadding = extendedTitle.getLeftPadding();
+			int rightPadding = extendedTitle.getRightPadding();
+
+			int tooltipWidth = Tooltips.getCurrentRect().getWidth();
+			if (tooltipWidth == 0)
+			{
+				textWidth += leftPadding + rightPadding;
+			}
+			else
+			{
+				textWidth += getTitleOffset(tooltipWidth, textWidth, leftPadding, rightPadding, extendedTitle.getAlignment()) + rightPadding;
+			}
+		}
+		return textWidth;
+	}
+
+	private static class TooltipRectPositioner implements ClientTooltipPositioner
+	{
+		private final Rect2i tooltipRect;
+		public TooltipRectPositioner(Rect2i tooltipRect) { this.tooltipRect = tooltipRect; }
+
+		@Override
+		public Vector2ic positionTooltip(int screenWidth, int screenHeight, int mouseX, int mouseY, int tooltipWidth, int tooltipHeight)
+		{
+			return new Vector2i(tooltipRect.getX() + 2, tooltipRect.getY());
+		}
+	}
+
+	@Deprecated(forRemoval = true, since = "1.3.0")
 	public static void renderItemTooltip(@NotNull final ItemStack stack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
 										GuiGraphics graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index)
 	{
-		if (info.getComponents().isEmpty())
+		renderItemTooltip(stack, info.getFont(), info.getComponents(), rect, graphics, positioner, comparison, index);
+	}
+
+	@Deprecated(forRemoval = true, since = "1.3.0")
+	public static void renderItemTooltip(@NotNull final ItemStack stack, TooltipInfo info,
+										Rect2i rect, GuiGraphics graphics, ClientTooltipPositioner positioner,
+										boolean comparison, boolean constrain, int index)
+	{
+		renderItemTooltip(stack, info.getFont(), info.getComponents(), rect, graphics, positioner, comparison, index);
+	}
+
+	public static void renderItemTooltip(@NotNull final ItemStack stack, Font font, List<ClientTooltipComponent> components,
+										Rect2i rect, GuiGraphics graphics, ClientTooltipPositioner positioner,
+										boolean comparison, int index)
+	{
+		// Set the current render context.
+		currentRenderContext = new TooltipRenderContext(rect.getWidth(), rect.getHeight(), comparison, index);
+
+		if (graphics instanceof GuiGraphicsInvoker graphicsInvoker && graphics instanceof ITooltipAccess tooltipAccess)
 		{
-			return;
+			tooltipAccess.setIcebergTooltipStack(stack);
+			graphicsInvoker.invokeRenderTooltipInternal(font, components, rect.getX() + 2, rect.getY(), new TooltipRectPositioner(rect));
+			tooltipAccess.setIcebergTooltipStack(ItemStack.EMPTY);
 		}
 
-		// Grab the itemRenderer now if needed.
-		if (itemRenderer == null)
-		{
-			itemRenderer = Minecraft.getInstance().getItemRenderer();
-		}
-
-		// Center the title now if needed.
-		if (centeredTitle)
-		{
-			info = new TooltipInfo(centerTitle(info.getComponents(), info.getFont(), info.getMaxLineWidth(), info.getTitleLines()), info.getFont(), info.getTitleLines());
-		}
-
-		int rectX = rect.getX() + 4;
-		int rectY = rect.getY() + 4;
-
-		PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, rectX, rectY, screenWidth, screenHeight, info.getFont(), info.getComponents(), positioner, comparison, index);
-		if (preResult.result() != InteractionResult.PASS)
-		{
-			return;
-		}
-
-		rectX = preResult.x();
-		rectY = preResult.y();
-		screenWidth = preResult.screenWidth();
-		screenHeight = preResult.screenHeight();
-		info.setFont(preResult.font());
-
-		PoseStack poseStack = graphics.pose();
-		poseStack.pushPose();
-		final int zLevel = 400;
-
-		ColorExtResult colors = RenderTooltipEvents.COLOREXT.invoker().onColor(stack, graphics, rectX, rectY, info.getFont(), backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, info.getComponents(), comparison, index);
-
-		backgroundColorStart = colors.backgroundStart();
-		backgroundColorEnd = colors.backgroundEnd();
-		borderColorStart = colors.borderStart();
-		borderColorEnd = colors.borderEnd();
-
-		currentColors = new TooltipColors(TextColor.fromRgb(backgroundColorStart), TextColor.fromRgb(backgroundColorEnd), TextColor.fromRgb(borderColorStart), TextColor.fromRgb(borderColorEnd));
-
-		final int finalRectX = rectX;
-		final int finalRectY = rectY;
-
-		graphics.drawManaged(() -> {
-			TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), zLevel);
-		});
-
-		BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-		poseStack.translate(0.0f, 0.0f, zLevel);
-
-		int tooltipTop = rectY;
-		int titleLines = info.getTitleLines();
-
-		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
-		{
-			ClientTooltipComponent textComponent = info.getComponents().get(componentNumber);
-			textComponent.renderText(preResult.font(), rectX, tooltipTop, poseStack.last().pose(), bufferSource);
-			tooltipTop += textComponent.getHeight();
-			if ((textComponent instanceof ClientTextTooltip || textComponent instanceof InlineComponent) && titleLines > 0)
-			{
-				titleLines -= (textComponent instanceof InlineComponent) ? 2 : 1;
-				if (titleLines <= 0)
-				{
-					tooltipTop += 2;
-				}
-			}
-		}
-
-		tooltipTop = rectY;
-
-		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
-		{
-			ClientTooltipComponent imageComponent = (ClientTooltipComponent)info.getComponents().get(componentNumber);
-			imageComponent.renderImage(info.getFont(), rectX, tooltipTop, graphics);
-			tooltipTop += imageComponent.getHeight() + (componentNumber == 0 ? 2 : 0);
-		}
-
-		poseStack.popPose();
-
-		RenderTooltipEvents.POSTEXT.invoker().onPost(stack, graphics, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), info.getComponents(), comparison, index);
+		// Reset the current render context.
+		currentRenderContext = EMPTY_CONTEXT;
 	}
 
 	private static ClientTooltipComponent getClientComponent(TooltipComponent componentData)
 	{
 		ClientTooltipComponent result = null;
 
-		// First try using the create method, for vanilla and mixed-in tooltip components.
-		try { result = ClientTooltipComponent.create(componentData); }
-		catch (IllegalArgumentException e) { }
+		// First try using the register event.
+		result = RegisterTooltipComponentFactoryEvent.EVENT.invoker().getComponent(componentData);
 
-		// If that fails, try using the Fabric API event.
+		// If that fails, try using the create method for vanilla and mixed-in tooltip components.
 		if (result == null)
 		{
-			result = RegisterTooltipComponentFactoryEvent.EVENT.invoker().getComponent(componentData);
+			try { result = ClientTooltipComponent.create(componentData); }
+			catch (IllegalArgumentException e) { }
 		}
 
 		// Finally, if all else fails, try casting (some mods implement it this way).
@@ -345,110 +399,81 @@ public class Tooltips
 			needsWrap = true;
 		}
 
+		// If the first component has a negative width, apply that to the wrap width.
+		if (eventResult.tooltipElements().size() > 0 &&
+			eventResult.tooltipElements().get(0).right().orElse(null) instanceof ClientTooltipComponent clientComponent &&
+			clientComponent.getWidth(font) < 0)
+		{
+			tooltipTextWidth += clientComponent.getWidth(font);
+		}
+
 		final int tooltipTextWidthFinal = tooltipTextWidth;
 		if (needsWrap)
 		{
 			return eventResult.tooltipElements().stream().flatMap(either -> either.map(text ->
-								font.split(text, tooltipTextWidthFinal).stream().map(ClientTooltipComponent::create),
+								splitLine(text, font, tooltipTextWidthFinal),
 								component -> Stream.of(getClientComponent(component)))).toList();
 		}
 
 		return eventResult.tooltipElements().stream().map(either -> either.map(text ->
-							ClientTooltipComponent.create(text instanceof Component ? ((Component) text).getVisualOrderText() : Language.getInstance().getVisualOrder(text)),
-							Tooltips::getClientComponent)).toList();
+							ClientTooltipComponent.create(text instanceof Component ?
+								((Component) text).getVisualOrderText() : Language.getInstance().getVisualOrder(text)),
+							component -> getClientComponent(component))).toList();
 	}
 
-	@Deprecated
-	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
+	private static Stream<ClientTooltipComponent> splitLine(FormattedText text, Font font, int maxWidth)
 	{
-		return calculateRect(stack, poseStack, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+		// Don't discard empty lines.
+		if (text instanceof Component component && component.getString().isEmpty())
+		{
+			return Stream.of(component.getVisualOrderText()).map(ClientTooltipComponent::create);
+		}
+
+		return font.split(text, maxWidth).stream().map(ClientTooltipComponent::create);
 	}
 
-	@Deprecated
-	public static Rect2i calculateRect(final ItemStack stack, PoseStack poseStack, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+	private static final Rect2i emptyRect = new Rect2i(0, 0, 0, 0);
+
+	@Deprecated(forRemoval = true, since = "1.3.0")
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, ClientTooltipPositioner positioner, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
 	{
-		Minecraft minecraft = Minecraft.getInstance();
-		GuiGraphics graphics = new GuiGraphics(minecraft, poseStack, minecraft.renderBuffers().bufferSource());
-		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight,
-							 maxTextWidth, font, minWidth, centeredTitle);
+		return calculateRect(stack, graphics, positioner, components, mouseX, mouseY, font);
 	}
 
 	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, ClientTooltipPositioner positioner, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+									   int mouseX, int mouseY, Font font)
 	{
-		Rect2i rect = new Rect2i(0, 0, 0, 0);
 		if (components == null || components.isEmpty() || stack == null)
 		{
-			return rect;
+			return emptyRect;
 		}
 
-		// Generate a tooltip event even though we aren't rendering anything in case event handlers are modifying the input values.
-		PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, mouseX, mouseY, screenWidth, screenHeight, font, components, positioner, false, 0);
-		if (preResult.result() != InteractionResult.PASS)
+		// Set the current render context.
+		TooltipRenderContext prevContext = currentRenderContext;
+		currentRenderContext = CALCULATE_RECT_CONTEXT;
+
+		if (graphics instanceof GuiGraphicsInvoker graphicsInvoker && graphics instanceof ITooltipAccess tooltipAccess)
 		{
-			return rect;
+			ItemStack prevStack = tooltipAccess.getIcebergTooltipStack();
+			tooltipAccess.setIcebergTooltipStack(stack);
+			graphicsInvoker.invokeRenderTooltipInternal(font, components, mouseX, mouseY, positioner);
+			tooltipAccess.setIcebergTooltipStack(prevStack);
 		}
 
-		mouseX = preResult.x();
-		mouseY = preResult.y();
-		screenWidth = preResult.screenWidth();
-		screenHeight = preResult.screenHeight();
-		font = preResult.font();
+		// Restore the previous render context.
+		currentRenderContext = prevContext;
 
-		int tooltipTextWidth = minWidth;
-		int tooltipHeight = components.size() == 1 ? -2 : 0;
-		int titleLines = calculateTitleLines(components);
-
-		if (centeredTitle)
-		{
-			// Calculate the current tooltip width prior to centering.
-			for (ClientTooltipComponent component : components)
-			{
-				int componentWidth = component.getWidth(font);
-				if (componentWidth > tooltipTextWidth)
-				{
-					tooltipTextWidth = componentWidth;
-				}
-			}
-			components = centerTitle(components, font, tooltipTextWidth, titleLines);
-		}
-
-		tooltipTextWidth = minWidth;
-
-		for (ClientTooltipComponent component : components)
-		{
-			int componentWidth = component.getWidth(font);
-			if (componentWidth > tooltipTextWidth)
-			{
-				tooltipTextWidth = componentWidth;
-			}
-
-			tooltipHeight += component.getHeight();
-		}
-
-		int tooltipX = mouseX + 12;
-		int tooltipY = mouseY - 12;
-		if (tooltipX + tooltipTextWidth > screenWidth)
-		{
-			tooltipX -= 28 + tooltipTextWidth;
-		}
-
-		if (tooltipY + tooltipHeight + 6 > screenHeight)
-		{
-			tooltipY = screenHeight - tooltipHeight - 6;
-		}
-
-		rect = new Rect2i(tooltipX - 2, tooltipY - 4, tooltipTextWidth, tooltipHeight);
-		return rect;
+		return currentRect;
 	}
 
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width)
 	{
 		return centerTitle(components, font, width, calculateTitleLines(components));
 	}
 
+	@Deprecated(since = "1.3.0", forRemoval = true)
 	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width, int titleLines)
 	{
 		List<ClientTooltipComponent> result = new ArrayList<>(components);
@@ -459,15 +484,7 @@ public class Tooltips
 		}
 
 		// Find the first title component, which is the first text component.
-		int titleStart = 0;
-		for (ClientTooltipComponent clientTooltipComponent : components)
-		{
-			if (clientTooltipComponent instanceof ClientTextTooltip)
-			{
-				break;
-			}
-			titleStart++;
-		}
+		int titleStart = calculateTitleStart(components);
 
 		// Verify that there actually is at least one text component.
 		if (titleStart >= components.size())
@@ -482,22 +499,20 @@ public class Tooltips
 			if (titleComponent != null)
 			{
 				List<FormattedText> recomposedLines = StringRecomposer.recompose(List.of(titleComponent));
-				if (recomposedLines.isEmpty())
+				if (!recomposedLines.isEmpty())
 				{
-					return components;
-				}
+					FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
 
-				FormattedCharSequence title = Language.getInstance().getVisualOrder(recomposedLines.get(0));
-
-				while (ClientTooltipComponent.create(title).getWidth(font) < width)
-				{
-					title = FormattedCharSequence.fromList(List.of(SPACE, title, SPACE));
-					if (title == null)
+					while (ClientTooltipComponent.create(title).getWidth(font) < width)
 					{
-						break;
+						title = FormattedCharSequence.fromList(List.of(SPACE, title, SPACE));
+						if (title == null)
+						{
+							break;
+						}
 					}
+					result.set(titleStart + i, ClientTooltipComponent.create(title));
 				}
-				result.set(titleStart + i, ClientTooltipComponent.create(title));
 			}
 		}
 		return result;

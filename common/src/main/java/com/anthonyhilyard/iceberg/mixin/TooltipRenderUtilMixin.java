@@ -9,16 +9,19 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.anthonyhilyard.iceberg.util.Tooltips;
+import com.anthonyhilyard.iceberg.util.Tooltips.TooltipColors;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
-import net.minecraft.network.chat.TextColor;
 
 @Mixin(TooltipRenderUtil.class)
 public class TooltipRenderUtilMixin
 {
 	@Unique
-	private static TextColor horizontalLineColor;
+	private static int horizontalLineColor;
+
+	@Unique
+	private static boolean renderingTop = true;
 	
 	@Shadow
 	@Final
@@ -35,12 +38,14 @@ public class TooltipRenderUtilMixin
 	@Inject(method = "renderFrameGradient", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 0))
 	private static void icebergRenderFrameGradientOne(GuiGraphics graphics, int x, int y, int width, int height, int z, int color1, int color2, CallbackInfo info)
 	{
+		renderingTop = true;
 		horizontalLineColor = Tooltips.currentColors.borderColorStart();
 	}
 
 	@Inject(method = "renderFrameGradient", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderHorizontalLine(Lnet/minecraft/client/gui/GuiGraphics;IIIII)V", shift = At.Shift.BEFORE, ordinal = 1))
 	private static void icebergRenderFrameGradientTwo(GuiGraphics graphics, int x, int y, int width, int height, int z, int color1, int color2, CallbackInfo info)
 	{
+		renderingTop = false;
 		horizontalLineColor = Tooltips.currentColors.borderColorEnd();
 	}
 
@@ -50,11 +55,20 @@ public class TooltipRenderUtilMixin
 		if (color != BACKGROUND_COLOR && color != BORDER_COLOR_TOP && color != BORDER_COLOR_BOTTOM)
 		{
 			// Do default behavior so other mods that change colors can still work.
+			// Update the associated stored border color in this case.
+			if (renderingTop)
+			{
+				Tooltips.currentColors = new TooltipColors(Tooltips.currentColors.backgroundColorStart(), Tooltips.currentColors.backgroundColorEnd(), color, Tooltips.currentColors.borderColorEnd());
+			}
+			else
+			{
+				Tooltips.currentColors = new TooltipColors(Tooltips.currentColors.backgroundColorStart(), Tooltips.currentColors.backgroundColorEnd(), Tooltips.currentColors.borderColorStart(), color);
+			}
 		}
 		else
 		{
 			// Replace the rendered colors with the ones previously stored.
-			int renderColor = horizontalLineColor.getValue();
+			int renderColor = horizontalLineColor;
 			graphics.fillGradient(x, y, x + width, y + 1, z, renderColor, renderColor);
 			info.cancel();
 		}
@@ -66,11 +80,13 @@ public class TooltipRenderUtilMixin
 		if (color != BACKGROUND_COLOR)
 		{
 			// Do default behavior so other mods that change colors can still work.
+			// Update the stored background colors in this case.
+			Tooltips.currentColors = new TooltipColors(color, color, Tooltips.currentColors.borderColorStart(), Tooltips.currentColors.borderColorEnd());
 		}
 		else
 		{
 			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + width, y + height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
+			graphics.fillGradient(x, y, x + width, y + height, z, Tooltips.currentColors.backgroundColorStart(), Tooltips.currentColors.backgroundColorEnd());
 			info.cancel();
 		}
 	}
@@ -81,11 +97,13 @@ public class TooltipRenderUtilMixin
 		if (color != BACKGROUND_COLOR)
 		{
 			// Do default behavior so other mods that change colors can still work.
+			// Update the stored background colors in this case.
+			Tooltips.currentColors = new TooltipColors(color, color, Tooltips.currentColors.borderColorStart(), Tooltips.currentColors.borderColorEnd());
 		}
 		else
 		{
 			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + 1, y + height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
+			graphics.fillGradient(x, y, x + 1, y + height, z, Tooltips.currentColors.backgroundColorStart(), Tooltips.currentColors.backgroundColorEnd());
 			info.cancel();
 		}
 	}
@@ -95,12 +113,17 @@ public class TooltipRenderUtilMixin
 	{
 		if (startColor != BORDER_COLOR_TOP || endColor != BORDER_COLOR_BOTTOM)
 		{
-			// Do default behavior so other mods that change colors can still work.
+			if (startColor != BACKGROUND_COLOR && endColor != BACKGROUND_COLOR)
+			{
+				// Do default behavior so other mods that change colors can still work.
+				// Update the stored border colors in this case.
+				Tooltips.currentColors = new TooltipColors(Tooltips.currentColors.backgroundColorStart(), Tooltips.currentColors.backgroundColorEnd(), startColor, endColor);
+			}
 		}
 		else
 		{
 			// Replace the rendered colors with the ones previously stored.
-			graphics.fillGradient(x, y, x + 1, y + height, z, Tooltips.currentColors.borderColorStart().getValue(), Tooltips.currentColors.borderColorEnd().getValue());
+			graphics.fillGradient(x, y, x + 1, y + height, z, Tooltips.currentColors.borderColorStart(), Tooltips.currentColors.borderColorEnd());
 			info.cancel();
 		}
 	}

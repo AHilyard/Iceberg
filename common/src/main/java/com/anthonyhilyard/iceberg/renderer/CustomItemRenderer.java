@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.util.EntityCollector;
 import com.anthonyhilyard.iceberg.util.GuiHelper;
 import com.anthonyhilyard.iceberg.util.ItemUtil;
@@ -53,7 +54,6 @@ import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -85,6 +85,18 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
  */
 public class CustomItemRenderer extends ItemRenderer
 {
+	private static CustomItemRenderer INSTANCE = null;
+	public static CustomItemRenderer getInstance()
+	{
+		if (INSTANCE == null)
+		{
+			Minecraft minecraft = Minecraft.getInstance();
+			INSTANCE = new CustomItemRenderer(minecraft.getTextureManager(), minecraft.getModelManager(), minecraft.itemColors, minecraft.getItemRenderer().blockEntityRenderer, minecraft);
+		
+		}
+		return INSTANCE;
+	}
+
 	/* Cylindrical bounds for a model. */
 	private record ModelBounds(Vector3f center, float height, float radius) {}
 
@@ -98,6 +110,7 @@ public class CustomItemRenderer extends ItemRenderer
 	private static Pair<Item, DataComponentMap> cachedWolfArmorItem = null;
 	private static Pair<Item, DataComponentMap> cachedEntityItem = null;
 	private static Map<Pair<Item, DataComponentMap>, ModelBounds> modelBoundsCache = Maps.newHashMap();
+	private static Map<BakedModel, Boolean> testedModels = Maps.newHashMap();
 
 	private static final List<Direction> quadDirections;
 
@@ -111,16 +124,13 @@ public class CustomItemRenderer extends ItemRenderer
 	private final ModelManager modelManager;
 	private final BlockEntityWithoutLevelRenderer blockEntityRenderer;
 
+	@Deprecated(forRemoval = true, since = "1.2.12")
 	public CustomItemRenderer(TextureManager textureManagerIn, ModelManager modelManagerIn, ItemColors itemColorsIn, BlockEntityWithoutLevelRenderer blockEntityRendererIn, Minecraft mcIn)
 	{
 		super(mcIn, textureManagerIn, modelManagerIn, itemColorsIn, blockEntityRendererIn);
 		minecraft = mcIn;
 		modelManager = modelManagerIn;
 		blockEntityRenderer = blockEntityRendererIn;
-		if (minecraft.getResourceManager() instanceof ReloadableResourceManager resourceManager)
-		{
-			resourceManager.registerReloadListener(this);
-		}
 
 		// Initialize the icon framebuffer if needed.
 		if (iconFrameBuffer == null)
@@ -257,14 +267,14 @@ public class CustomItemRenderer extends ItemRenderer
 					// First render the bottom half.
 					BlockState bottomState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.LOWER);
 					BakedModel bottomModel = blockModelShaper.getBlockModel(bottomState);
-					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bottomModel, fabulous);
+					renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bottomModel, fabulous);
 
 					// Then render the top half.
 					poseStack.pushPose();
 					poseStack.translate(0.0f, 1.0f, 0.0f);
 					BlockState topState = block.defaultBlockState().setValue(BlockStateProperties.DOUBLE_BLOCK_HALF, DoubleBlockHalf.UPPER);
 					BakedModel topModel = blockModelShaper.getBlockModel(topState);
-					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, topModel, fabulous);
+					renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, topModel, fabulous);
 					poseStack.popPose();
 				}
 
@@ -284,7 +294,7 @@ public class CustomItemRenderer extends ItemRenderer
 				// If we still haven't rendered anything or this is a block entity, try rendering the block model.
 				if (blockModel != null && (bufferSourceReady.test(bufferSource) || isBlockEntity))
 				{
-					renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, blockModel, fabulous);
+					renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, blockModel, fabulous);
 				}
 			}
 
@@ -320,7 +330,7 @@ public class CustomItemRenderer extends ItemRenderer
 			// Finally, fall back to just rendering the item model.
 			if (bufferSourceReady.test(bufferSource))
 			{
-				renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel, fabulous);
+				renderBakedModelSafe(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel, fabulous);
 			}
 		}
 		else if (bufferSourceReady.test(bufferSource))
@@ -440,6 +450,29 @@ public class CustomItemRenderer extends ItemRenderer
 			{
 				renderer.render(blockEntity, minecraft.getTimer().getRealtimeDeltaTicks(), poseStack, bufferSource, packedLight, packedOverlay);
 			}
+		}
+	}
+
+	private void renderBakedModelSafe(ItemStack itemStack, ItemDisplayContext displayContext, PoseStack poseStack,
+									  MultiBufferSource bufferSource, int packedLight, int packedOverlay, BakedModel bakedModel, boolean fabulous)
+	{
+		if (!testedModels.containsKey(bakedModel))
+		{
+			try
+			{
+				renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel, fabulous);
+				testedModels.put(bakedModel, true);
+			}
+			catch (Exception e)
+			{
+				Iceberg.LOGGER.info(e);
+				// If the model failed to render, make a note of it.
+				testedModels.put(bakedModel, false);
+			}
+		}
+		else if (testedModels.get(bakedModel))
+		{
+			renderBakedModel(itemStack, displayContext, poseStack, bufferSource, packedLight, packedOverlay, bakedModel, fabulous);
 		}
 	}
 
@@ -746,7 +779,7 @@ public class CustomItemRenderer extends ItemRenderer
 		}
 	}
 
-	 @Override
+	@Override
 	public void onResourceManagerReload(ResourceManager resourceManager)
 	{
 		super.onResourceManagerReload(resourceManager);

@@ -15,4 +15,8 @@ dependencies {
 	// which get remapped to the correct annotations on each platform.
 	// Do NOT use other classes from Fabric Loader.
 	modImplementation "net.fabricmc:fabric-loader:$rootProject.fabricLoaderVersion"
+	modImplementation "curse.maven:emi-580555:6075447"
+	modImplementation "curse.maven:geckolib-388172:6027599"
+	modImplementation "curse.maven:azurelib-817423:6303718"
+	modImplementation "curse.maven:azurelib-armor-912767:6378819"
 }

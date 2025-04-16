@@ -12,24 +12,45 @@ import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
 
 public class ForgePlatformHelper implements IPlatformHelper
 {
+	private List<String> cachedModList = null;
 
 	@Override
 	public String getPlatformName() { return "Forge"; }
 
 	@Override
-	public boolean isModLoaded(String modId) { return getAllModIds().contains(modId); }
+	public boolean isModLoaded(String modId)
+	{
+		if (modId == null || modId.isEmpty())
+		{
+			return false;
+		}
+
+		if (ModList.get() != null)
+		{
+			return ModList.get().isLoaded(modId);
+		}
+		else
+		{
+			return LoadingModList.get().getModFileById(modId) != null;
+		}
+	}
 
 	@Override
 	public List<String> getAllModIds()
 	{
-		if (ModList.get() != null)
+		if (cachedModList == null)
 		{
-			return ModList.get().applyForEachModContainer(mod -> mod.getModId()).toList();
+			if (ModList.get() != null)
+			{
+				cachedModList = ModList.get().applyForEachModContainer(mod -> mod.getModId()).toList();
+			}
+			else
+			{
+				cachedModList = LoadingModList.get().getMods().stream().map(ModInfo::getModId).toList();
+			}
 		}
-		else
-		{
-			return LoadingModList.get().getMods().stream().map(ModInfo::getModId).toList();
-		}
+
+		return cachedModList;
 	}
 
 	@Override

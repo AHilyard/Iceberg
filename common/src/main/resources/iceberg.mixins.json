@@ -2,16 +2,29 @@
 	"required": true,
 	"package": "com.anthonyhilyard.iceberg.mixin",
 	"compatibilityLevel": "JAVA_17",
+	"plugin": "com.anthonyhilyard.iceberg.mixin.MixinConfig",
 	"mixins": [
 		"PlayerAdvancementsMixin",
 		"ItemMixin"
 	],
 	"client": [
+		"azurelib.AzArmorModelMixin",
+		"azurelib.GeoArmorRendererMixin",
+		"azurelib.HumanoidArmorLayerMixin",
+		"azurelib.ItemArmorGeoLayerMixin",
+		"azurelibarmor.AzArmorModelMixin",
+		"azurelibarmor.GeoArmorRendererMixin",
+		"azurelibarmor.HumanoidArmorLayerMixin",
+		"azurelibarmor.ItemArmorGeoLayerMixin",
+		"geckolib.GeoArmorRendererMixin",
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
+		"ClientTextTooltipMixin",
 		"TextColorMixin",
 		"MinecraftMixin",
 		"TooltipRenderUtilMixin",
+		"GuiMixin",
+		"GuiGraphicsInvoker",
 		"GuiGraphicsMixin"
 	],
 	"injectors": {
