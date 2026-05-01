@@ -33,7 +33,9 @@ repositories {
 
 dependencies {
 	neoForge "net.neoforged:neoforge:$rootProject.neoforgeVersion"
-	modImplementation files("../libs/sodium-neoforge-0.8.7+mc1.21.11.jar")
+	//For some reason sodium for neoforge bundles its main logic so we have to do compile only for the fabric version, to prevent errors
+	modCompileOnly files("../libs/sodium-fabric-0.8.7+mc1.21.11.jar")
+	modRuntimeOnly files("../libs/sodium-neoforge-0.8.7+mc1.21.11.jar")
 	implementation "net.bytebuddy:byte-buddy:1.14.18"
 
 	common(project(path: ':common', configuration: 'namedElements')) { transitive false }

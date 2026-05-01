@@ -50,17 +50,6 @@ public class Tooltips
 	 * 1.21.11 renders tooltips as full sprites, disabled for now.
 	 * Recommended fix is to write an entire new tooltip rendering engine.
 	 */
-	/*
-	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
-	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF));
-
-	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
-	private static ItemRenderer itemRenderer = null;
-	private static boolean tooltipWidthWarningShown = false;
-
-	public static TooltipColors currentColors = DEFAULT_COLORS;
-	public static boolean gradientBackground = false;
-	public static boolean gradientBorder = false;
 
 	public static class TitleBreakComponent implements TooltipComponent, ClientTooltipComponent
 	{
@@ -81,6 +70,19 @@ public class Tooltips
 			});
 		}
 	}
+
+	/*
+	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
+	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF));
+
+	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
+	private static ItemRenderer itemRenderer = null;
+	private static boolean tooltipWidthWarningShown = false;
+
+	public static TooltipColors currentColors = DEFAULT_COLORS;
+	public static boolean gradientBackground = false;
+	public static boolean gradientBorder = false;
+
 
 	public static interface InlineComponent { }
 

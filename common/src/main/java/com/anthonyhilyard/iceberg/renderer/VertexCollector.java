@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.renderer;
 
 import java.util.Set;
 
+import net.minecraft.client.renderer.rendertype.RenderType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.joml.Vector3f;
 
@@ -11,7 +12,6 @@ import com.google.common.collect.Sets;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 
 public class VertexCollector implements MultiBufferSource
 {
@@ -84,6 +84,12 @@ public class VertexCollector implements MultiBufferSource
 			}
 
 			@Override
+			public VertexConsumer setColor(int i) {
+				currentAlpha = (i >> 24) & 0xFF;
+				return this;
+			}
+
+			@Override
 			public VertexConsumer setUv(float u, float v) { return this; }
 
 			@Override
@@ -94,6 +100,9 @@ public class VertexCollector implements MultiBufferSource
 
 			@Override
 			public VertexConsumer setNormal(float x, float y, float z) { return this; }
+
+			@Override
+			public VertexConsumer setLineWidth(float f) { return this; }
 		};
 	}
 

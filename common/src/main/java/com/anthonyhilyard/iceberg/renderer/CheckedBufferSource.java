@@ -1,5 +1,6 @@
 package com.anthonyhilyard.iceberg.renderer;
 
+import net.minecraft.client.renderer.rendertype.RenderType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import com.anthonyhilyard.iceberg.Iceberg;
@@ -7,7 +8,6 @@ import com.anthonyhilyard.iceberg.services.Services;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 
 public class CheckedBufferSource implements MultiBufferSource
 {
@@ -73,6 +73,9 @@ public class CheckedBufferSource implements MultiBufferSource
 			public VertexConsumer setColor(int r, int g, int b, int a) { return vertexConsumer.setColor(r, g, b, a); }
 
 			@Override
+			public VertexConsumer setColor(int i) { return vertexConsumer.setColor(i); }
+
+			@Override
 			public VertexConsumer setUv(float u, float v) { return vertexConsumer.setUv(u, v); }
 
 			@Override
@@ -83,6 +86,9 @@ public class CheckedBufferSource implements MultiBufferSource
 
 			@Override
 			public VertexConsumer setNormal(float x, float y, float z) { return vertexConsumer.setNormal(x, y, z); }
+
+			@Override
+			public VertexConsumer setLineWidth(float f) { return vertexConsumer.setLineWidth(f); }
 		};
 
 		return vertexConsumerWrap;
