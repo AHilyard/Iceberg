@@ -11,13 +11,13 @@ import com.anthonyhilyard.iceberg.util.Tooltips;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @Mixin(TooltipRenderUtil.class)
 public class TooltipRenderUtilMixin
 {
-	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/ResourceLocation;IIII)V", ordinal = 0))
-	private static void icebergRenderBackground(GuiGraphics instance, Function<ResourceLocation, RenderType> renderTypeLookup, ResourceLocation sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
+	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/Identifier;IIII)V", ordinal = 0))
+	private static void icebergRenderBackground(GuiGraphics instance, Function<Identifier, RenderType> renderTypeLookup, Identifier sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
 	{
 		if (Tooltips.gradientBackground)
 		{
@@ -32,8 +32,8 @@ public class TooltipRenderUtilMixin
 		}
 	}
 
-	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/ResourceLocation;IIII)V", ordinal = 1))
-	private static void icebergRenderBorder(GuiGraphics instance, Function<ResourceLocation, RenderType> renderTypeLookup, ResourceLocation sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
+	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/Identifier;IIII)V", ordinal = 1))
+	private static void icebergRenderBorder(GuiGraphics instance, Function<Identifier, RenderType> renderTypeLookup, Identifier sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
 	{
 		if (Tooltips.gradientBorder)
 		{

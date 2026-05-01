@@ -6,7 +6,7 @@ import java.util.Set;
 import com.anthonyhilyard.iceberg.services.IReloadListenerRegistrar;
 import com.google.common.collect.Sets;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -17,13 +17,13 @@ public class ForgeReloadListenerRegistrar implements IReloadListenerRegistrar
 	private static Set<Supplier<PreparableReloadListener>> listenerSuppliers = Sets.newHashSet();
 
 	@Override
-	public void registerListener(PreparableReloadListener listener, ResourceLocation listenerId)
+	public void registerListener(PreparableReloadListener listener, Identifier listenerId)
 	{
 		listeners.add(listener);
 	}
 
 	@Override
-	public void registerListener(Supplier<PreparableReloadListener> listener, ResourceLocation listenerId)
+	public void registerListener(Supplier<PreparableReloadListener> listener, Identifier listenerId)
 	{
 		listenerSuppliers.add(listener);
 	}

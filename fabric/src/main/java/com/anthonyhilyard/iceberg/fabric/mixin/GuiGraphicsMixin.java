@@ -30,7 +30,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -49,7 +49,7 @@ public class GuiGraphicsMixin
 	private Vector2ic storedPostPos;
 
 	@Shadow
-	private void renderTooltipInternal(Font font, List<ClientTooltipComponent> list, int i, int j, ClientTooltipPositioner clientTooltipPositioner, ResourceLocation resource) {}
+	private void renderTooltipInternal(Font font, List<ClientTooltipComponent> list, int i, int j, ClientTooltipPositioner clientTooltipPositioner, Identifier resource) {}
 
 	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "HEAD"))
 	protected void renderTooltipHead(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
@@ -63,10 +63,10 @@ public class GuiGraphicsMixin
 		icebergTooltipStack = ItemStack.EMPTY;
 	}
 
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/resources/ResourceLocation;)V",
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltipInternal(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/ResourceLocation;)V",
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/resources/Identifier;)V",
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltipInternal(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V",
 			shift = Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
-	public void renderTooltip(Font font, List<Component> textComponents, Optional<TooltipComponent> itemComponent, int x, int y, ResourceLocation resource, CallbackInfo info, List<ClientTooltipComponent> components)
+	public void renderTooltip(Font font, List<Component> textComponents, Optional<TooltipComponent> itemComponent, int x, int y, Identifier resource, CallbackInfo info, List<ClientTooltipComponent> components)
 	{
 		Screen currentScreen = minecraft.screen;
 
@@ -104,7 +104,7 @@ public class GuiGraphicsMixin
 	private int xChange = 0, yChange = 0;
 
 	@Inject(method = "renderTooltipInternal", at = @At(value = "HEAD"), cancellable = true)
-	private void preRenderTooltipInternal(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info)
+	private void preRenderTooltipInternal(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
 		Screen currentScreen = minecraft.screen;
@@ -169,7 +169,7 @@ public class GuiGraphicsMixin
 
 	@Group(name = "storeLocals", min = 1, max = 1)
 	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE", target = "Lorg/joml/Vector2ic;x()I", shift = Shift.BEFORE, remap = false), locals = LocalCapture.CAPTURE_FAILSOFT)
-	private void storeLocals(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
+	private void storeLocals(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
 	{
 		storedTooltipWidth = tooltipWidth2;
 		storedTooltipHeight = tooltipHeight2;
@@ -177,7 +177,7 @@ public class GuiGraphicsMixin
 	}
 
 	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"))
-	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info)
+	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
 		Screen currentScreen = minecraft.screen;

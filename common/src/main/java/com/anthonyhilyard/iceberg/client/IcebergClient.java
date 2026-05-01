@@ -11,7 +11,7 @@ import com.anthonyhilyard.iceberg.util.Tooltips.TitleBreakComponent;
 import com.mojang.datafixers.util.Either;
 
 import net.minecraft.network.chat.FormattedText;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
@@ -23,7 +23,7 @@ public class IcebergClient
 		TitleBreakComponent.registerFactory();
 		RenderTooltipEvents.GATHER.register(IcebergClient::onGatherComponentsEventEnd);
 
-		Services.getReloadListenerRegistrar().registerListener(() -> CustomItemRenderer.getInstance(), ResourceLocation.fromNamespaceAndPath(Iceberg.MODID, "custom_item_renderer"));
+		Services.getReloadListenerRegistrar().registerListener(() -> CustomItemRenderer.getInstance(), Identifier.fromNamespaceAndPath(Iceberg.MODID, "custom_item_renderer"));
 	}
 
 	public static GatherResult onGatherComponentsEventEnd(ItemStack itemStack, int screenWidth, int screenHeight, List<Either<FormattedText, TooltipComponent>> tooltipElements, int maxWidth, int index)

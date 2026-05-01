@@ -33,7 +33,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -194,7 +194,7 @@ public class Tooltips
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
 										GuiGraphics graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index,
-										ResourceLocation tooltipResource, boolean gradientBackground, boolean gradientBorder)
+										Identifier tooltipResource, boolean gradientBackground, boolean gradientBorder)
 	{
 		if (info.getComponents().isEmpty())
 		{

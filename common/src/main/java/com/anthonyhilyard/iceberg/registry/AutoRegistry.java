@@ -17,7 +17,7 @@
 // import net.minecraft.world.item.Item;
 // import net.fabricmc.fabric.api.event.registry.RegistryEntryAddedCallback;
 // import net.minecraft.core.Registry;
-// import net.minecraft.resources.ResourceLocation;
+// import net.minecraft.resources.Identifier;
 // import net.minecraft.sounds.SoundEvent;
 // import net.minecraftforge.event.RegistryEvent;
 // import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -136,8 +136,8 @@
 // 		}
 
 // 		// Build the entity type.
-// 		ResourceLocation resourceLocation = new ResourceLocation(MODID, name);
-// 		EntityType<T> entityType = (EntityType<T>) builder.build(name).setRegistryName(resourceLocation);
+// 		Identifier Identifier = new Identifier(MODID, name);
+// 		EntityType<T> entityType = (EntityType<T>) builder.build(name).setRegistryName(Identifier);
 
 // 		// Add this entity type to the registered hashmap.
 // 		registeredEntityTypes.put(name, entityType);
@@ -158,8 +158,8 @@
 // 			throw new RuntimeException("AutoRegistry was not initialized with mod id!");
 // 		}
 
-// 		ResourceLocation resourceLocation = new ResourceLocation(MODID, name);
-// 		return new SoundEvent(resourceLocation).setRegistryName(resourceLocation);
+// 		Identifier Identifier = new Identifier(MODID, name);
+// 		return new SoundEvent(Identifier).setRegistryName(Identifier);
 // 	}
 
 // 	@SuppressWarnings("unchecked")
