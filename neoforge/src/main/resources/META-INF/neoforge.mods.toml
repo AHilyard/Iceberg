@@ -22,7 +22,7 @@ license="CC BY-NC-ND 4.0"
 [[dependencies.iceberg]]
 	modId="minecraft"
 	type="required"
-	versionRange="[1.21.3,)"
+	versionRange="[1.21.11]"
 	ordering="NONE"
 	side="BOTH"
 
