@@ -21,10 +21,10 @@ public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 		ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new IdentifiableResourceReloadListener()
 		{
 			@Override
-			public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier,
-					ResourceManager resourceManager, Executor executor, Executor executor2)
+			public CompletableFuture<Void> reload(SharedState sharedState,
+				  Executor executor, PreparationBarrier preparationBarrier, Executor executor2)
 			{
-				return listener.reload(preparationBarrier, resourceManager, executor, executor2);
+				return listener.reload(sharedState, executor, preparationBarrier, executor2);
 			}
 
 			@Override
@@ -41,10 +41,10 @@ public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 		ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new IdentifiableResourceReloadListener()
 		{
 			@Override
-			public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier,
-					ResourceManager resourceManager, Executor executor, Executor executor2)
+			public CompletableFuture<Void> reload(SharedState sharedState,
+				  Executor executor, PreparationBarrier preparationBarrier, Executor executor2)
 			{
-				return listener.get().reload(preparationBarrier, resourceManager, executor, executor2);
+				return listener.get().reload(sharedState, executor, preparationBarrier, executor2);
 			}
 
 			@Override
