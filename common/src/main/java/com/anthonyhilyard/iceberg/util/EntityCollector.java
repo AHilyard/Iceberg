@@ -20,17 +20,22 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ExplosionParticleInfo;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.AbortableIterationConsumer;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.util.random.WeightedList;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.TickRateManager;
+import net.minecraft.world.attribute.EnvironmentAttributeSystem;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.boss.EnderDragonPart;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.flag.FeatureFlagSet;
@@ -42,6 +47,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.RecipeAccess;
 import net.minecraft.world.level.ExplosionDamageCalculator;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
@@ -49,6 +55,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.ChunkSource;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.level.entity.LevelEntityGetter;
@@ -57,12 +64,15 @@ import net.minecraft.world.level.gameevent.GameEvent.Context;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+import net.minecraft.world.level.storage.LevelData;
+import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.WritableLevelData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.ticks.LevelTickAccess;
+import org.jspecify.annotations.Nullable;
 
 public class EntityCollector extends Level
 {
@@ -81,8 +91,7 @@ public class EntityCollector extends Level
 	protected EntityCollector(Level wrapped)
 	{
 		super(new WritableLevelData() {
-			@Override public BlockPos getSpawnPos() { return BlockPos.ZERO; }
-			@Override public float getSpawnAngle() { return 0.0f; }
+			@Override public RespawnData getRespawnData() { return RespawnData.of(wrapped.dimension(), BlockPos.ZERO, 0, 0);}
 			@Override public long getGameTime() { return 0; }
 			@Override public long getDayTime() { return 0; }
 			@Override public boolean isThundering() { return false; }
@@ -91,7 +100,7 @@ public class EntityCollector extends Level
 			@Override public boolean isHardcore() { return false; }
 			@Override public Difficulty getDifficulty() { return Difficulty.EASY; }
 			@Override public boolean isDifficultyLocked() { return false; }
-			@Override public void setSpawn(BlockPos blockPos, float f) {}
+			@Override public void setSpawn(RespawnData respawnData) {}
 		}, wrapped.dimension(), wrapped.registryAccess(), wrapped.dimensionTypeRegistration(), false, wrapped.isDebug(), 0, 0);
 		wrappedLevel = wrapped;
 
@@ -129,7 +138,8 @@ public class EntityCollector extends Level
 			{
 				EntityCollector levelWrapper = EntityCollector.of(minecraft.player.level());
 
-				Player dummyPlayer = new Player(levelWrapper, BlockPos.ZERO, 0.0f, new GameProfile(UUID.randomUUID(), "_dummy")) {
+				Player dummyPlayer = new Player(levelWrapper, new GameProfile(UUID.randomUUID(), "_dummy")) {
+					@Override public @Nullable GameType gameMode() { return GameType.DEFAULT_MODE; }
 					@Override public boolean isSpectator() { return false; }
 					@Override public boolean isCreative() { return false; }
 				};
@@ -138,7 +148,7 @@ public class EntityCollector extends Level
 
 				if (item instanceof SpawnEggItem spawnEggItem)
 				{
-					entities.add(spawnEggItem.getType(provider, dummyStack).create(levelWrapper, EntitySpawnReason.COMMAND));
+					entities.add(spawnEggItem.getType(dummyStack).create(levelWrapper, EntitySpawnReason.COMMAND));
 				}
 				else
 				{
@@ -170,9 +180,11 @@ public class EntityCollector extends Level
 					if (!customData.isEmpty())
 					{
 						// Entities collected here should be updated in case the item used a specific variant.
+						CompoundTag tag = customData.copyTag();
+						HolderLookup.Provider registries = levelWrapper.registryAccess();
 						for (Entity entity : entities)
 						{
-							customData.loadInto(entity);
+							entity.load(TagValueInput.create(ProblemReporter.DISCARDING, registries, tag));
 						}
 					}
 					else
@@ -268,7 +280,7 @@ public class EntityCollector extends Level
 	public ChunkSource getChunkSource() { return wrappedLevel.getChunkSource(); }
 
 	@Override
-	public void levelEvent(Player p_46771_, int p_46772_, BlockPos p_46773_, int p_46774_) { /* No events. */ }
+	public void levelEvent(@Nullable Entity entity, int i, BlockPos blockPos, int j) { /* No events. */ }
 
 	@Override
 	public void gameEvent(Holder<GameEvent> holder, Vec3 vec3, Context context) { /* No events. */ }
@@ -289,10 +301,10 @@ public class EntityCollector extends Level
 	public void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_) { /* No block updates. */ }
 
 	@Override
-	public void playSeededSound(Player p_262953_, double p_263004_, double p_263398_, double p_263376_, Holder<SoundEvent> p_263359_, SoundSource p_263020_, float p_263055_, float p_262914_, long p_262991_) { /* No sounds. */ }
+	public void playSeededSound(@Nullable Entity entity, double d, double e, double f, Holder<SoundEvent> holder, SoundSource soundSource, float g, float h, long l) { /* No sounds. */ }
 
 	@Override
-	public void playSeededSound(Player p_220372_, Entity p_220373_, Holder<SoundEvent> p_263500_, SoundSource p_220375_, float p_220376_, float p_220377_, long p_220378_) { /* No sounds. */ }
+	public void playSeededSound(@Nullable Entity entity, Entity entity2, Holder<SoundEvent> holder, SoundSource soundSource, float f, float g, long l) { /* No sounds. */ }
 
 	@Override
 	public String gatherChunkSourceStats() { return wrappedLevel.gatherChunkSourceStats(); }
@@ -302,12 +314,6 @@ public class EntityCollector extends Level
 
 	@Override
 	public MapItemSavedData getMapData(MapId mapId) { return wrappedLevel.getMapData(mapId); }
-
-	@Override
-	public void setMapData(MapId mapId, MapItemSavedData mapItemSavedData) { /* No map data updates. */ }
-
-	@Override
-	public MapId getFreeMapId() { return wrappedLevel.getFreeMapId(); }
 
 	@Override
 	public void destroyBlockProgress(int p_46506_, BlockPos p_46507_, int p_46508_) { /* No block updates. */ }
@@ -351,9 +357,9 @@ public class EntityCollector extends Level
 	public int getSeaLevel() { return wrappedLevel.getSeaLevel(); }
 
 	@Override
-	public void explode(Entity arg0, DamageSource arg1, ExplosionDamageCalculator arg2, double arg3, double arg4,
-			double arg5, float arg6, boolean arg7, ExplosionInteraction arg8, ParticleOptions arg9,
-			ParticleOptions arg10, Holder<SoundEvent> arg11) {}
+	public void explode(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator explosionDamageCalculator,
+						double d, double e, double f, float g, boolean bl, ExplosionInteraction explosionInteraction, ParticleOptions particleOptions,
+						ParticleOptions particleOptions2, WeightedList<ExplosionParticleInfo> weightedList, Holder<SoundEvent> holder) {}
 
 	@Override
 	public FuelValues fuelValues() { return wrappedLevel.fuelValues(); }
@@ -363,4 +369,16 @@ public class EntityCollector extends Level
 
 	@Override
 	public Collection<EnderDragonPart> dragonParts() { return wrappedLevel.dragonParts(); }
+
+	@Override
+	public EnvironmentAttributeSystem environmentAttributes() { return wrappedLevel.environmentAttributes(); }
+
+	@Override
+	public WorldBorder getWorldBorder() { return wrappedLevel.getWorldBorder(); }
+
+	@Override
+	public void setRespawnData(LevelData.RespawnData respawnData) { wrappedLevel.setRespawnData(respawnData); }
+
+	@Override
+	public LevelData.RespawnData getRespawnData() { return wrappedLevel.getRespawnData(); }
 }
