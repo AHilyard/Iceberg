@@ -33,8 +33,14 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public class GuiGraphicsMixin implements ITooltipAccess
+public class GuiGraphicsMixin// implements ITooltipAccess
 {
+	/**
+	 * //TODO tooltips
+	 * 1.21.11 renders tooltips as full sprites, disabled for now.
+	 * Recommended fix is to write an entire new tooltip rendering engine.
+	 */
+	/*
 	@Shadow
 	@Final
 	private Minecraft minecraft;
@@ -160,4 +166,5 @@ public class GuiGraphicsMixin implements ITooltipAccess
 			Tooltips.gradientBorder = false;
 		}
 	}
+	 */
 }

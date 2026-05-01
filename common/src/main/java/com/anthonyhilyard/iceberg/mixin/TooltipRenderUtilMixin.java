@@ -10,12 +10,17 @@ import com.anthonyhilyard.iceberg.util.Tooltips;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.Identifier;
 
 @Mixin(TooltipRenderUtil.class)
 public class TooltipRenderUtilMixin
 {
+	/**
+	 * //TODO tooltips
+	 * 1.21.11 renders tooltips as full sprites, disabled for now.
+	 * Recommended fix is to write an entire new tooltip rendering engine.
+	 */
+	/*
 	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/Identifier;IIII)V", ordinal = 0))
 	private static void icebergRenderBackground(GuiGraphics instance, Function<Identifier, RenderType> renderTypeLookup, Identifier sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
 	{
@@ -47,4 +52,5 @@ public class TooltipRenderUtilMixin
 			instance.blitSprite(renderTypeLookup, sprite, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
 		}
 	}
+	*/
 }

@@ -29,11 +29,16 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.event.RenderTooltipEvent;
-import net.minecraftforge.eventbus.api.Event;
 
 @Mixin(GuiGraphics.class)
 public class GuiGraphicsMixin
 {
+	/**
+	 * //TODO tooltips
+	 * 1.21.11 renders tooltips as full sprites, disabled for now.
+	 * Recommended fix is to write an entire new tooltip rendering engine.
+	 */
+	/*
 	@Shadow
 	@Final
 	private Minecraft minecraft;
@@ -98,4 +103,5 @@ public class GuiGraphicsMixin
 		xChange = 0;
 		yChange = 0;
 	}
+	 */
 }

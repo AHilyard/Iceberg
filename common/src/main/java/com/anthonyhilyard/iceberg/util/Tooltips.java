@@ -44,6 +44,13 @@ import org.jetbrains.annotations.NotNull;
 
 public class Tooltips
 {
+
+	/**
+	 * //TODO tooltips
+	 * 1.21.11 renders tooltips as full sprites, disabled for now.
+	 * Recommended fix is to write an entire new tooltip rendering engine.
+	 */
+	/*
 	public record TooltipColors(TextColor backgroundColorStart, TextColor backgroundColorEnd, TextColor borderColorStart, TextColor borderColorEnd) {}
 	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF));
 
@@ -548,4 +555,5 @@ public class Tooltips
 		}
 		return result;
 	}
+	*/
 }
