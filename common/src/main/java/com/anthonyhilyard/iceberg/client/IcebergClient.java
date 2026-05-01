@@ -23,7 +23,8 @@ public class IcebergClient
 		TitleBreakComponent.registerFactory();
 		RenderTooltipEvents.GATHER.register(IcebergClient::onGatherComponentsEventEnd);
 
-		Services.getReloadListenerRegistrar().registerListener(() -> CustomItemRenderer.getInstance(), Identifier.fromNamespaceAndPath(Iceberg.MODID, "custom_item_renderer"));
+		//TODO
+		//Services.getReloadListenerRegistrar().registerListener(() -> CustomItemRenderer.getInstance(), Identifier.fromNamespaceAndPath(Iceberg.MODID, "custom_item_renderer"));
 	}
 
 	public static GatherResult onGatherComponentsEventEnd(ItemStack itemStack, int screenWidth, int screenHeight, List<Either<FormattedText, TooltipComponent>> tooltipElements, int maxWidth, int index)

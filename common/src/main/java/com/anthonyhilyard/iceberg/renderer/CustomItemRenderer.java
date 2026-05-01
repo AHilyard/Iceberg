@@ -5,6 +5,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import com.mojang.blaze3d.platform.DestFactor;
+import com.mojang.blaze3d.platform.SourceFactor;
+import net.minecraft.world.entity.animal.equine.Horse;
+import net.minecraft.world.entity.animal.wolf.Wolf;
+import net.minecraft.world.item.*;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Quaternionf;
@@ -17,8 +22,6 @@ import com.google.common.collect.Maps;
 import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.pipeline.MainTarget;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
-import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -34,7 +37,6 @@ import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.model.ItemTransform;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -43,7 +45,6 @@ import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.client.renderer.item.ItemStackRenderState.FoilType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentMap;
@@ -53,15 +54,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.animal.Wolf;
-import net.minecraft.world.entity.animal.horse.Horse;
 import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.item.AnimalArmorItem;
-import net.minecraft.world.item.AnimalArmorItem.BodyType;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -74,8 +67,10 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
  * An extended ItemRenderer with extra functionality, such as allowing items to be rendered to a RenderTarget
  * before drawing to screen for alpha support, and allowing handheld item models to be rendered into the gui.
  */
-public class CustomItemRenderer extends ItemRenderer implements ResourceManagerReloadListener
+public class CustomItemRenderer extends ItemRenderer// implements ResourceManagerReloadListener
 {
+	//TODO
+	/*
 	private static CustomItemRenderer INSTANCE = null;
 	public static CustomItemRenderer getInstance()
 	{
@@ -88,7 +83,7 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 		return INSTANCE;
 	}
 
-	/* Cylindrical bounds for a model. */
+	// Cylindrical bounds for a model.
 	private record ModelBounds(Vector3f center, float height, float radius) {}
 
 	public static boolean swapFrameBuffer = false;
@@ -166,6 +161,7 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 		Lighting.setupFor3DItems();
 	}
 
+	private static final List<Item> horseArmor = List.of(Items.COPPER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR, Items.GOLDEN_HORSE_ARMOR,Items.DIAMOND_HORSE_ARMOR, Items.NETHERITE_HORSE_ARMOR);
 	private <T extends MultiBufferSource> void renderModelInternal(ItemStack itemStack, ItemDisplayContext displayContext, boolean leftHanded, PoseStack poseStack,
 																   T bufferSource, int packedLight, int packedOverlay, Predicate<T> bufferSourceReady)
 	{
@@ -247,22 +243,19 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 		}
 
 		// If this is animal armor, render it here.
-		if (bufferSourceReady.test(bufferSource) && itemStack.getItem() instanceof AnimalArmorItem animalArmor)
+		if (bufferSourceReady.test(bufferSource))
 		{
-			switch (animalArmor.bodyType)
-			{
-				case BodyType.EQUESTRIAN:
-					if (updateHorseArmor(itemStack))
-					{
-						renderEntityModel(horse, poseStack, bufferSource, packedLight);
-					}
-					break;
-				case BodyType.CANINE:
-					if (updateWolfArmor(itemStack))
-					{
-						renderEntityModel(wolf, poseStack, bufferSource, packedLight);
-					}
-					break;
+			if (horseArmor.contains(itemStack.getItem())) {
+				if (updateHorseArmor(itemStack))
+				{
+					renderEntityModel(horse, poseStack, bufferSource, packedLight);
+				}
+			}
+			else if (itemStack.getItem() == Items.WOLF_ARMOR) {
+				if (updateWolfArmor(itemStack))
+				{
+					renderEntityModel(wolf, poseStack, bufferSource, packedLight);
+				}
 			}
 		}
 
@@ -533,7 +526,7 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 	private boolean updateHorseArmor(ItemStack horseArmorItem)
 	{
 		// If this isn't a horse armor item, we can't render anything.
-		if (!(horseArmorItem.getItem() instanceof AnimalArmorItem animalArmor) || animalArmor.bodyType != BodyType.EQUESTRIAN)
+		if (!horseArmor.contains(horseArmorItem.getItem()))
 		{
 			return false;
 		}
@@ -565,7 +558,7 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 	private boolean updateWolfArmor(ItemStack wolfArmorItem)
 	{
 		// If this isn't a wolf armor item, we can't render anything.
-		if (!(wolfArmorItem.getItem() instanceof AnimalArmorItem animalArmor) || animalArmor.bodyType != BodyType.CANINE)
+		if (wolfArmorItem.getItem() != Items.WOLF_ARMOR)
 		{
 			return false;
 		}
@@ -725,11 +718,10 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 			// Blit from the texture we just rendered to, respecting the alpha value given.
 			RenderSystem.enableBlend();
 			RenderSystem.defaultBlendFunc();
-			RenderSystem.disableCull();
+			RenderSystem.disableCull();7
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
 
-			RenderSystem.setShaderTexture(0, iconFrameBuffer.getColorTextureId());
-			GuiHelper.blit(graphics.pose(), x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
+			GuiHelper.blit(graphics, iconFrameBuffer.getColorTextureId(), x, y, 16, 16, 0, 0, iconFrameBuffer.width, iconFrameBuffer.height, iconFrameBuffer.width, iconFrameBuffer.height);
 
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 			graphics.flush();
@@ -748,4 +740,5 @@ public class CustomItemRenderer extends ItemRenderer implements ResourceManagerR
 		// Clear the model bounds cache.
 		modelBoundsCache.clear();
 	}
+	*/
 }
