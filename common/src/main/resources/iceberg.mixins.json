@@ -13,7 +13,6 @@
 		"MinecraftMixin",
 		"TooltipRenderUtilMixin",
 		"GuiGraphicsMixin",
-		"LevelRendererMixin",
 		"LayerRenderStateMixin"
 	],
 	"injectors": {
