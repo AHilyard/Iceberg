@@ -1,40 +1,26 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import java.lang.reflect.Field;
-import java.util.List;
+import com.anthonyhilyard.iceberg.util.IGuiRenderStateAccess;
 
-import com.anthonyhilyard.iceberg.Iceberg;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
-import com.anthonyhilyard.iceberg.services.Services;
-import com.anthonyhilyard.iceberg.util.ITooltipAccess;
-import com.anthonyhilyard.iceberg.util.Tooltips;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import net.minecraft.client.gui.render.state.GuiRenderState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.At.Shift;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.network.chat.TextColor;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public class GuiGraphicsMixin// implements ITooltipAccess
+public class GuiGraphicsMixin implements IGuiRenderStateAccess// implements ITooltipAccess
 {
+	@Shadow
+	@Final
+	GuiRenderState guiRenderState;
+
+	@Override
+	public GuiRenderState getRenderState() {
+		return guiRenderState;
+	}
+
 	/**
 	 * //TODO tooltips
 	 * 1.21.11 renders tooltips as full sprites, disabled for now.
