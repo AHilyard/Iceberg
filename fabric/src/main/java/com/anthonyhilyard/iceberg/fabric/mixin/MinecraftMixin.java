@@ -9,14 +9,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import com.anthonyhilyard.iceberg.events.common.LevelEvents;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 
 @Mixin(Minecraft.class)
 public class MinecraftMixin
 {
 	@Inject(method = "setLevel", at = @At(value = "HEAD"))
-	private void levelUnloadOnSet(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo info)
+	private void levelUnloadOnSet(ClientLevel clientLevel, CallbackInfo ci)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.level != null)
@@ -25,7 +24,7 @@ public class MinecraftMixin
 		}
 	}
 
-	@Inject(method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;updateScreenAndTick(Lnet/minecraft/client/gui/screens/Screen;)V", shift = Shift.AFTER))
+	@Inject(method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;ZZ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;setScreenAndShow(Lnet/minecraft/client/gui/screens/Screen;)V", shift = Shift.AFTER))
 	private void levelUnloadOnDisconnect(CallbackInfo info)
 	{
 		Minecraft minecraft = Minecraft.getInstance();

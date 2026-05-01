@@ -16,9 +16,12 @@ public class LevelRendererMixin
 	@Inject(method = "getItemEntityTarget", at = @At(value = "HEAD"), cancellable = true)
 	public void swapItemEntityTarget(CallbackInfoReturnable<RenderTarget> callbackInfo)
 	{
+		//TODO
+		/*
 		if (CustomItemRenderer.swapFrameBuffer)
 		{
 			callbackInfo.setReturnValue(CustomItemRenderer.iconFrameBuffer);
 		}
+		 */
 	}
 }

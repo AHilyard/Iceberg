@@ -1,13 +1,5 @@
 accessWidener	v2 named
+
 accessible	field	net/minecraft/client/gui/screens/inventory/tooltip/ClientTextTooltip	text						Lnet/minecraft/util/FormattedCharSequence;
-accessible	field	net/minecraft/client/gui/screens/inventory/AbstractContainerScreen		hoveredSlot					Lnet/minecraft/world/inventory/Slot;
-accessible	field	net/minecraft/world/item/AnimalArmorItem								bodyType					Lnet/minecraft/world/item/AnimalArmorItem$BodyType;
-accessible	field	net/minecraft/client/gui/GuiGraphics									bufferSource				Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;
-accessible	method	net/minecraft/client/gui/GuiGraphics 									<init>						(Lnet/minecraft/client/Minecraft;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;)V
 accessible	method	net/minecraft/world/item/context/UseOnContext 							<init>						(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)V
 accessible	method	net/minecraft/world/item/context/UseOnContext 							<init>						(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/phys/BlockHitResult;)V
-accessible	field	net/minecraft/client/renderer/entity/ItemRenderer						resolver					Lnet/minecraft/client/renderer/item/ItemModelResolver;
-accessible	field	net/minecraft/client/renderer/entity/ItemRenderer						scratchItemStackRenderState	Lnet/minecraft/client/renderer/item/ItemStackRenderState;
-accessible	field	net/minecraft/client/renderer/item/ItemStackRenderState					layers						[Lnet/minecraft/client/renderer/item/ItemStackRenderState$LayerRenderState;
-accessible	field	net/minecraft/client/renderer/item/ItemStackRenderState					activeLayerCount			I
-accessible	class	net/minecraft/client/gui/screens/advancements/AdvancementTabType

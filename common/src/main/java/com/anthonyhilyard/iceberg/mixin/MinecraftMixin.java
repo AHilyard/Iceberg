@@ -26,9 +26,12 @@ public class MinecraftMixin
 	@Inject(method = "getMainRenderTarget", at = @At(value = "HEAD"), cancellable = true)
 	public void swapRenderTarget(CallbackInfoReturnable<RenderTarget> callbackInfo)
 	{
+		//TODO
+		/*
 		if (CustomItemRenderer.swapFrameBuffer)
 		{
 			callbackInfo.setReturnValue(CustomItemRenderer.iconFrameBuffer);
 		}
+		 */
 	}
 }
