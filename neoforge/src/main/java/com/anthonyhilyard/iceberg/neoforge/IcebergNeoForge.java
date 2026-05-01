@@ -30,21 +30,11 @@ public final class IcebergNeoForge
 	public IcebergNeoForge(IEventBus modBus)
 	{
 		// Common environment-agnostic setup.
-		NeoForge.EVENT_BUS.register(IcebergNeoForgeCommon.class);
 
-		if (FMLEnvironment.dist == Dist.CLIENT)
+		if (FMLEnvironment.getDist() == Dist.CLIENT)
 		{
 			// Client loader-agnostic setup.
 			IcebergClient.init();
-
-			NeoForge.EVENT_BUS.register(IcebergNeoForgeClient.NeoForgeEvents.class);
-			modBus.register(IcebergNeoForgeClient.ModEvents.class);
-			modBus.register(NeoForgeKeyMappingRegistrar.class);
-			modBus.register(NeoForgeReloadListenerRegistrar.class);
-		}
-		else
-		{
-			NeoForge.EVENT_BUS.register(IcebergNeoForgeServer.class);
 		}
 	}
 

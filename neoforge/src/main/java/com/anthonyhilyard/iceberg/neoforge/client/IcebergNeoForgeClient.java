@@ -11,8 +11,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item.TooltipContext;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.event.RenderTooltipEvent;
@@ -21,6 +23,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 public class IcebergNeoForgeClient
 {
+	@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
 	public static class NeoForgeEvents
 	{
 		@SubscribeEvent(priority = EventPriority.HIGH)
@@ -49,6 +52,7 @@ public class IcebergNeoForgeClient
 		}
 	}
 
+	@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
 	public static class ModEvents
 	{
 		@SubscribeEvent(priority = EventPriority.HIGH)
