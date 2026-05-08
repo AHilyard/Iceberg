@@ -14,37 +14,6 @@ import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactori
 
 public class IcebergNeoForgeClient
 {
-	/*
-	@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
-	public static class NeoForgeEvents
-	{
-		@SubscribeEvent(priority = EventPriority.HIGH)
-		public static void itemTooltipEvent(ItemTooltipEvent event)
-		{
-			Minecraft minecraft = Minecraft.getInstance();
-			ItemTooltipEvent.EVENT.invoker().onItemTooltip(event.getItemStack(), TooltipContext.of(minecraft.level), event.getFlags(), event.getToolTip());
-		}
-
-		@SubscribeEvent(priority = EventPriority.HIGH)
-		public static void tooltipPreRenderEvent(RenderTooltipEvent.Pre event)
-		{
-			PreExtResult result = RenderTooltipEvents.PREEXT.invoker().onPre(event.getItemStack(), event.getGraphics(), event.getX(), event.getY(), event.getScreenWidth(), event.getScreenHeight(), event.getFont(), event.getComponents(), event.getTooltipPositioner(), false, 0);
-			event.setFont(result.font());
-			event.setX(result.x());
-			event.setY(result.y());
-			event.setCanceled(result.result() != InteractionResult.PASS);
-		}
-
-		@SubscribeEvent(priority = EventPriority.HIGH)
-		public static void tooltipGatherEvent(RenderTooltipEvent.GatherComponents event)
-		{
-			GatherResult result = RenderTooltipEvents.GATHER.invoker().onGather(event.getItemStack(), event.getScreenWidth(), event.getScreenHeight(), event.getTooltipElements(), event.getMaxWidth(), 0);
-			event.setMaxWidth(result.maxWidth());
-			event.setCanceled(result.result() != InteractionResult.PASS);
-		}
-	}
-	 */
-
 	@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
 	public static class ModEvents
 	{

@@ -14,37 +14,6 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 public class IcebergForgeClient
 {
-	/*
-	@Mod.EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
-	public static class ForgeEvents
-	{
-		@SubscribeEvent(priority = Priority.HIGH)
-		public static void event(ItemTooltipEvent event)
-		{
-			Minecraft minecraft = Minecraft.getInstance();
-			ItemTooltipEvent.EVENT.invoker().onItemTooltip(event.getItemStack(), TooltipContext.of(minecraft.level), event.getFlags(), event.getToolTip());
-		}
-
-		@SubscribeEvent(priority = Priority.HIGH)
-		public static void tooltipPreRenderEvent(RenderTooltipEvent.Pre event)
-		{
-			PreExtResult result = RenderTooltipEvents.PREEXT.invoker().onPre(event.getItemStack(), event.getGraphics(), event.getX(), event.getY(), event.getScreenWidth(), event.getScreenHeight(), event.getFont(), event.getComponents(), event.getTooltipPositioner(), false, 0);
-			event.setFont(result.font());
-			event.setX(result.x());
-			event.setY(result.y());
-			event.setCanceled(result.result() != InteractionResult.PASS);
-		}
-
-		@SubscribeEvent(priority = Priority.HIGH)
-		public static void tooltipGatherEvent(RenderTooltipEvent.GatherComponents event)
-		{
-			GatherResult result = RenderTooltipEvents.GATHER.invoker().onGather(event.getItemStack(), event.getScreenWidth(), event.getScreenHeight(), event.getTooltipElements(), event.getMaxWidth(), 0);
-			event.setMaxWidth(result.maxWidth());
-			event.setCanceled(result.result() != InteractionResult.PASS);
-		}
-	}
-	*/
-
 	@Mod.EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 	public static class ModEvents
 	{

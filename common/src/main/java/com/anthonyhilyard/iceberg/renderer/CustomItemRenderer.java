@@ -169,7 +169,7 @@ public class CustomItemRenderer {
             }
         }
         else if (rotation != null) {
-            poseStack.scale(0.65f, 0.65f, 0.65f);
+            poseStack.scale(0.80f, 0.80f, 0.80f);
         }
 
         if (!is3D) {
