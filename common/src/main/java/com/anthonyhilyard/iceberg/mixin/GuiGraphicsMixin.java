@@ -1,156 +1,105 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import com.anthonyhilyard.iceberg.util.IGuiRenderStateAccess;
+import java.util.List;
 
-import net.minecraft.client.gui.render.state.GuiRenderState;
+import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
+import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
+
+import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public class GuiGraphicsMixin implements IGuiRenderStateAccess// implements ITooltipAccess
-{
-	@Shadow
-	@Final
-	GuiRenderState guiRenderState;
+public abstract class GuiGraphicsMixin {
 
-	@Override
-	public GuiRenderState getRenderState() {
-		return guiRenderState;
+	@Shadow @Final private Minecraft minecraft;
+	@Shadow public abstract int guiWidth();
+	@Shadow public abstract int guiHeight();
+
+	@Unique private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
+	@Unique private int xChange = 0;
+	@Unique private int yChange = 0;
+
+	@Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At("HEAD"))
+	protected void captureTooltipStack(Font font, ItemStack itemStack, int x, int y, CallbackInfo info) {
+		icebergTooltipStack = itemStack;
 	}
 
-	/**
-	 * //TODO tooltips
-	 * 1.21.11 renders tooltips as full sprites, disabled for now.
-	 * Recommended fix is to write an entire new tooltip rendering engine.
-	 */
-	/*
-	@Shadow
-	@Final
-	private Minecraft minecraft;
-
-	@Unique
-	private static Field tooltipStackField = null;
-
-	@Override
-	public void setIcebergTooltipStack(ItemStack stack)
-	{
-		if (tooltipStackField == null)
-		{
-			try
-			{
-				switch (Services.getPlatformHelper().getPlatformName())
-				{
-					case "Fabric":
-						tooltipStackField = GuiGraphics.class.getDeclaredField("icebergTooltipStack");
-					default:
-						tooltipStackField = GuiGraphics.class.getDeclaredField("tooltipStack");
-						break;
-				}
-				
-				tooltipStackField.setAccessible(true);
-			}
-			catch (Exception e)
-			{
-				Iceberg.LOGGER.debug(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		
-		try
-		{
-			tooltipStackField.set(this, stack);
-		}
-		catch (Exception e) {}
+	@Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;II)V", at = @At("HEAD"))
+	public void clearTooltipStack(Font font, Component component, int x, int y, CallbackInfo info) {
+		icebergTooltipStack = ItemStack.EMPTY;
 	}
 
-	@Override
-	public ItemStack getIcebergTooltipStack()
-	{
-		if (tooltipStackField == null)
-		{
-			try
-			{
-				switch (Services.getPlatformHelper().getPlatformName())
-				{
-					case "Fabric":
-						tooltipStackField = GuiGraphics.class.getDeclaredField("icebergTooltipStack");
-					default:
-						tooltipStackField = GuiGraphics.class.getDeclaredField("tooltipStack");
-						break;
-				}
-				
-				tooltipStackField.setAccessible(true);
-			}
-			catch (Exception e)
-			{
-				Iceberg.LOGGER.debug(ExceptionUtils.getStackTrace(e));
-			}
-		}
-
-		try
-		{
-			return (ItemStack)tooltipStackField.get(this);
-		}
-		catch (Exception e) {}
-
-		return ItemStack.EMPTY;
-	}
-
-	@Inject(method = "renderTooltipInternal",
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/inventory/tooltip/TooltipRenderUtil;renderTooltipBackground(Lnet/minecraft/client/gui/GuiGraphics;IIIIILnet/minecraft/resources/Identifier;)V",
-			ordinal = 0, shift = Shift.BEFORE))
-	private void preFillGradient(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
-	{
-		GuiGraphics self = (GuiGraphics)(Object)this;
+	@Inject(method = "setTooltipForNextFrameInternal", at = @At("HEAD"))
+	public void modifyGatheredComponents(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean bl, CallbackInfo info) {
 		Screen currentScreen = minecraft.screen;
-		ItemStack containerStack = ItemStack.EMPTY;
-		if (currentScreen != null && currentScreen instanceof AbstractContainerScreen<?> containerScreen)
-		{
-			Slot hoveredSlot = containerScreen.hoveredSlot;
-			if (hoveredSlot != null)
-			{
-				containerStack = hoveredSlot.getItem();
-			}
-		}
-
-		if (containerStack.isEmpty())
-		{
-			containerStack = getIcebergTooltipStack();
-		}
-
-		if (!containerStack.isEmpty())
-		{
-			int backgroundStart = Tooltips.DEFAULT_COLORS.backgroundColorStart().getValue();
-			int backgroundEnd = Tooltips.DEFAULT_COLORS.backgroundColorEnd().getValue();
-			int borderStart = Tooltips.DEFAULT_COLORS.borderColorStart().getValue();
-			int borderEnd = Tooltips.DEFAULT_COLORS.borderColorEnd().getValue();
-			boolean gradientBackground = false;
-			boolean gradientBorder = false;
-
-			// Do colors now, sure why not.
-			ColorExtResult result = RenderTooltipEvents.COLOREXT.invoker().onColor(containerStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0, resource, gradientBackground, gradientBorder);
-			if (result != null)
-			{
-				backgroundStart = result.backgroundStart();
-				backgroundEnd = result.backgroundEnd();
-				borderStart = result.borderStart();
-				borderEnd = result.borderEnd();
-				gradientBackground = result.gradientBackground();
-				gradientBorder = result.gradientBorder();
-			}
-
-			Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(backgroundStart), TextColor.fromRgb(backgroundEnd), TextColor.fromRgb(borderStart), TextColor.fromRgb(borderEnd));
-			Tooltips.gradientBackground = gradientBackground;
-			Tooltips.gradientBorder = gradientBorder;
-		}
-		else
-		{
-			Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
-			Tooltips.gradientBackground = false;
-			Tooltips.gradientBorder = false;
+		if (currentScreen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null) {
+			if (icebergTooltipStack.isEmpty()) icebergTooltipStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
 		}
 	}
-	 */
+
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), cancellable = true)
+	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info) {
+		GuiGraphics self = (GuiGraphics)(Object)this;
+		int width = minecraft.getWindow().getGuiScaledWidth();
+		int height = minecraft.getWindow().getGuiScaledHeight();
+
+		if (minecraft.screen != null) {
+			width = minecraft.screen.width;
+			height = minecraft.screen.height;
+		}
+
+		if (!components.isEmpty() && !icebergTooltipStack.isEmpty()) {
+			PreExtResult eventResult = RenderTooltipEvents.PREEXT.invoker().onPre(icebergTooltipStack, self, x, y, width, height, font, components, positioner, false, 0);
+			if (eventResult.result() != InteractionResult.PASS) {
+				info.cancel();
+			}
+		}
+	}
+
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("TAIL"))
+	private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info) {
+		GuiGraphics self = (GuiGraphics)(Object)this;
+		ItemStack containerStack = ItemStack.EMPTY;
+
+		if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null) {
+			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
+		}
+		if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
+
+		if (!containerStack.isEmpty() && !components.isEmpty()) {
+			int tooltipWidth = 0;
+			int tooltipHeight = components.size() == 1 ? -2 : 0;
+			for (ClientTooltipComponent c : components) {
+				int w = c.getWidth(font);
+				if (w > tooltipWidth) tooltipWidth = w;
+				tooltipHeight += c.getHeight(font);
+			}
+
+			Vector2ic pos = positioner.positionTooltip(this.guiWidth(), this.guiHeight(), x, y, tooltipWidth, tooltipHeight);
+
+			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
+		}
+
+		icebergTooltipStack = ItemStack.EMPTY;
+		xChange = 0;
+		yChange = 0;
+	}
 }

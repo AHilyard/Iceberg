@@ -3,7 +3,6 @@
 	"package": "com.anthonyhilyard.iceberg.neoforge.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"GuiGraphicsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

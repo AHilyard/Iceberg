@@ -2,19 +2,11 @@ package com.anthonyhilyard.iceberg.forge.client;
 
 import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.events.client.RegisterTooltipComponentFactoryEvent;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.GatherResult;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.minecraftforge.client.event.RenderTooltipEvent;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.listener.Priority;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -22,21 +14,15 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 public class IcebergForgeClient
 {
-	//@Mod.EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
+	/*
+	@Mod.EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 	public static class ForgeEvents
 	{
-
-		/**
-		 * //TODO tooltips
-		 * 1.21.11 renders tooltips as full sprites, disabled for now.
-		 * Recommended fix is to write an entire new tooltip rendering engine.
-		 */
-		/*
 		@SubscribeEvent(priority = Priority.HIGH)
 		public static void event(ItemTooltipEvent event)
 		{
 			Minecraft minecraft = Minecraft.getInstance();
-			com.anthonyhilyard.iceberg.events.client.ItemTooltipEvent.EVENT.invoker().onItemTooltip(event.getItemStack(), TooltipContext.of(minecraft.level), event.getFlags(), event.getToolTip());
+			ItemTooltipEvent.EVENT.invoker().onItemTooltip(event.getItemStack(), TooltipContext.of(minecraft.level), event.getFlags(), event.getToolTip());
 		}
 
 		@SubscribeEvent(priority = Priority.HIGH)
@@ -56,8 +42,8 @@ public class IcebergForgeClient
 			event.setMaxWidth(result.maxWidth());
 			event.setCanceled(result.result() != InteractionResult.PASS);
 		}
-		 */
 	}
+	*/
 
 	@Mod.EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 	public static class ModEvents

@@ -2,27 +2,19 @@ package com.anthonyhilyard.iceberg.neoforge.client;
 
 import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.events.client.RegisterTooltipComponentFactoryEvent;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.GatherResult;
-import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.event.RenderTooltipEvent;
-import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
-
 
 public class IcebergNeoForgeClient
 {
+	/*
 	@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
 	public static class NeoForgeEvents
 	{
@@ -30,7 +22,7 @@ public class IcebergNeoForgeClient
 		public static void itemTooltipEvent(ItemTooltipEvent event)
 		{
 			Minecraft minecraft = Minecraft.getInstance();
-			com.anthonyhilyard.iceberg.events.client.ItemTooltipEvent.EVENT.invoker().onItemTooltip(event.getItemStack(), TooltipContext.of(minecraft.level), event.getFlags(), event.getToolTip());
+			ItemTooltipEvent.EVENT.invoker().onItemTooltip(event.getItemStack(), TooltipContext.of(minecraft.level), event.getFlags(), event.getToolTip());
 		}
 
 		@SubscribeEvent(priority = EventPriority.HIGH)
@@ -51,6 +43,7 @@ public class IcebergNeoForgeClient
 			event.setCanceled(result.result() != InteractionResult.PASS);
 		}
 	}
+	 */
 
 	@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
 	public static class ModEvents
