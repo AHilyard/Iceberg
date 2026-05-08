@@ -1,10 +1,18 @@
 package com.anthonyhilyard.iceberg.mixin;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
+import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
+import com.anthonyhilyard.iceberg.util.IGuiRenderStateAccess;
+import com.anthonyhilyard.iceberg.util.Tooltips;
 
+import net.minecraft.client.gui.render.state.GuiRenderState;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,10 +32,19 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositione
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public abstract class GuiGraphicsMixin {
+public abstract class GuiGraphicsMixin implements IGuiRenderStateAccess {
+
+	@Shadow
+	private GuiRenderState guiRenderState;
+
+	@Override
+	public GuiRenderState getRenderState() {
+		return this.guiRenderState;
+	}
 
 	@Shadow @Final private Minecraft minecraft;
 	@Shadow public abstract int guiWidth();
@@ -58,6 +75,13 @@ public abstract class GuiGraphicsMixin {
 	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), cancellable = true)
 	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info) {
 		GuiGraphics self = (GuiGraphics)(Object)this;
+
+		ItemStack containerStack = ItemStack.EMPTY;
+		if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null) {
+			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
+		}
+		if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
+
 		int width = minecraft.getWindow().getGuiScaledWidth();
 		int height = minecraft.getWindow().getGuiScaledHeight();
 
@@ -66,11 +90,48 @@ public abstract class GuiGraphicsMixin {
 			height = minecraft.screen.height;
 		}
 
-		if (!components.isEmpty() && !icebergTooltipStack.isEmpty()) {
-			PreExtResult eventResult = RenderTooltipEvents.PREEXT.invoker().onPre(icebergTooltipStack, self, x, y, width, height, font, components, positioner, false, 0);
-			if (eventResult.result() != InteractionResult.PASS) {
+		if (!containerStack.isEmpty()) {
+			// GATHER EVENT
+			Item.TooltipContext context = Item.TooltipContext.of(minecraft.level);
+			TooltipFlag flag = minecraft.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
+
+			List<Component> textComponents = containerStack.getTooltipLines(context, minecraft.player, flag);
+			Optional<TooltipComponent> itemComponent = containerStack.getTooltipImage();
+
+			List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(containerStack, textComponents, itemComponent, x, width, height, null, font, -1);
+
+			if (newComponents != null && !newComponents.isEmpty()) {
+				components.clear();
+				components.addAll(newComponents);
+			}
+
+			// COLOREXT EVENT
+			int backgroundStart = Tooltips.DEFAULT_COLORS.backgroundColorStart().getValue();
+			int backgroundEnd = Tooltips.DEFAULT_COLORS.backgroundColorEnd().getValue();
+			int borderStart = Tooltips.DEFAULT_COLORS.borderColorStart().getValue();
+			int borderEnd = Tooltips.DEFAULT_COLORS.borderColorEnd().getValue();
+
+			ColorExtResult colorResult = RenderTooltipEvents.COLOREXT.invoker().onColor(containerStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0, resource, false, false);
+
+			if (colorResult != null) {
+				Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(colorResult.backgroundStart()), TextColor.fromRgb(colorResult.backgroundEnd()), TextColor.fromRgb(colorResult.borderStart()), TextColor.fromRgb(colorResult.borderEnd()));
+				Tooltips.gradientBackground = colorResult.gradientBackground();
+				Tooltips.gradientBorder = colorResult.gradientBorder();
+			} else {
+				Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
+				Tooltips.gradientBackground = false;
+				Tooltips.gradientBorder = false;
+			}
+
+			// PREEXT EVENT
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0);
+			if (preResult.result() != InteractionResult.PASS) {
 				info.cancel();
 			}
+		} else {
+			Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
+			Tooltips.gradientBackground = false;
+			Tooltips.gradientBorder = false;
 		}
 	}
 
