@@ -7,6 +7,7 @@ import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.mixin.AbstractContainerScreenAccessor;
+import com.anthonyhilyard.iceberg.util.ITooltipAccess;
 import com.anthonyhilyard.iceberg.util.Tooltips;
 
 import net.minecraft.network.chat.TextColor;
@@ -35,7 +36,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public abstract class GuiGraphicsMixin {
+public abstract class GuiGraphicsMixin implements ITooltipAccess {
 
     @Shadow @Final private Minecraft minecraft;
     @Shadow public abstract int guiWidth();
@@ -44,6 +45,11 @@ public abstract class GuiGraphicsMixin {
     @Unique private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
     @Unique private int xChange = 0;
     @Unique private int yChange = 0;
+
+    @Override
+    public void setIcebergTooltipStack(ItemStack stack) {
+        icebergTooltipStack = stack != null ? stack : ItemStack.EMPTY;
+    }
 
     @Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At("HEAD"))
     protected void captureTooltipStack(Font font, ItemStack itemStack, int x, int y, CallbackInfo info) {
