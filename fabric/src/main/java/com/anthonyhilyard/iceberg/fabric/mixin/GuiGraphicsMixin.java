@@ -36,7 +36,8 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public abstract class GuiGraphicsMixin implements ITooltipAccess {
+public abstract class GuiGraphicsMixin implements ITooltipAccess
+{
 
     @Shadow @Final private Minecraft minecraft;
     @Shadow public abstract int guiWidth();
@@ -47,34 +48,41 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess {
     @Unique private int yChange = 0;
 
     @Override
-    public void setIcebergTooltipStack(ItemStack stack) {
+    public void setIcebergTooltipStack(ItemStack stack)
+    {
         icebergTooltipStack = stack != null ? stack : ItemStack.EMPTY;
     }
 
     @Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At("HEAD"))
-    protected void captureTooltipStack(Font font, ItemStack itemStack, int x, int y, CallbackInfo info) {
+    protected void captureTooltipStack(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
+    {
         icebergTooltipStack = itemStack;
     }
 
     @Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;II)V", at = @At("HEAD"))
-    public void clearTooltipStack(Font font, Component component, int x, int y, CallbackInfo info) {
+    public void clearTooltipStack(Font font, Component component, int x, int y, CallbackInfo info)
+    {
         icebergTooltipStack = ItemStack.EMPTY;
     }
 
     @Inject(method = "setTooltipForNextFrameInternal", at = @At("HEAD"))
-    public void modifyGatheredComponents(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean bl, CallbackInfo info) {
+    public void modifyGatheredComponents(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean bl, CallbackInfo info)
+    {
         Screen currentScreen = minecraft.screen;
-        if (currentScreen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null) {
+        if (currentScreen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+        {
             if (icebergTooltipStack.isEmpty()) icebergTooltipStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
         }
     }
 
     @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), cancellable = true)
-    private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info) {
+    private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
+    {
         GuiGraphics self = (GuiGraphics)(Object)this;
 
         ItemStack containerStack = ItemStack.EMPTY;
-        if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null) {
+        if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+        {
             containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
         }
         if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
@@ -82,12 +90,14 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess {
         int width = minecraft.getWindow().getGuiScaledWidth();
         int height = minecraft.getWindow().getGuiScaledHeight();
 
-        if (minecraft.screen != null) {
+        if (minecraft.screen != null)
+        {
             width = minecraft.screen.width;
             height = minecraft.screen.height;
         }
 
-        if (!containerStack.isEmpty()) {
+        if (!containerStack.isEmpty())
+        {
             // GATHER EVENT
             Item.TooltipContext context = Item.TooltipContext.of(minecraft.level);
             TooltipFlag flag = minecraft.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
@@ -97,7 +107,8 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess {
 
             List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(containerStack, textComponents, itemComponent, x, width, height, null, font, -1);
 
-            if (newComponents != null && !newComponents.isEmpty()) {
+            if (newComponents != null && !newComponents.isEmpty())
+            {
                 components.clear();
                 components.addAll(newComponents);
             }
@@ -110,11 +121,14 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess {
 
             ColorExtResult colorResult = RenderTooltipEvents.COLOREXT.invoker().onColor(containerStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0, resource, false, false);
 
-            if (colorResult != null) {
+            if (colorResult != null)
+            {
                 Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(colorResult.backgroundStart()), TextColor.fromRgb(colorResult.backgroundEnd()), TextColor.fromRgb(colorResult.borderStart()), TextColor.fromRgb(colorResult.borderEnd()));
                 Tooltips.gradientBackground = colorResult.gradientBackground();
                 Tooltips.gradientBorder = colorResult.gradientBorder();
-            } else {
+            }
+            else
+            {
                 Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
                 Tooltips.gradientBackground = false;
                 Tooltips.gradientBorder = false;
@@ -122,10 +136,13 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess {
 
             // PREEXT EVENT
             PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0);
-            if (preResult.result() != InteractionResult.PASS) {
+            if (preResult.result() != InteractionResult.PASS)
+            {
                 info.cancel();
             }
-        } else {
+        }
+        else
+        {
             Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
             Tooltips.gradientBackground = false;
             Tooltips.gradientBorder = false;
@@ -133,19 +150,23 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess {
     }
 
     @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("TAIL"))
-    private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info) {
+    private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
+    {
         GuiGraphics self = (GuiGraphics)(Object)this;
         ItemStack containerStack = ItemStack.EMPTY;
 
-        if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null) {
+        if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+        {
             containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
         }
         if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
 
-        if (!containerStack.isEmpty() && !components.isEmpty()) {
+        if (!containerStack.isEmpty() && !components.isEmpty())
+        {
             int tooltipWidth = 0;
             int tooltipHeight = components.size() == 1 ? -2 : 0;
-            for (ClientTooltipComponent c : components) {
+            for (ClientTooltipComponent c : components)
+            {
                 int w = c.getWidth(font);
                 if (w > tooltipWidth) tooltipWidth = w;
                 tooltipHeight += c.getHeight(font);

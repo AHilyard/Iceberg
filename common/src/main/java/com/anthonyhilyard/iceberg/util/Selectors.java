@@ -31,7 +31,8 @@ public class Selectors
 		put("epic", Rarity.EPIC);
 	}};
 	
-	private static String getTagAsString(Tag tag) {
+	private static String getTagAsString(Tag tag)
+	{
 		if (tag instanceof StringTag cast) return cast.toString();
 		if (tag instanceof ByteTag cast) return cast.toString();
 		if (tag instanceof ShortTag cast) return cast.toString();
@@ -42,7 +43,8 @@ public class Selectors
 		return "";
 	}
 
-	private static double getNumericTagAsDouble(NumericTag tag) {
+	private static double getNumericTagAsDouble(NumericTag tag)
+	{
 		if (tag instanceof ByteTag cast) return cast.doubleValue();
 		if (tag instanceof ShortTag cast) return cast.doubleValue();
 		if (tag instanceof IntTag cast) return cast.doubleValue();

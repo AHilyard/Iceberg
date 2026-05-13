@@ -8,13 +8,15 @@ import org.spongepowered.asm.mixin.Shadow;
 import net.minecraft.client.gui.GuiGraphics;
 
 @Mixin(GuiGraphics.class)
-public abstract class GuiGraphicsMixin implements IGuiRenderStateAccess {
+public abstract class GuiGraphicsMixin implements IGuiRenderStateAccess
+{
 
 	@Shadow
 	private GuiRenderState guiRenderState;
 
 	@Override
-	public GuiRenderState getRenderState() {
+	public GuiRenderState getRenderState()
+	{
 		return this.guiRenderState;
 	}
 }

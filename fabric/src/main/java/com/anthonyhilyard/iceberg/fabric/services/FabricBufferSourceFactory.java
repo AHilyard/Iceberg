@@ -100,7 +100,8 @@ public class FabricBufferSourceFactory implements IBufferSourceFactory
 					}
 
 					@Override
-					public VertexConsumer setColor(int i) {
+					public VertexConsumer setColor(int i)
+					{
 						currentAlpha = (i >> 24) & 0xFF;
 						return this;
 					}
