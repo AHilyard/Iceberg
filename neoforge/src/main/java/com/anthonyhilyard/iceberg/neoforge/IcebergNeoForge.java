@@ -7,12 +7,8 @@ import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.client.IcebergClient;
 import com.anthonyhilyard.iceberg.config.IIcebergConfigSpec;
 import com.anthonyhilyard.iceberg.config.IcebergConfig;
-import com.anthonyhilyard.iceberg.neoforge.client.IcebergNeoForgeClient;
-import com.anthonyhilyard.iceberg.neoforge.common.IcebergNeoForgeCommon;
+import com.anthonyhilyard.iceberg.events.common.ConfigEvents;
 import com.anthonyhilyard.iceberg.neoforge.config.NeoForgeIcebergConfigSpec;
-import com.anthonyhilyard.iceberg.neoforge.server.IcebergNeoForgeServer;
-import com.anthonyhilyard.iceberg.neoforge.services.NeoForgeKeyMappingRegistrar;
-import com.anthonyhilyard.iceberg.neoforge.services.NeoForgeReloadListenerRegistrar;
 import com.electronwill.nightconfig.core.Config;
 
 import net.neoforged.api.distmarker.Dist;
@@ -22,7 +18,6 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.common.NeoForge;
 
 @Mod(Iceberg.MODID)
 public final class IcebergNeoForge
@@ -47,7 +42,22 @@ public final class IcebergNeoForge
 		if (container.isPresent())
 		{
 			Config.setInsertionOrderPreserved(true);
-			container.get().registerConfig(ModConfig.Type.COMMON, (NeoForgeIcebergConfigSpec)spec, String.format(Locale.ROOT, "%s.toml", modid));
+
+			ModContainer targetContainer = container.get();
+			targetContainer.registerConfig(ModConfig.Type.COMMON, (NeoForgeIcebergConfigSpec)spec, String.format(Locale.ROOT, "%s.toml", modid));
+
+			IEventBus targetBus = targetContainer.getEventBus();
+
+			if (targetBus != null)
+			{
+				targetBus.addListener((net.neoforged.fml.event.config.ModConfigEvent.Loading event) -> {
+					ConfigEvents.LOAD.invoker().onLoad(event.getConfig().getModId());
+				});
+
+				targetBus.addListener((net.neoforged.fml.event.config.ModConfigEvent.Reloading event) -> {
+					ConfigEvents.RELOAD.invoker().onReload(event.getConfig().getModId());
+				});
+			}
 		}
 	}
 }

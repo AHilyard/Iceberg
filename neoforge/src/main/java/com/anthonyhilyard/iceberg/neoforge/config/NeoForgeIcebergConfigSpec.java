@@ -129,9 +129,11 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 
 	public UnmodifiableConfig getValues() { return values; }
 
-	private void forEachValue(Set<? extends Entry> configValues, Consumer<ConfigValue<?>> consumer)
+	private void forEachValue(Set<? extends Entry> configEntries, Consumer<ConfigValue<?>> consumer)
 	{
-		configValues.forEach(value -> {
+		configEntries.forEach(entry -> {
+			Object value = entry.getValue();
+
 			if (value instanceof ConfigValue<?> configValue)
 			{
 				consumer.accept(configValue);
