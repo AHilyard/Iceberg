@@ -117,7 +117,7 @@ public class CustomItemRenderer
         modelViewStack.pushMatrix();
         modelViewStack.identity();
 
-        Matrix4f ortho = new Matrix4f().setOrtho(0f, 16f, 16f, 0f, 1000f, -1000f);
+        Matrix4f ortho = new Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f);
         RenderSystem.setProjectionMatrix(
                 this.projectionMatrixBuffer.getBuffer(ortho),
                 ProjectionType.ORTHOGRAPHIC
@@ -139,46 +139,7 @@ public class CustomItemRenderer
 
         if (ItemUtil.getEquipmentSlot(stack).isArmor() && render3DArmor)
         {
-            if (horseArmor.contains(stack.getItem()) && updateHorseArmor(stack))
-            {
-                poseStack.pushPose();
-                poseStack.scale(0.45f, 0.45f, 0.45f);
-                poseStack.translate(0, -0.8f, 0);
-                renderEntityModel(horse, poseStack, LightTexture.FULL_BRIGHT);
-                poseStack.popPose();
-                renderedEntity = true;
-                is3D = true;
-            }
-            else if (stack.getItem() == Items.WOLF_ARMOR && updateWolfArmor(stack))
-            {
-                poseStack.pushPose();
-                poseStack.scale(0.7f, 0.7f, 0.7f);
-                poseStack.translate(0, -0.4f, 0);
-                renderEntityModel(wolf, poseStack, LightTexture.FULL_BRIGHT);
-                poseStack.popPose();
-                renderedEntity = true;
-                is3D = true;
-            }
-            else if (updateArmorStand(stack))
-            {
-                poseStack.pushPose();
-
-                float scale = 0.5f;
-                float yOffset = -1.0f;
-                switch (ItemUtil.getEquipmentSlot(stack))
-                {
-                    case HEAD: scale = 0.85f; yOffset = -1.75f; break;
-                    case CHEST: scale = 0.65f; yOffset = -1.15f; break;
-                    case LEGS: scale = 0.7f; yOffset = -0.7f; break;
-                    case FEET: scale = 0.85f; yOffset = -0.2f; break;
-                }
-
-                poseStack.scale(scale, scale, scale);
-                poseStack.translate(0, yOffset, 0);
-                poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
-
-                renderEntityModel(armorStand, poseStack, LightTexture.FULL_BRIGHT);
-                poseStack.popPose();
+            if (render3DArmor(stack, poseStack)) {
                 renderedEntity = true;
                 is3D = true;
             }
@@ -204,8 +165,10 @@ public class CustomItemRenderer
 
         if (!is3D)
         {
+            // We must set the renderer lighting back to 3D
             minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
         }
+
         modelViewStack.popMatrix();
         RenderSystem.restoreProjectionMatrix();
         RenderSystem.outputColorTextureOverride = null;
@@ -224,6 +187,51 @@ public class CustomItemRenderer
                 color,
                 null
         ));
+    }
+
+    private boolean render3DArmor(ItemStack stack, PoseStack poseStack)
+    {
+        if (horseArmor.contains(stack.getItem()) && updateHorseArmor(stack))
+        {
+            poseStack.pushPose();
+            poseStack.scale(0.45f, 0.45f, 0.45f);
+            poseStack.translate(0, -0.8f, 0);
+            renderEntityModel(horse, poseStack, LightTexture.FULL_BRIGHT);
+            poseStack.popPose();
+            return true;
+        }
+        else if (stack.getItem() == Items.WOLF_ARMOR && updateWolfArmor(stack))
+        {
+            poseStack.pushPose();
+            poseStack.scale(0.7f, 0.7f, 0.7f);
+            poseStack.translate(0, -0.4f, 0);
+            renderEntityModel(wolf, poseStack, LightTexture.FULL_BRIGHT);
+            poseStack.popPose();
+            return true;
+        }
+        else if (updateArmorStand(stack))
+        {
+            poseStack.pushPose();
+
+            float scale = 0.5f;
+            float yOffset = -1.0f;
+            switch (ItemUtil.getEquipmentSlot(stack))
+            {
+                case HEAD: scale = 0.85f; yOffset = -1.75f; break;
+                case CHEST: scale = 0.65f; yOffset = -1.15f; break;
+                case LEGS: scale = 0.7f; yOffset = -0.7f; break;
+                case FEET: scale = 0.85f; yOffset = -0.2f; break;
+            }
+
+            poseStack.scale(scale, scale, scale);
+            poseStack.translate(0, yOffset, 0);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
+
+            renderEntityModel(armorStand, poseStack, LightTexture.FULL_BRIGHT);
+            poseStack.popPose();
+            return true;
+        }
+        return false;
     }
 
     private <T extends Entity, S extends EntityRenderState> void renderEntityModel(T entity, PoseStack poseStack, int packedLight)
