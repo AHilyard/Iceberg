@@ -339,6 +339,7 @@ public class CustomItemRenderer
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     private <T extends Entity, S extends EntityRenderState> void renderEntityModel(T entity, PoseStack poseStack, int packedLight)
     {
         EntityRenderDispatcher dispatcher = minecraft.getEntityRenderDispatcher();

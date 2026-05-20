@@ -19,7 +19,6 @@ public class TooltipRenderUtilMixin
 	{
 		if (Tooltips.gradientBackground || Tooltips.gradientBorder)
 		{
-			ci.cancel();
 
 			if (Tooltips.gradientBackground)
 			{
@@ -38,6 +37,8 @@ public class TooltipRenderUtilMixin
 						Tooltips.currentColors.borderColorEnd().getValue()
 				);
 			}
+
+			ci.cancel();
 		}
 	}
 }

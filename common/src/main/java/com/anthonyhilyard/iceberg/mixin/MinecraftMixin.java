@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 @Mixin(Minecraft.class)
 public class MinecraftMixin
 {
+	@SuppressWarnings("resource")
 	@Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V"))
 	public void runTick(boolean tickWorld, CallbackInfo callbackInfo)
 	{

@@ -6,6 +6,7 @@
 	"name": "Iceberg",
 	"description": "A library containing events, helpers, and utilities to make modding easier.",
 	"authors": [ "Grend" ],
+	"contributors": [ "Mat0u5" ],
 	"contact": {
 		"homepage": "https://anthonyhilyard.com/",
 		"sources": "https://github.com/AHilyard/Iceberg",

@@ -11,10 +11,10 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
-import net.minecraft.server.packs.resources.ResourceManager;
 
 public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 {
+	@SuppressWarnings("deprecation")
 	@Override
 	public void registerListener(PreparableReloadListener listener, Identifier listenerId)
 	{
@@ -35,6 +35,7 @@ public class FabricReloadListenerRegistrar implements IReloadListenerRegistrar
 		});
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void registerListener(Supplier<PreparableReloadListener> listener, Identifier listenerId)
 	{

@@ -320,7 +320,6 @@ public class Selectors
 			}
 
 			// Look for a tag matching the given name and value.
-			//TODO TEST
 			Tag itemTag = ItemStack.CODEC.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), item).getOrThrow();
 
 			boolean result = findMatchingSubtag(itemTag, name, value, valueChecker);
