@@ -326,6 +326,7 @@ public class CustomItemRenderer
                 case CHEST: scale = 0.65f; yOffset = -1.15f; break;
                 case LEGS: scale = 0.7f; yOffset = -0.7f; break;
                 case FEET: scale = 0.85f; yOffset = -0.2f; break;
+                default: break;
             }
 
             poseStack.scale(scale, scale, scale);

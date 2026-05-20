@@ -30,44 +30,21 @@ public class Selectors
 		put("rare", Rarity.RARE);
 		put("epic", Rarity.EPIC);
 	}};
-	
-	private static String getTagAsString(Tag tag)
-	{
-		if (tag instanceof StringTag cast) return cast.toString();
-		if (tag instanceof ByteTag cast) return cast.toString();
-		if (tag instanceof ShortTag cast) return cast.toString();
-		if (tag instanceof IntTag cast) return cast.toString();
-		if (tag instanceof LongTag cast) return cast.toString();
-		if (tag instanceof FloatTag cast) return cast.toString();
-		if (tag instanceof DoubleTag cast) return cast.toString();
-		return "";
-	}
-
-	private static double getNumericTagAsDouble(NumericTag tag)
-	{
-		if (tag instanceof ByteTag cast) return cast.doubleValue();
-		if (tag instanceof ShortTag cast) return cast.doubleValue();
-		if (tag instanceof IntTag cast) return cast.doubleValue();
-		if (tag instanceof LongTag cast) return cast.doubleValue();
-		if (tag instanceof FloatTag cast) return cast.doubleValue();
-		if (tag instanceof DoubleTag cast) return cast.doubleValue();
-		return 0;
-	}
 
 	private static Map<String, BiPredicate<Tag, String>> nbtComparators = new HashMap<String, BiPredicate<Tag, String>>() {{
 		put("=",  (tag, value) -> {
-			return getTagAsString(tag).contentEquals(value);
+			return tag.toString().contentEquals(value);
 		});
 
-		put("!=", (tag, value) -> !getTagAsString(tag).contentEquals(value));
+		put("!=", (tag, value) -> !tag.toString().contentEquals(value));
 
 		put(">",  (tag, value) -> {
 			try
 			{
 				double parsedValue = Double.valueOf(value);
-				if (tag instanceof NumericTag)
+				if (tag instanceof NumericTag numericTag)
 				{
-					return getNumericTagAsDouble((NumericTag)tag) > parsedValue;
+					return numericTag.doubleValue() > parsedValue;
 				}
 				else
 				{
@@ -84,9 +61,9 @@ public class Selectors
 			try
 			{
 				double parsedValue = Double.valueOf(value);
-				if (tag instanceof NumericTag)
+				if (tag instanceof NumericTag numericTag)
 				{
-					return getNumericTagAsDouble((NumericTag)tag) < parsedValue;
+					return numericTag.doubleValue() < parsedValue;
 				}
 				else
 				{
@@ -381,7 +358,7 @@ public class Selectors
 		{
 			try
 			{
-				tag = TagParser.parseCompoundFully(getTagAsString(tag));
+				tag = TagParser.parseCompoundFully(tag.toString());
 			}
 			catch (Exception e)
 			{
@@ -422,7 +399,7 @@ public class Selectors
 					{
 						try
 						{
-							tag = TagParser.parseCompoundFully(getTagAsString(tag));
+							tag = TagParser.parseCompoundFully(tag.toString());
 							if (findMatchingSubtag(compoundTag.get(innerKey), key, value, valueChecker))
 							{
 								return true;
