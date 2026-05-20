@@ -57,433 +57,433 @@ import java.util.OptionalInt;
 
 public class CustomItemRenderer
 {
-    private final Minecraft minecraft;
-    private RenderTarget renderTarget;
-    private final PerspectiveProjectionMatrixBuffer projectionMatrixBuffer;
-    private boolean isClosed = false;
-
-    private static ArmorStand armorStand = null;
-    private static Wolf wolf = null;
-    private static Horse horse = null;
-    private static Entity cachedSpawnEntity = null;
-
-    private static Pair<Item, DataComponentMap> cachedArmorStandItem = null;
-    private static Pair<Item, DataComponentMap> cachedHorseArmorItem = null;
-    private static Pair<Item, DataComponentMap> cachedWolfArmorItem = null;
-    private static Pair<Item, DataComponentMap> cachedEntityItem = null;
-
-    public CustomItemRenderer(Minecraft mc)
-    {
-        this.minecraft = mc;
-        this.projectionMatrixBuffer = new PerspectiveProjectionMatrixBuffer("iceberg_custom_item");
-    }
-
-    public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
-    {
-        drawAndBlit(graphics, stack, x, y, 1.0f, rotation, true);
-    }
-
-    public void renderItemModelIntoGUIWithAlpha(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha)
-    {
-        drawAndBlit(graphics, stack, x, y, alpha, null, false);
-    }
-
-    public void renderItemIntoGUI(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation)
-    {
-        drawAndBlit(graphics, stack, x, y, alpha, rotation, false);
-    }
-
-    private static final List<Item> horseArmor = List.of(Items.COPPER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR, Items.LEATHER_HORSE_ARMOR, Items.GOLDEN_HORSE_ARMOR, Items.DIAMOND_HORSE_ARMOR, Items.NETHERITE_HORSE_ARMOR);
-
-    private void drawAndBlit(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation, boolean renderEntities)
-    {
-        if (isClosed || stack.isEmpty()) return;
-
-        TrackingItemStackRenderState itemState = new TrackingItemStackRenderState();
-        minecraft.getItemModelResolver().updateForTopItem(
-                itemState, stack, ItemDisplayContext.GUI,
-                minecraft.level, minecraft.player, 0
-        );
-        if (itemState.isEmpty()) return;
-
-        int fboSize = 96;
-        if (renderTarget == null || renderTarget.width != fboSize)
-        {
-            if (renderTarget != null)
-            {
-                renderTarget.destroyBuffers();
-            }
-            renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, true);
-        }
-
-        try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                () -> "Item",
-                // 0x00000000 is a transparent black (outline).
-                renderTarget.getColorTextureView(), OptionalInt.of(0x00000000),
-                renderTarget.getDepthTextureView(), OptionalDouble.of(1.0)
-        )) {}
-
-        RenderSystem.outputColorTextureOverride = renderTarget.getColorTextureView();
-        RenderSystem.outputDepthTextureOverride = renderTarget.getDepthTextureView();
-
-        RenderSystem.backupProjectionMatrix();
-        Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushMatrix();
-        modelViewStack.identity();
-
-        Matrix4f ortho = new Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f);
-        RenderSystem.setProjectionMatrix(
-                this.projectionMatrixBuffer.getBuffer(ortho),
-                ProjectionType.ORTHOGRAPHIC
-        );
-
-        PoseStack poseStack = new PoseStack();
-        poseStack.translate(8.0, 8.0, 150.0);
-        poseStack.scale(16.0f, -16.0f, 16.0f);
-        if (rotation != null)
-        {
-            poseStack.mulPose(rotation);
-        }
-
-        boolean isSpinning = rotation != null;
-        boolean is3D = itemState.usesBlockLight() || isSpinning;
-        boolean renderedEntity = false;
-
-        MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-
-        if (renderEntities)
-        {
-            if (tryEntityRenderers(stack, poseStack, rotation, bufferSource))
-            {
-                renderedEntity = true;
-                is3D = true;
-            }
-        }
-
-        if (!renderedEntity && rotation != null)
-        {
-            poseStack.scale(0.80f, 0.80f, 0.80f);
-        }
-
-        if (!is3D)
-        {
-            minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
-        }
-
-        if (!renderedEntity)
-        {
-            SubmitNodeStorage submitNodeStorage = minecraft.gameRenderer.getSubmitNodeStorage();
-            itemState.submit(poseStack, submitNodeStorage, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
-        }
-
-        minecraft.gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
-        bufferSource.endBatch();
-
-        if (!is3D)
-        {
-            // We must set the renderer lighting back to 3D.
-            minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
-        }
-
-        modelViewStack.popMatrix();
-        RenderSystem.restoreProjectionMatrix();
-        RenderSystem.outputColorTextureOverride = null;
-        RenderSystem.outputDepthTextureOverride = null;
-
-        int color = ARGB.color((int)(alpha * 255), 255, 255, 255);
-        GpuSampler sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
-
-        ((IGuiRenderStateAccess) graphics).getRenderState().submitGuiElement(new BlitRenderState(
-                RenderPipelines.GUI_TEXTURED,
-                TextureSetup.singleTexture(renderTarget.getColorTextureView(), sampler),
-                new Matrix3x2f(graphics.pose()),
-                x, y, x + 16, y + 16,
-                0f, 1f,
-                1f, 0f,
-                color,
-                null
-        ));
-    }
-
-    private boolean tryEntityRenderers(ItemStack stack, PoseStack poseStack, Quaternionf rotation, MultiBufferSource.BufferSource bufferSource)
-    {
-        boolean renderedEntity = false;
-
-        // Renderer for armor items.
-        if (ItemUtil.getEquipmentSlot(stack).isArmor())
-        {
-            if (renderArmor(stack, poseStack))
-            {
-                renderedEntity = true;
-            }
-        }
-
-        // Renderer for items that spawn entities (spawn eggs, boats etc).
-        if (!renderedEntity && minecraft.level != null && EntityCollector.itemCreatesEntity(stack, Entity.class, minecraft.level.registryAccess()))
-        {
-            if (updateEntity(stack))
-            {
-                poseStack.pushPose();
-
-                poseStack.mulPose(Axis.XP.rotationDegrees(30.0f));
-                poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
-
-                float entityWidth  = cachedSpawnEntity.getBbWidth();
-                float entityHeight = cachedSpawnEntity.getBbHeight();
-                float maxDimension = Math.max(entityWidth, entityHeight);
-                float scale = (maxDimension != 0) ? 0.5f / maxDimension : 1;
-
-                poseStack.scale(scale, scale, scale);
-                poseStack.translate(0, -entityHeight / 2.0f, 0);
-
-                renderEntityModel(cachedSpawnEntity, poseStack, LightTexture.FULL_BRIGHT);
-                poseStack.popPose();
-                renderedEntity = true;
-            }
-        }
-
-        // Renderer for block items.
-        if (!renderedEntity && stack.getItem() instanceof BlockItem blockItem)
-        {
-            poseStack.pushPose();
-
-            poseStack.mulPose(Axis.XP.rotationDegrees(30.0f));
-            poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
-
-            BlockState blockState = blockItem.getBlock().defaultBlockState();
-
-            if (blockState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
-            {
-                // Double-blocks logic.
-                poseStack.scale(0.4f, 0.4f, 0.4f);
-                poseStack.translate(-0.5f, -1f, -0.5f);
-
-                BlockState bottomState = blockState.setValue(
-                        BlockStateProperties.DOUBLE_BLOCK_HALF,
-                        DoubleBlockHalf.LOWER);
-                minecraft.getBlockRenderer().renderSingleBlock(bottomState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-
-                poseStack.pushPose();
-                poseStack.translate(0.0f, 1.0f, 0.0f);
-                BlockState topState = blockState.setValue(
-                        BlockStateProperties.DOUBLE_BLOCK_HALF,
-                        DoubleBlockHalf.UPPER);
-                minecraft.getBlockRenderer().renderSingleBlock(topState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-                poseStack.popPose();
-            }
-            else
-            {
-                // Normal blocks logic.
-                poseStack.scale(0.5f, 0.5f, 0.5f);
-                poseStack.translate(-0.5f, -0.5f, -0.5f);
-                minecraft.getBlockRenderer().renderSingleBlock(blockState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-            }
-
-            // Renderer for block entities.
-            if (blockItem.getBlock() instanceof EntityBlock entityBlock)
-            {
-                renderBlockEntity(stack, poseStack, entityBlock, blockState);
-            }
-
-            poseStack.popPose();
-            renderedEntity = true;
-        }
-
-        return renderedEntity;
-    }
-
-    private boolean renderArmor(ItemStack stack, PoseStack poseStack)
-    {
-        if (horseArmor.contains(stack.getItem()) && updateHorseArmor(stack))
-        {
-            poseStack.pushPose();
-            poseStack.scale(0.28f, 0.28f, 0.28f);
-            poseStack.translate(0, -1.2f, 0);
-            renderEntityModel(horse, poseStack, LightTexture.FULL_BRIGHT);
-            poseStack.popPose();
-            return true;
-        }
-        else if (stack.getItem() == Items.WOLF_ARMOR && updateWolfArmor(stack))
-        {
-            poseStack.pushPose();
-            poseStack.scale(0.65f, 0.65f, 0.65f);
-            poseStack.translate(0, -0.5f, 0);
-            renderEntityModel(wolf, poseStack, LightTexture.FULL_BRIGHT);
-            poseStack.popPose();
-            return true;
-        }
-        else if (updateArmorStand(stack))
-        {
-            poseStack.pushPose();
-
-            float scale = 0.5f;
-            float yOffset = -1.0f;
-            switch (ItemUtil.getEquipmentSlot(stack))
-            {
-                case HEAD: scale = 0.85f; yOffset = -1.75f; break;
-                case CHEST: scale = 0.65f; yOffset = -1.15f; break;
-                case LEGS: scale = 0.7f; yOffset = -0.7f; break;
-                case FEET: scale = 0.85f; yOffset = -0.2f; break;
-                default: break;
-            }
-
-            poseStack.scale(scale, scale, scale);
-            poseStack.translate(0, yOffset, 0);
-            poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
-
-            renderEntityModel(armorStand, poseStack, LightTexture.FULL_BRIGHT);
-            poseStack.popPose();
-            return true;
-        }
-        return false;
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends Entity, S extends EntityRenderState> void renderEntityModel(T entity, PoseStack poseStack, int packedLight)
-    {
-        EntityRenderDispatcher dispatcher = minecraft.getEntityRenderDispatcher();
-        EntityRenderer<T, S> renderer = (EntityRenderer<T, S>) dispatcher.getRenderer(entity);
-        if (renderer == null) return;
-
-        S state = renderer.createRenderState(entity, 1.0f);
-
-        state.lightCoords = packedLight;
-
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(90.0f));
-
-        try
-        {
-            SubmitNodeCollector submitNodeCollector = minecraft.gameRenderer.getSubmitNodeStorage();
-            renderer.submit(state, poseStack, submitNodeCollector, null);
-        } catch (Exception e) {}
-
-        poseStack.popPose();
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends BlockEntity, S extends BlockEntityRenderState> boolean renderBlockEntity(ItemStack itemStack, PoseStack poseStack, EntityBlock entityBlock, BlockState blockState)
-    {
-        try
-        {
-            BlockEntity blockEntity = entityBlock.newBlockEntity(BlockPos.ZERO, blockState);
-            if (blockEntity != null)
-            {
-                blockEntity.applyComponentsFromItemStack(itemStack);
-
-                BlockEntityRenderer<T, S> renderer = (BlockEntityRenderer<T, S>) minecraft.getBlockEntityRenderDispatcher().getRenderer(blockEntity);
-
-                if (renderer != null)
-                {
-                    S state = renderer.createRenderState();
-
-                    float partialTicks = minecraft.getDeltaTracker().getGameTimeDeltaTicks();
-                    renderer.extractRenderState((T) blockEntity, state, partialTicks, net.minecraft.world.phys.Vec3.ZERO, null);
-
-                    SubmitNodeCollector submitNodeCollector = minecraft.gameRenderer.getSubmitNodeStorage();
-                    renderer.submit(state, poseStack, submitNodeCollector, null);
-
-                    return true;
-                }
-            }
-        }
-        catch (Exception e) {}
-        return false;
-    }
-
-    private Entity getEntityFromItem(ItemStack itemStack)
-    {
-        Entity collectedEntity = null;
-        List<Entity> collectedEntities = minecraft.level == null ? List.of() : EntityCollector.collectEntitiesFromItem(itemStack, minecraft.level.registryAccess());
-        if (!collectedEntities.isEmpty())
-        {
-            collectedEntity = collectedEntities.get(0);
-        }
-        return collectedEntity;
-    }
-
-    private boolean updateEntity(ItemStack itemStack)
-    {
-        Pair<Item, DataComponentMap> entityItem = Pair.of(itemStack.getItem(), itemStack.getComponents());
-        if (cachedSpawnEntity == null || cachedEntityItem == null || !cachedEntityItem.equals(entityItem))
-        {
-            cachedSpawnEntity = getEntityFromItem(itemStack);
-            cachedEntityItem = entityItem;
-        }
-        return cachedSpawnEntity != null;
-    }
-
-    private boolean updateArmorStand(ItemStack itemStack)
-    {
-        EquipmentSlot equipmentSlot = ItemUtil.getEquipmentSlot(itemStack);
-        if (!equipmentSlot.isArmor()) return false;
-
-        if (armorStand == null && minecraft.level != null)
-        {
-            armorStand = EntityType.ARMOR_STAND.create(minecraft.level, EntitySpawnReason.COMMAND);
-            if (armorStand != null) armorStand.setInvisible(true);
-        }
-        if (armorStand == null) return false;
-
-        Pair<Item, DataComponentMap> currentItem = Pair.of(itemStack.getItem(), itemStack.getComponents());
-        if (!currentItem.equals(cachedArmorStandItem))
-        {
-            for (EquipmentSlot slot : EquipmentSlot.values())
-            {
-                armorStand.setItemSlot(slot, ItemStack.EMPTY);
-            }
-            armorStand.setItemSlot(equipmentSlot, itemStack);
-            cachedArmorStandItem = currentItem;
-        }
-        return true;
-    }
-
-    private boolean updateHorseArmor(ItemStack horseArmorItem)
-    {
-        if (horse == null && minecraft.level != null)
-        {
-            horse = EntityType.HORSE.create(minecraft.level, EntitySpawnReason.COMMAND);
-            if (horse != null) horse.setInvisible(true);
-        }
-        if (horse == null) return false;
-
-        Pair<Item, DataComponentMap> currentItem = Pair.of(horseArmorItem.getItem(), horseArmorItem.getComponents());
-        if (!currentItem.equals(cachedHorseArmorItem))
-        {
-            horse.setBodyArmorItem(horseArmorItem);
-            cachedHorseArmorItem = currentItem;
-        }
-        return true;
-    }
-
-    private boolean updateWolfArmor(ItemStack wolfArmorItem)
-    {
-        if (wolf == null && minecraft.level != null)
-        {
-            wolf = EntityType.WOLF.create(minecraft.level, EntitySpawnReason.COMMAND);
-            if (wolf != null) wolf.setInvisible(true);
-        }
-        if (wolf == null) return false;
-
-        Pair<Item, DataComponentMap> currentItem = Pair.of(wolfArmorItem.getItem(), wolfArmorItem.getComponents());
-        if (!currentItem.equals(cachedWolfArmorItem))
-        {
-            wolf.setBodyArmorItem(wolfArmorItem);
-            cachedWolfArmorItem = currentItem;
-        }
-        return true;
-    }
-
-    public void close()
-    {
-        if (isClosed) return;
-        isClosed = true;
-
-        if (renderTarget != null)
-        {
-            renderTarget.destroyBuffers();
-            renderTarget = null;
-        }
-        projectionMatrixBuffer.close();
-    }
+	private final Minecraft minecraft;
+	private RenderTarget renderTarget;
+	private final PerspectiveProjectionMatrixBuffer projectionMatrixBuffer;
+	private boolean isClosed = false;
+
+	private static ArmorStand armorStand = null;
+	private static Wolf wolf = null;
+	private static Horse horse = null;
+	private static Entity cachedSpawnEntity = null;
+
+	private static Pair<Item, DataComponentMap> cachedArmorStandItem = null;
+	private static Pair<Item, DataComponentMap> cachedHorseArmorItem = null;
+	private static Pair<Item, DataComponentMap> cachedWolfArmorItem = null;
+	private static Pair<Item, DataComponentMap> cachedEntityItem = null;
+
+	public CustomItemRenderer(Minecraft mc)
+	{
+		this.minecraft = mc;
+		this.projectionMatrixBuffer = new PerspectiveProjectionMatrixBuffer("iceberg_custom_item");
+	}
+
+	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
+	{
+		drawAndBlit(graphics, stack, x, y, 1.0f, rotation, true);
+	}
+
+	public void renderItemModelIntoGUIWithAlpha(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha)
+	{
+		drawAndBlit(graphics, stack, x, y, alpha, null, false);
+	}
+
+	public void renderItemIntoGUI(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation)
+	{
+		drawAndBlit(graphics, stack, x, y, alpha, rotation, false);
+	}
+
+	private static final List<Item> horseArmor = List.of(Items.COPPER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR, Items.LEATHER_HORSE_ARMOR, Items.GOLDEN_HORSE_ARMOR, Items.DIAMOND_HORSE_ARMOR, Items.NETHERITE_HORSE_ARMOR);
+
+	private void drawAndBlit(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation, boolean renderEntities)
+	{
+		if (isClosed || stack.isEmpty()) return;
+
+		TrackingItemStackRenderState itemState = new TrackingItemStackRenderState();
+		minecraft.getItemModelResolver().updateForTopItem(
+				itemState, stack, ItemDisplayContext.GUI,
+				minecraft.level, minecraft.player, 0
+		);
+		if (itemState.isEmpty()) return;
+
+		int fboSize = 96;
+		if (renderTarget == null || renderTarget.width != fboSize)
+		{
+			if (renderTarget != null)
+			{
+				renderTarget.destroyBuffers();
+			}
+			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, true);
+		}
+
+		try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+				() -> "Item",
+				// 0x00000000 is a transparent black (outline).
+				renderTarget.getColorTextureView(), OptionalInt.of(0x00000000),
+				renderTarget.getDepthTextureView(), OptionalDouble.of(1.0)
+		)) {}
+
+		RenderSystem.outputColorTextureOverride = renderTarget.getColorTextureView();
+		RenderSystem.outputDepthTextureOverride = renderTarget.getDepthTextureView();
+
+		RenderSystem.backupProjectionMatrix();
+		Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
+		modelViewStack.pushMatrix();
+		modelViewStack.identity();
+
+		Matrix4f ortho = new Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f);
+		RenderSystem.setProjectionMatrix(
+				this.projectionMatrixBuffer.getBuffer(ortho),
+				ProjectionType.ORTHOGRAPHIC
+		);
+
+		PoseStack poseStack = new PoseStack();
+		poseStack.translate(8.0, 8.0, 150.0);
+		poseStack.scale(16.0f, -16.0f, 16.0f);
+		if (rotation != null)
+		{
+			poseStack.mulPose(rotation);
+		}
+
+		boolean isSpinning = rotation != null;
+		boolean is3D = itemState.usesBlockLight() || isSpinning;
+		boolean renderedEntity = false;
+
+		MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
+
+		if (renderEntities)
+		{
+			if (tryEntityRenderers(stack, poseStack, rotation, bufferSource))
+			{
+				renderedEntity = true;
+				is3D = true;
+			}
+		}
+
+		if (!renderedEntity && rotation != null)
+		{
+			poseStack.scale(0.80f, 0.80f, 0.80f);
+		}
+
+		if (!is3D)
+		{
+			minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
+		}
+
+		if (!renderedEntity)
+		{
+			SubmitNodeStorage submitNodeStorage = minecraft.gameRenderer.getSubmitNodeStorage();
+			itemState.submit(poseStack, submitNodeStorage, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
+		}
+
+		minecraft.gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
+		bufferSource.endBatch();
+
+		if (!is3D)
+		{
+			// We must set the renderer lighting back to 3D.
+			minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
+		}
+
+		modelViewStack.popMatrix();
+		RenderSystem.restoreProjectionMatrix();
+		RenderSystem.outputColorTextureOverride = null;
+		RenderSystem.outputDepthTextureOverride = null;
+
+		int color = ARGB.color((int)(alpha * 255), 255, 255, 255);
+		GpuSampler sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
+
+		((IGuiRenderStateAccess) graphics).getRenderState().submitGuiElement(new BlitRenderState(
+				RenderPipelines.GUI_TEXTURED,
+				TextureSetup.singleTexture(renderTarget.getColorTextureView(), sampler),
+				new Matrix3x2f(graphics.pose()),
+				x, y, x + 16, y + 16,
+				0f, 1f,
+				1f, 0f,
+				color,
+				null
+		));
+	}
+
+	private boolean tryEntityRenderers(ItemStack stack, PoseStack poseStack, Quaternionf rotation, MultiBufferSource.BufferSource bufferSource)
+	{
+		boolean renderedEntity = false;
+
+		// Renderer for armor items.
+		if (ItemUtil.getEquipmentSlot(stack).isArmor())
+		{
+			if (renderArmor(stack, poseStack))
+			{
+				renderedEntity = true;
+			}
+		}
+
+		// Renderer for items that spawn entities (spawn eggs, boats etc).
+		if (!renderedEntity && minecraft.level != null && EntityCollector.itemCreatesEntity(stack, Entity.class, minecraft.level.registryAccess()))
+		{
+			if (updateEntity(stack))
+			{
+				poseStack.pushPose();
+
+				poseStack.mulPose(Axis.XP.rotationDegrees(30.0f));
+				poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
+
+				float entityWidth  = cachedSpawnEntity.getBbWidth();
+				float entityHeight = cachedSpawnEntity.getBbHeight();
+				float maxDimension = Math.max(entityWidth, entityHeight);
+				float scale = (maxDimension != 0) ? 0.5f / maxDimension : 1;
+
+				poseStack.scale(scale, scale, scale);
+				poseStack.translate(0, -entityHeight / 2.0f, 0);
+
+				renderEntityModel(cachedSpawnEntity, poseStack, LightTexture.FULL_BRIGHT);
+				poseStack.popPose();
+				renderedEntity = true;
+			}
+		}
+
+		// Renderer for block items.
+		if (!renderedEntity && stack.getItem() instanceof BlockItem blockItem)
+		{
+			poseStack.pushPose();
+
+			poseStack.mulPose(Axis.XP.rotationDegrees(30.0f));
+			poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
+
+			BlockState blockState = blockItem.getBlock().defaultBlockState();
+
+			if (blockState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
+			{
+				// Double-blocks logic.
+				poseStack.scale(0.4f, 0.4f, 0.4f);
+				poseStack.translate(-0.5f, -1f, -0.5f);
+
+				BlockState bottomState = blockState.setValue(
+						BlockStateProperties.DOUBLE_BLOCK_HALF,
+						DoubleBlockHalf.LOWER);
+				minecraft.getBlockRenderer().renderSingleBlock(bottomState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+
+				poseStack.pushPose();
+				poseStack.translate(0.0f, 1.0f, 0.0f);
+				BlockState topState = blockState.setValue(
+						BlockStateProperties.DOUBLE_BLOCK_HALF,
+						DoubleBlockHalf.UPPER);
+				minecraft.getBlockRenderer().renderSingleBlock(topState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				poseStack.popPose();
+			}
+			else
+			{
+				// Normal blocks logic.
+				poseStack.scale(0.5f, 0.5f, 0.5f);
+				poseStack.translate(-0.5f, -0.5f, -0.5f);
+				minecraft.getBlockRenderer().renderSingleBlock(blockState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+			}
+
+			// Renderer for block entities.
+			if (blockItem.getBlock() instanceof EntityBlock entityBlock)
+			{
+				renderBlockEntity(stack, poseStack, entityBlock, blockState);
+			}
+
+			poseStack.popPose();
+			renderedEntity = true;
+		}
+
+		return renderedEntity;
+	}
+
+	private boolean renderArmor(ItemStack stack, PoseStack poseStack)
+	{
+		if (horseArmor.contains(stack.getItem()) && updateHorseArmor(stack))
+		{
+			poseStack.pushPose();
+			poseStack.scale(0.28f, 0.28f, 0.28f);
+			poseStack.translate(0, -1.2f, 0);
+			renderEntityModel(horse, poseStack, LightTexture.FULL_BRIGHT);
+			poseStack.popPose();
+			return true;
+		}
+		else if (stack.getItem() == Items.WOLF_ARMOR && updateWolfArmor(stack))
+		{
+			poseStack.pushPose();
+			poseStack.scale(0.65f, 0.65f, 0.65f);
+			poseStack.translate(0, -0.5f, 0);
+			renderEntityModel(wolf, poseStack, LightTexture.FULL_BRIGHT);
+			poseStack.popPose();
+			return true;
+		}
+		else if (updateArmorStand(stack))
+		{
+			poseStack.pushPose();
+
+			float scale = 0.5f;
+			float yOffset = -1.0f;
+			switch (ItemUtil.getEquipmentSlot(stack))
+			{
+				case HEAD: scale = 0.85f; yOffset = -1.75f; break;
+				case CHEST: scale = 0.65f; yOffset = -1.15f; break;
+				case LEGS: scale = 0.7f; yOffset = -0.7f; break;
+				case FEET: scale = 0.85f; yOffset = -0.2f; break;
+				default: break;
+			}
+
+			poseStack.scale(scale, scale, scale);
+			poseStack.translate(0, yOffset, 0);
+			poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
+
+			renderEntityModel(armorStand, poseStack, LightTexture.FULL_BRIGHT);
+			poseStack.popPose();
+			return true;
+		}
+		return false;
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T extends Entity, S extends EntityRenderState> void renderEntityModel(T entity, PoseStack poseStack, int packedLight)
+	{
+		EntityRenderDispatcher dispatcher = minecraft.getEntityRenderDispatcher();
+		EntityRenderer<T, S> renderer = (EntityRenderer<T, S>) dispatcher.getRenderer(entity);
+		if (renderer == null) return;
+
+		S state = renderer.createRenderState(entity, 1.0f);
+
+		state.lightCoords = packedLight;
+
+		poseStack.pushPose();
+		poseStack.mulPose(Axis.YP.rotationDegrees(90.0f));
+
+		try
+		{
+			SubmitNodeCollector submitNodeCollector = minecraft.gameRenderer.getSubmitNodeStorage();
+			renderer.submit(state, poseStack, submitNodeCollector, null);
+		} catch (Exception e) {}
+
+		poseStack.popPose();
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T extends BlockEntity, S extends BlockEntityRenderState> boolean renderBlockEntity(ItemStack itemStack, PoseStack poseStack, EntityBlock entityBlock, BlockState blockState)
+	{
+		try
+		{
+			BlockEntity blockEntity = entityBlock.newBlockEntity(BlockPos.ZERO, blockState);
+			if (blockEntity != null)
+			{
+				blockEntity.applyComponentsFromItemStack(itemStack);
+
+				BlockEntityRenderer<T, S> renderer = (BlockEntityRenderer<T, S>) minecraft.getBlockEntityRenderDispatcher().getRenderer(blockEntity);
+
+				if (renderer != null)
+				{
+					S state = renderer.createRenderState();
+
+					float partialTicks = minecraft.getDeltaTracker().getGameTimeDeltaTicks();
+					renderer.extractRenderState((T) blockEntity, state, partialTicks, net.minecraft.world.phys.Vec3.ZERO, null);
+
+					SubmitNodeCollector submitNodeCollector = minecraft.gameRenderer.getSubmitNodeStorage();
+					renderer.submit(state, poseStack, submitNodeCollector, null);
+
+					return true;
+				}
+			}
+		}
+		catch (Exception e) {}
+		return false;
+	}
+
+	private Entity getEntityFromItem(ItemStack itemStack)
+	{
+		Entity collectedEntity = null;
+		List<Entity> collectedEntities = minecraft.level == null ? List.of() : EntityCollector.collectEntitiesFromItem(itemStack, minecraft.level.registryAccess());
+		if (!collectedEntities.isEmpty())
+		{
+			collectedEntity = collectedEntities.get(0);
+		}
+		return collectedEntity;
+	}
+
+	private boolean updateEntity(ItemStack itemStack)
+	{
+		Pair<Item, DataComponentMap> entityItem = Pair.of(itemStack.getItem(), itemStack.getComponents());
+		if (cachedSpawnEntity == null || cachedEntityItem == null || !cachedEntityItem.equals(entityItem))
+		{
+			cachedSpawnEntity = getEntityFromItem(itemStack);
+			cachedEntityItem = entityItem;
+		}
+		return cachedSpawnEntity != null;
+	}
+
+	private boolean updateArmorStand(ItemStack itemStack)
+	{
+		EquipmentSlot equipmentSlot = ItemUtil.getEquipmentSlot(itemStack);
+		if (!equipmentSlot.isArmor()) return false;
+
+		if (armorStand == null && minecraft.level != null)
+		{
+			armorStand = EntityType.ARMOR_STAND.create(minecraft.level, EntitySpawnReason.COMMAND);
+			if (armorStand != null) armorStand.setInvisible(true);
+		}
+		if (armorStand == null) return false;
+
+		Pair<Item, DataComponentMap> currentItem = Pair.of(itemStack.getItem(), itemStack.getComponents());
+		if (!currentItem.equals(cachedArmorStandItem))
+		{
+			for (EquipmentSlot slot : EquipmentSlot.values())
+			{
+				armorStand.setItemSlot(slot, ItemStack.EMPTY);
+			}
+			armorStand.setItemSlot(equipmentSlot, itemStack);
+			cachedArmorStandItem = currentItem;
+		}
+		return true;
+	}
+
+	private boolean updateHorseArmor(ItemStack horseArmorItem)
+	{
+		if (horse == null && minecraft.level != null)
+		{
+			horse = EntityType.HORSE.create(minecraft.level, EntitySpawnReason.COMMAND);
+			if (horse != null) horse.setInvisible(true);
+		}
+		if (horse == null) return false;
+
+		Pair<Item, DataComponentMap> currentItem = Pair.of(horseArmorItem.getItem(), horseArmorItem.getComponents());
+		if (!currentItem.equals(cachedHorseArmorItem))
+		{
+			horse.setBodyArmorItem(horseArmorItem);
+			cachedHorseArmorItem = currentItem;
+		}
+		return true;
+	}
+
+	private boolean updateWolfArmor(ItemStack wolfArmorItem)
+	{
+		if (wolf == null && minecraft.level != null)
+		{
+			wolf = EntityType.WOLF.create(minecraft.level, EntitySpawnReason.COMMAND);
+			if (wolf != null) wolf.setInvisible(true);
+		}
+		if (wolf == null) return false;
+
+		Pair<Item, DataComponentMap> currentItem = Pair.of(wolfArmorItem.getItem(), wolfArmorItem.getComponents());
+		if (!currentItem.equals(cachedWolfArmorItem))
+		{
+			wolf.setBodyArmorItem(wolfArmorItem);
+			cachedWolfArmorItem = currentItem;
+		}
+		return true;
+	}
+
+	public void close()
+	{
+		if (isClosed) return;
+		isClosed = true;
+
+		if (renderTarget != null)
+		{
+			renderTarget.destroyBuffers();
+			renderTarget = null;
+		}
+		projectionMatrixBuffer.close();
+	}
 }

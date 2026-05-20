@@ -36,98 +36,98 @@ import net.minecraft.world.item.ItemStack;
 public abstract class GuiGraphicsMixin
 {
 
-    @Shadow @Final private Minecraft minecraft;
-    @Shadow public abstract int guiWidth();
-    @Shadow public abstract int guiHeight();
+	@Shadow @Final private Minecraft minecraft;
+	@Shadow public abstract int guiWidth();
+	@Shadow public abstract int guiHeight();
 
-    @ModifyVariable(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), argsOnly = true)
-    private List<ClientTooltipComponent> makeComponentsMutableForge(List<ClientTooltipComponent> components)
-    {
-        return new ArrayList<>(components);
-    }
+	@ModifyVariable(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), argsOnly = true)
+	private List<ClientTooltipComponent> makeComponentsMutableForge(List<ClientTooltipComponent> components)
+	{
+		return new ArrayList<>(components);
+	}
 
-    @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), cancellable = true)
-    private void preRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
-    {
-        GuiGraphics self = (GuiGraphics)(Object)this;
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), cancellable = true)
+	private void preRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
+	{
+		GuiGraphics self = (GuiGraphics)(Object)this;
 
-        int width = minecraft.getWindow().getGuiScaledWidth();
-        int height = minecraft.getWindow().getGuiScaledHeight();
+		int width = minecraft.getWindow().getGuiScaledWidth();
+		int height = minecraft.getWindow().getGuiScaledHeight();
 
-        if (minecraft.screen != null)
-        {
-            width = minecraft.screen.width;
-            height = minecraft.screen.height;
-        }
+		if (minecraft.screen != null)
+		{
+			width = minecraft.screen.width;
+			height = minecraft.screen.height;
+		}
 
-        if (itemStack != null && !itemStack.isEmpty())
-        {
-            Item.TooltipContext context = Item.TooltipContext.of(minecraft.level);
-            TooltipFlag flag = minecraft.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
+		if (itemStack != null && !itemStack.isEmpty())
+		{
+			Item.TooltipContext context = Item.TooltipContext.of(minecraft.level);
+			TooltipFlag flag = minecraft.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
 
-            List<Component> textComponents = itemStack.getTooltipLines(context, minecraft.player, flag);
-            Optional<TooltipComponent> itemComponent = itemStack.getTooltipImage();
+			List<Component> textComponents = itemStack.getTooltipLines(context, minecraft.player, flag);
+			Optional<TooltipComponent> itemComponent = itemStack.getTooltipImage();
 
-            List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(itemStack, textComponents, itemComponent, x, width, height, null, font, -1);
+			List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(itemStack, textComponents, itemComponent, x, width, height, null, font, -1);
 
-            if (newComponents != null && !newComponents.isEmpty())
-            {
-                components.clear();
-                components.addAll(newComponents);
-            }
+			if (newComponents != null && !newComponents.isEmpty())
+			{
+				components.clear();
+				components.addAll(newComponents);
+			}
 
-            int backgroundStart = Tooltips.DEFAULT_COLORS.backgroundColorStart().getValue();
-            int backgroundEnd = Tooltips.DEFAULT_COLORS.backgroundColorEnd().getValue();
-            int borderStart = Tooltips.DEFAULT_COLORS.borderColorStart().getValue();
-            int borderEnd = Tooltips.DEFAULT_COLORS.borderColorEnd().getValue();
+			int backgroundStart = Tooltips.DEFAULT_COLORS.backgroundColorStart().getValue();
+			int backgroundEnd = Tooltips.DEFAULT_COLORS.backgroundColorEnd().getValue();
+			int borderStart = Tooltips.DEFAULT_COLORS.borderColorStart().getValue();
+			int borderEnd = Tooltips.DEFAULT_COLORS.borderColorEnd().getValue();
 
-            ColorExtResult colorResult = RenderTooltipEvents.COLOREXT.invoker().onColor(itemStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0, resource, false, false);
+			ColorExtResult colorResult = RenderTooltipEvents.COLOREXT.invoker().onColor(itemStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0, resource, false, false);
 
-            if (colorResult != null)
-            {
-                Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(colorResult.backgroundStart()), TextColor.fromRgb(colorResult.backgroundEnd()), TextColor.fromRgb(colorResult.borderStart()), TextColor.fromRgb(colorResult.borderEnd()));
-                Tooltips.gradientBackground = colorResult.gradientBackground();
-                Tooltips.gradientBorder = colorResult.gradientBorder();
-            }
-            else
-            {
-                Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
-                Tooltips.gradientBackground = false;
-                Tooltips.gradientBorder = false;
-            }
+			if (colorResult != null)
+			{
+				Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(colorResult.backgroundStart()), TextColor.fromRgb(colorResult.backgroundEnd()), TextColor.fromRgb(colorResult.borderStart()), TextColor.fromRgb(colorResult.borderEnd()));
+				Tooltips.gradientBackground = colorResult.gradientBackground();
+				Tooltips.gradientBorder = colorResult.gradientBorder();
+			}
+			else
+			{
+				Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
+				Tooltips.gradientBackground = false;
+				Tooltips.gradientBorder = false;
+			}
 
-            PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(itemStack, self, x, y, width, height, font, components, positioner, false, 0);
-            if (preResult.result() != InteractionResult.PASS)
-            {
-                info.cancel();
-            }
-        }
-        else
-        {
-            Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
-            Tooltips.gradientBackground = false;
-            Tooltips.gradientBorder = false;
-        }
-    }
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(itemStack, self, x, y, width, height, font, components, positioner, false, 0);
+			if (preResult.result() != InteractionResult.PASS)
+			{
+				info.cancel();
+			}
+		}
+		else
+		{
+			Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
+			Tooltips.gradientBackground = false;
+			Tooltips.gradientBorder = false;
+		}
+	}
 
-    @Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("TAIL"))
-    private void postRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
-    {
-        GuiGraphics self = (GuiGraphics)(Object)this;
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("TAIL"))
+	private void postRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
+	{
+		GuiGraphics self = (GuiGraphics)(Object)this;
 
-        if (itemStack != null && !itemStack.isEmpty() && !components.isEmpty())
-        {
-            int tooltipWidth = 0;
-            int tooltipHeight = components.size() == 1 ? -2 : 0;
-            for (ClientTooltipComponent c : components)
-            {
-                int w = c.getWidth(font);
-                if (w > tooltipWidth) tooltipWidth = w;
-                tooltipHeight += c.getHeight(font);
-            }
+		if (itemStack != null && !itemStack.isEmpty() && !components.isEmpty())
+		{
+			int tooltipWidth = 0;
+			int tooltipHeight = components.size() == 1 ? -2 : 0;
+			for (ClientTooltipComponent c : components)
+			{
+				int w = c.getWidth(font);
+				if (w > tooltipWidth) tooltipWidth = w;
+				tooltipHeight += c.getHeight(font);
+			}
 
-            Vector2ic pos = positioner.positionTooltip(this.guiWidth(), this.guiHeight(), x, y, tooltipWidth, tooltipHeight);
-            RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
-        }
-    }
+			Vector2ic pos = positioner.positionTooltip(this.guiWidth(), this.guiHeight(), x, y, tooltipWidth, tooltipHeight);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
+		}
+	}
 }

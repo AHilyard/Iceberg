@@ -4,5 +4,5 @@ import net.minecraft.client.gui.render.state.GuiRenderState;
 
 public interface IGuiRenderStateAccess
 {
-    GuiRenderState getRenderState();
+	GuiRenderState getRenderState();
 }
