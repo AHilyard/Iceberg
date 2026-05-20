@@ -119,7 +119,8 @@ public class CustomItemRenderer
 
         try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                 () -> "Item",
-                renderTarget.getColorTextureView(), OptionalInt.of(0x00000000), // Transparent BLACK outline (0x00000000)
+                // 0x00000000 is a transparent black (outline).
+                renderTarget.getColorTextureView(), OptionalInt.of(0x00000000),
                 renderTarget.getDepthTextureView(), OptionalDouble.of(1.0)
         )) {}
 
@@ -178,7 +179,7 @@ public class CustomItemRenderer
 
         if (!is3D)
         {
-            // We must set the renderer lighting back to 3D
+            // We must set the renderer lighting back to 3D.
             minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
         }
 
@@ -211,7 +212,7 @@ public class CustomItemRenderer
 
         boolean renderedEntity = false;
 
-        // Armor Renderer
+        // Renderer for armor items.
         if (ItemUtil.getEquipmentSlot(stack).isArmor())
         {
             if (renderArmor(stack, poseStack))
@@ -220,7 +221,7 @@ public class CustomItemRenderer
             }
         }
 
-        // Spawn Entities (spawn eggs, boats etc)
+        // Renderer for items that spawn entities (spawn eggs, boats etc).
         if (!renderedEntity && minecraft.level != null && EntityCollector.itemCreatesEntity(stack, Entity.class, minecraft.level.registryAccess()))
         {
             if (updateEntity(stack))
@@ -244,7 +245,7 @@ public class CustomItemRenderer
             }
         }
 
-        // Block Items
+        // Renderer for block items.
         if (!renderedEntity && stack.getItem() instanceof BlockItem blockItem)
         {
             poseStack.pushPose();
@@ -254,9 +255,9 @@ public class CustomItemRenderer
 
             BlockState blockState = blockItem.getBlock().defaultBlockState();
 
-            // Double-blocks
             if (blockState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
             {
+                // Double-blocks logic.
                 poseStack.scale(0.4f, 0.4f, 0.4f);
                 poseStack.translate(-0.5f, -1f, -0.5f);
 
@@ -275,13 +276,13 @@ public class CustomItemRenderer
             }
             else
             {
-                // Normal blocks
+                // Normal blocks logic.
                 poseStack.scale(0.5f, 0.5f, 0.5f);
                 poseStack.translate(-0.5f, -0.5f, -0.5f);
                 minecraft.getBlockRenderer().renderSingleBlock(blockState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
             }
 
-            // Block Entities
+            // Renderer for block entities.
             if (blockItem.getBlock() instanceof EntityBlock entityBlock)
             {
                 renderBlockEntity(stack, poseStack, entityBlock, blockState);

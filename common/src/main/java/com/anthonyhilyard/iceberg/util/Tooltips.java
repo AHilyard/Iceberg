@@ -155,14 +155,14 @@ public class Tooltips
 
 	public static void renderGradientBackground(GuiGraphics graphics, int x, int y, int width, int height, int topColor, int bottomColor)
 	{
-		graphics.nextStratum(); // New layer
+		graphics.nextStratum();
 		graphics.fillGradient(x - 4, y - 3, x + width + 4, y + height + 3, topColor, bottomColor);
 		graphics.fillGradient(x - 3, y - 4, x + width + 3, y - 3, topColor, topColor);
 		graphics.fillGradient(x - 3, y + height + 3, x + width + 3, y + height + 4, bottomColor, bottomColor);
 	}
 	public static void renderGradientBorder(GuiGraphics graphics, int x, int y, int width, int height, int topColor, int bottomColor)
 	{
-		graphics.nextStratum(); // New layer
+		graphics.nextStratum();
 		graphics.fillGradient(x - 2, y - 3, x + width + 2, y - 2, topColor, topColor);
 		graphics.fillGradient(x - 2, y + height + 2, x + width + 2, y + height + 3, bottomColor, bottomColor);
 		graphics.fillGradient(x - 3, y - 3, x - 2, y + height + 3, topColor, bottomColor);
@@ -236,7 +236,7 @@ public class Tooltips
 
 		if (backgroundColorStart != 0 || backgroundColorEnd != 0 || borderColorStart != 0 || borderColorEnd != 0)
 		{
-			graphics.nextStratum(); // New layer
+			graphics.nextStratum();
 			TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), tooltipResource);
 		}
 
@@ -245,7 +245,7 @@ public class Tooltips
 		Tooltips.gradientBorder = false;
 
 		MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-		graphics.nextStratum(); // New layer
+		graphics.nextStratum();
 
 		int tooltipTop = rectY;
 		int titleLines = info.getTitleLines();

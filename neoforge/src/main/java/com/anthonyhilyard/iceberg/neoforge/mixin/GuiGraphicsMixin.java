@@ -72,7 +72,6 @@ public abstract class GuiGraphicsMixin
 
             if (newComponents != null && !newComponents.isEmpty())
             {
-                // Safe to clear now!
                 components.clear();
                 components.addAll(newComponents);
             }
