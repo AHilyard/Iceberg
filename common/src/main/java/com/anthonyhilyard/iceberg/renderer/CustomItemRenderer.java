@@ -61,7 +61,6 @@ public class CustomItemRenderer
     private RenderTarget renderTarget;
     private final PerspectiveProjectionMatrixBuffer projectionMatrixBuffer;
     private boolean isClosed = false;
-    public boolean renderEntities = false;
 
     private static ArmorStand armorStand = null;
     private static Wolf wolf = null;
@@ -81,22 +80,22 @@ public class CustomItemRenderer
 
     public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
     {
-        drawAndBlit(graphics, stack, x, y, 1.0f, rotation);
+        drawAndBlit(graphics, stack, x, y, 1.0f, rotation, true);
     }
 
     public void renderItemModelIntoGUIWithAlpha(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha)
     {
-        drawAndBlit(graphics, stack, x, y, alpha, null);
+        drawAndBlit(graphics, stack, x, y, alpha, null, false);
     }
 
     public void renderItemIntoGUI(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation)
     {
-        drawAndBlit(graphics, stack, x, y, alpha, rotation);
+        drawAndBlit(graphics, stack, x, y, alpha, rotation, false);
     }
 
     private static final List<Item> horseArmor = List.of(Items.COPPER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR, Items.LEATHER_HORSE_ARMOR, Items.GOLDEN_HORSE_ARMOR, Items.DIAMOND_HORSE_ARMOR, Items.NETHERITE_HORSE_ARMOR);
 
-    private void drawAndBlit(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation)
+    private void drawAndBlit(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation, boolean renderEntities)
     {
         if (isClosed || stack.isEmpty()) return;
 
@@ -152,10 +151,13 @@ public class CustomItemRenderer
 
         MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
 
-        if (tryEntityRenderers(stack, poseStack, rotation, bufferSource))
+        if (renderEntities)
         {
-            renderedEntity = true;
-            is3D = true;
+            if (tryEntityRenderers(stack, poseStack, rotation, bufferSource))
+            {
+                renderedEntity = true;
+                is3D = true;
+            }
         }
 
         if (!renderedEntity && rotation != null)
@@ -205,11 +207,6 @@ public class CustomItemRenderer
 
     private boolean tryEntityRenderers(ItemStack stack, PoseStack poseStack, Quaternionf rotation, MultiBufferSource.BufferSource bufferSource)
     {
-        if (!renderEntities)
-        {
-            return false;
-        }
-
         boolean renderedEntity = false;
 
         // Renderer for armor items.
