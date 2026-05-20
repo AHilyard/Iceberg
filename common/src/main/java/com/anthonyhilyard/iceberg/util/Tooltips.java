@@ -11,15 +11,13 @@ import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.events.client.RegisterTooltipComponentFactoryEvent;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.GatherResult;
+import com.anthonyhilyard.iceberg.mixin.GameRendererAccessor;
 import com.mojang.datafixers.util.Either;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
+import net.minecraft.client.gui.screens.inventory.tooltip.*;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.entity.ItemRenderer;
@@ -390,6 +388,105 @@ public class Tooltips
 		return eventResult.tooltipElements().stream().map(either -> either.map(text ->
 							ClientTooltipComponent.create(text instanceof Component ? ((Component) text).getVisualOrderText() : Language.getInstance().getVisualOrder(text)),
 							Tooltips::getClientComponent)).toList();
+	}
+
+	@Deprecated
+	public static Rect2i calculateRect(final ItemStack stack, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
+	{
+		return calculateRect(stack, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+	}
+
+	@Deprecated
+	public static Rect2i calculateRect(final ItemStack stack, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+	{
+		Minecraft minecraft = Minecraft.getInstance();
+		GuiGraphics graphics = new GuiGraphics(minecraft, ((GameRendererAccessor)minecraft.gameRenderer).getGuiRenderState(), mouseX, mouseY);
+		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, minWidth, centeredTitle);
+	}
+
+	@Deprecated
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
+	{
+		return calculateRect(stack, graphics, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+	}
+
+	@Deprecated
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+	{
+		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight,maxTextWidth, font, minWidth, centeredTitle);
+	}
+
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, ClientTooltipPositioner positioner, List<ClientTooltipComponent> components,
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+	{
+		Rect2i rect = new Rect2i(0, 0, 0, 0);
+		if (components == null || components.isEmpty() || stack == null)
+		{
+			return rect;
+		}
+
+		// Generate a tooltip event even though we aren't rendering anything in case event handlers are modifying the input values.
+		RenderTooltipEvents.PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, mouseX, mouseY, screenWidth, screenHeight, font, components, positioner, false, 0);
+		if (preResult.result() != InteractionResult.PASS)
+		{
+			return rect;
+		}
+
+		mouseX = preResult.x();
+		mouseY = preResult.y();
+		screenWidth = preResult.screenWidth();
+		screenHeight = preResult.screenHeight();
+		font = preResult.font();
+
+		int tooltipTextWidth = minWidth;
+		int tooltipHeight = components.size() == 1 ? -2 : 0;
+		int titleLines = calculateTitleLines(components);
+
+		if (centeredTitle)
+		{
+			// Calculate the current tooltip width prior to centering.
+			for (ClientTooltipComponent component : components)
+			{
+				int componentWidth = component.getWidth(font);
+				if (componentWidth > tooltipTextWidth)
+				{
+					tooltipTextWidth = componentWidth;
+				}
+			}
+			components = centerTitle(components, font, tooltipTextWidth, titleLines);
+		}
+
+		tooltipTextWidth = minWidth;
+
+		for (ClientTooltipComponent component : components)
+		{
+			int componentWidth = component.getWidth(font);
+			if (componentWidth > tooltipTextWidth)
+			{
+				tooltipTextWidth = componentWidth;
+			}
+
+			tooltipHeight += component.getHeight(font);
+		}
+
+		int tooltipX = mouseX + 12;
+		int tooltipY = mouseY - 12;
+		if (tooltipX + tooltipTextWidth > screenWidth)
+		{
+			tooltipX -= 28 + tooltipTextWidth;
+		}
+
+		if (tooltipY + tooltipHeight + 6 > screenHeight)
+		{
+			tooltipY = screenHeight - tooltipHeight - 6;
+		}
+
+		rect = new Rect2i(tooltipX - 2, tooltipY - 4, tooltipTextWidth, tooltipHeight);
+		return rect;
 	}
 
 	public static List<ClientTooltipComponent> centerTitle(List<ClientTooltipComponent> components, Font font, int width)

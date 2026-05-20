@@ -10,6 +10,7 @@
 		"AbstractContainerScreenAccessor",
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
+		"GameRendererAccessor",
 		"TextColorMixin",
 		"MinecraftMixin",
 		"TooltipRenderUtilMixin",
