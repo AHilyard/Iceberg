@@ -4,11 +4,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.anthonyhilyard.iceberg.events.client.RenderTickEvents;
-import com.anthonyhilyard.iceberg.renderer.CustomItemRenderer;
-import com.mojang.blaze3d.pipeline.RenderTarget;
 
 import net.minecraft.client.Minecraft;
 
@@ -16,19 +13,10 @@ import net.minecraft.client.Minecraft;
 public class MinecraftMixin
 {
 	@SuppressWarnings("resource")
-	@Inject(method = "runTick", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = { "ldc=gameRenderer" }))
+	@Inject(method = "runTick", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;push(Ljava/lang/String;)V", args = { "ldc=gameRenderer" }))
 	public void runTick(boolean tickWorld, CallbackInfo callbackInfo)
 	{
 		Minecraft instance = (Minecraft)(Object)this;
 		RenderTickEvents.START.invoker().onStart(instance.getDeltaTracker());
-	}
-
-	@Inject(method = "getMainRenderTarget", at = @At(value = "HEAD"), cancellable = true)
-	public void swapRenderTarget(CallbackInfoReturnable<RenderTarget> callbackInfo)
-	{
-		if (CustomItemRenderer.swapFrameBuffer)
-		{
-			callbackInfo.setReturnValue(CustomItemRenderer.iconFrameBuffer);
-		}
 	}
 }

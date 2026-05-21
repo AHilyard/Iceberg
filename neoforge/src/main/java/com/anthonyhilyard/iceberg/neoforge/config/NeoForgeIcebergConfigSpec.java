@@ -129,9 +129,11 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 
 	public UnmodifiableConfig getValues() { return values; }
 
-	private void forEachValue(Set<? extends Entry> configValues, Consumer<ConfigValue<?>> consumer)
+	private void forEachValue(Set<? extends Entry> configEntries, Consumer<ConfigValue<?>> consumer)
 	{
-		configValues.forEach(value -> {
+		configEntries.forEach(entry -> {
+			Object value = entry.getValue();
+
 			if (value instanceof ConfigValue<?> configValue)
 			{
 				consumer.accept(configValue);
@@ -191,14 +193,14 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 	{
 		int count = 0;
 
-		Map<String, Object> specMap = spec.entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
-		Map<String, Object> configMap = config.entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+		CommentedConfig mutableConfig = config instanceof CommentedConfig ? (CommentedConfig) config : null;
+		Map<String, Object> specMap = spec.valueMap();
 
 		for (Map.Entry<String, Object> specEntry : specMap.entrySet())
 		{
 			final String key = specEntry.getKey();
 			Object specValue = specEntry.getValue();
-			final Object configValue = configMap.get(key);
+			final Object configValue = config.getRaw(key);
 			final CorrectionAction action = configValue == null ? CorrectionAction.ADD : CorrectionAction.REPLACE;
 
 			parentPath.addLast(key);
@@ -228,15 +230,15 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 				}
 				else
 				{
-					CommentedConfig newValue = ((CommentedConfig)config).createSubConfig();
-					configMap.put(key, newValue);
+					CommentedConfig newValue = mutableConfig.createSubConfig();
+					mutableConfig.set(key, newValue);
 					listener.onCorrect(action, parentPathUnmodifiable, configValue, newValue);
 					count++;
 
 					if (specConfig instanceof MutableSubconfig)
 					{
 						// Fill out subconfig default values.
-						specConfig.valueMap().forEach((k, v) -> newValue.valueMap().put(k, v instanceof ValueSpec vSpec ? vSpec.getDefault() : v));
+						specConfig.valueMap().forEach((k, v) -> newValue.set(k, v instanceof ValueSpec vSpec ? vSpec.getDefault() : v));
 					}
 					else
 					{
@@ -252,13 +254,11 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 					{
 						commentListener.onCorrect(action, parentPathUnmodifiable, oldComment, newComment);
 					}
-
 					if (dryRun)
 					{
 						return 1;
 					}
-
-					((CommentedConfig)config).setComment(key, newComment);
+					mutableConfig.setComment(key, newComment);
 				}
 			}
 			else if (specValue instanceof ValueSpec valueSpec)
@@ -271,7 +271,7 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 					}
 
 					Object newValue = valueSpec.correct(configValue);
-					configMap.put(key, newValue);
+					mutableConfig.set(key, newValue);
 					listener.onCorrect(action, parentPathUnmodifiable, configValue, newValue);
 					count++;
 				}
@@ -287,14 +287,13 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 					{
 						return 1;
 					}
-
-					((CommentedConfig)config).setComment(key, valueSpec.getComment());
+					mutableConfig.setComment(key, valueSpec.getComment());
 				}
 			}
 			else if (spec instanceof MutableSubconfig subconfig)
 			{
 				// Check all subconfig entries.
-				if (configMap.containsKey(key))
+				if (config.contains(key))
 				{
 					if (!subconfig.keyValidator().test(key))
 					{
@@ -303,18 +302,17 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 							return 1;
 						}
 						listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, key, null);
-						configMap.remove(key);
+						mutableConfig.remove(key);
 						count++;
 					}
-
-					if (!subconfig.valueValidator().test(configMap.get(key)))
+					else if (!subconfig.valueValidator().test(config.getRaw(key)))
 					{
 						if (dryRun)
 						{
 							return 1;
 						}
-						listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, configMap.get(key), null);
-						configMap.remove(key);
+						listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, config.getRaw(key), null);
+						mutableConfig.remove(key);
 						count++;
 					}
 				}
@@ -324,25 +322,28 @@ public class NeoForgeIcebergConfigSpec implements IConfigSpec, IIcebergConfigSpe
 		}
 
 		// Now remove any config values that are not explicitly set in the spec.
-		for (Iterator<Map.Entry<String, Object>> iterator = configMap.entrySet().iterator(); iterator.hasNext();)
+		List<String> keysToRemove = new java.util.ArrayList<>();
+		for (String configKey : config.valueMap().keySet())
 		{
-			Map.Entry<String, Object> entry = iterator.next();
-
 			// If the spec is a dynamic subconfig, don't bother checking the spec since that's the point.
-			if (!(spec instanceof MutableSubconfig) && !specMap.containsKey(entry.getKey()))
+			if (!(spec instanceof MutableSubconfig) && !specMap.containsKey(configKey))
 			{
-				if (dryRun)
-				{
-					return 1;
-				}
-
-				iterator.remove();
-				parentPath.addLast(entry.getKey());
-				listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, entry.getValue(), null);
-				parentPath.removeLast();
-				count++;
+				keysToRemove.add(configKey);
 			}
 		}
+
+		for (String configKey : keysToRemove)
+		{
+			if (dryRun) {
+				return 1;
+			}
+			parentPath.addLast(configKey);
+			listener.onCorrect(CorrectionAction.REMOVE, parentPathUnmodifiable, config.getRaw(configKey), null);
+			mutableConfig.remove(configKey);
+			parentPath.removeLast();
+			count++;
+		}
+
 		return count;
 	}
 

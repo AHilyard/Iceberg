@@ -11,7 +11,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
@@ -42,7 +42,7 @@ public class DynamicResourcePack implements PackResources
 		dynamicResourceMap.clear();
 	}
 
-	public boolean removeResource(PackType type, ResourceLocation location)
+	public boolean removeResource(PackType type, Identifier location)
 	{
 		DynamicResourceKey key = new DynamicResourceKey(type.getDirectory(), location.getNamespace(), location.getPath());
 		if (dynamicResourceMap.containsKey(key))
@@ -56,7 +56,7 @@ public class DynamicResourcePack implements PackResources
 		}
 	}
 
-	public boolean registerResource(PackType type, ResourceLocation location, IoSupplier<InputStream> resourceSupplier)
+	public boolean registerResource(PackType type, Identifier location, IoSupplier<InputStream> resourceSupplier)
 	{
 		return register(type.getDirectory(), location.getNamespace(), location.getPath(), resourceSupplier);
 	}
@@ -93,7 +93,7 @@ public class DynamicResourcePack implements PackResources
 
 	@Override
 	@Nullable
-	public IoSupplier<InputStream> getResource(PackType type, ResourceLocation location)
+	public IoSupplier<InputStream> getResource(PackType type, Identifier location)
 	{
 		try
 		{
@@ -125,7 +125,7 @@ public class DynamicResourcePack implements PackResources
 			.filter(entry -> entry.getKey().namespace.contentEquals(namespace))
 			.filter(entry -> entry.getKey().path.startsWith(path))
 			.filter(entry -> entry.getKey().type.contentEquals(type.getDirectory()))
-			.forEach(entry -> output.accept(ResourceLocation.fromNamespaceAndPath(namespace, entry.getKey().path), entry.getValue()));
+			.forEach(entry -> output.accept(Identifier.fromNamespaceAndPath(namespace, entry.getKey().path), entry.getValue()));
 	}
 
 	@Override

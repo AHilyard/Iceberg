@@ -6,6 +6,7 @@
 	"name": "Iceberg",
 	"description": "A library containing events, helpers, and utilities to make modding easier.",
 	"authors": [ "Grend" ],
+	"contributors": [ "Mat0u5" ],
 	"contact": {
 		"homepage": "https://anthonyhilyard.com/",
 		"sources": "https://github.com/AHilyard/Iceberg",
@@ -33,8 +34,8 @@
 
 	"depends": {
 		"fabricloader": ">=0.16.0",
-		"fabric": "*",
-		"minecraft": ">=1.21.3",
+		"fabric-api": "*",
+		"minecraft": "=1.21.11",
 		"java": ">=21"
 	},
 	"suggests": {

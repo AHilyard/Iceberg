@@ -1,5 +1,6 @@
 package com.anthonyhilyard.iceberg.neoforge.services;
 
+import net.minecraft.client.renderer.rendertype.RenderType;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryStack;
 
@@ -14,7 +15,6 @@ import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.caffeinemc.mods.sodium.api.vertex.buffer.VertexBufferWriter;
 
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 
 public class NeoForgeBufferSourceFactory implements IBufferSourceFactory
 {
@@ -41,6 +41,9 @@ public class NeoForgeBufferSourceFactory implements IBufferSourceFactory
 					public VertexConsumer setColor(int r, int g, int b, int a) { return vertexConsumer.setColor(r, g, b, a); }
 
 					@Override
+					public VertexConsumer setColor(int i) { return vertexConsumer.setColor(i); }
+
+					@Override
 					public VertexConsumer setUv(float u, float v) { return vertexConsumer.setUv(u, v); }
 
 					@Override
@@ -51,6 +54,9 @@ public class NeoForgeBufferSourceFactory implements IBufferSourceFactory
 
 					@Override
 					public VertexConsumer setNormal(float x, float y, float z) { return vertexConsumer.setNormal(x, y, z); }
+
+					@Override
+					public VertexConsumer setLineWidth(float f) { return vertexConsumer.setLineWidth(f); }
 
 					@Override
 					public void push(MemoryStack memoryStack, long pointer, int count, VertexFormat format)
@@ -94,6 +100,13 @@ public class NeoForgeBufferSourceFactory implements IBufferSourceFactory
 					}
 
 					@Override
+					public VertexConsumer setColor(int i)
+					{
+						currentAlpha = (i >> 24) & 0xFF;
+						return this;
+					}
+
+					@Override
 					public VertexConsumer setUv(float u, float v) { return this; }
 
 					@Override
@@ -104,6 +117,9 @@ public class NeoForgeBufferSourceFactory implements IBufferSourceFactory
 
 					@Override
 					public VertexConsumer setNormal(float x, float y, float z) { return this; }
+
+					@Override
+					public VertexConsumer setLineWidth(float f) { return this; }
 
 					@Override
 					public void push(MemoryStack memoryStack, long pointer, int count, VertexFormat format)

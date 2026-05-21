@@ -22,7 +22,7 @@ import net.minecraft.network.chat.Component;
 public class ScreenMixin
 {
 	@Inject(method = "getTooltipFromItem", at = @At(value = "HEAD"))
-	private static List<Component> getTooltipFromItem(Minecraft minecraft, ItemStack itemStack, CallbackInfoReturnable<List<Component>> info)
+	private static void getTooltipFromItem(Minecraft minecraft, ItemStack itemStack, CallbackInfoReturnable<List<Component>> info)
 	{
 		if (Services.getPlatformHelper().isModLoaded("andromeda"))
 		{
@@ -37,6 +37,5 @@ public class ScreenMixin
 				Iceberg.LOGGER.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
-		return info.getReturnValue();
 	}
 }

@@ -5,21 +5,22 @@ import java.util.Optional;
 
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
-import com.anthonyhilyard.iceberg.services.Services;
+import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
+import com.anthonyhilyard.iceberg.mixin.AbstractContainerScreenAccessor;
+import com.anthonyhilyard.iceberg.util.ITooltipAccess;
 import com.anthonyhilyard.iceberg.util.Tooltips;
-import com.mojang.blaze3d.systems.RenderSystem;
 
-import org.joml.Matrix4fStack;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.At.Shift;
-import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -28,183 +29,152 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
-public class GuiGraphicsMixin
+public abstract class GuiGraphicsMixin implements ITooltipAccess
 {
-	@Shadow
-	@Final
-	private Minecraft minecraft;
 
-	private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
+	@Shadow @Final private Minecraft minecraft;
+	@Shadow public abstract int guiWidth();
+	@Shadow public abstract int guiHeight();
 
-	private int storedTooltipWidth, storedTooltipHeight;
-	private Vector2ic storedPostPos;
+	@Unique private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
+	@Unique private int xChange = 0;
+	@Unique private int yChange = 0;
 
-	@Shadow
-	private void renderTooltipInternal(Font font, List<ClientTooltipComponent> list, int i, int j, ClientTooltipPositioner clientTooltipPositioner, ResourceLocation resource) {}
+	@Override
+	public void setIcebergTooltipStack(ItemStack stack)
+	{
+		icebergTooltipStack = stack != null ? stack : ItemStack.EMPTY;
+	}
 
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "HEAD"))
-	protected void renderTooltipHead(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
+	@Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At("HEAD"))
+	protected void captureTooltipStack(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
 	{
 		icebergTooltipStack = itemStack;
 	}
 
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At(value = "TAIL"))
-	protected void renderTooltipTail(Font font, ItemStack itemStack, int x, int y, CallbackInfo info)
+	@Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;II)V", at = @At("HEAD"))
+	public void clearTooltipStack(Font font, Component component, int x, int y, CallbackInfo info)
 	{
 		icebergTooltipStack = ItemStack.EMPTY;
 	}
 
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/resources/ResourceLocation;)V",
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltipInternal(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/ResourceLocation;)V",
-			shift = Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
-	public void renderTooltip(Font font, List<Component> textComponents, Optional<TooltipComponent> itemComponent, int x, int y, ResourceLocation resource, CallbackInfo info, List<ClientTooltipComponent> components)
+	@Inject(method = "setTooltipForNextFrameInternal", at = @At("HEAD"))
+	public void modifyGatheredComponents(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean bl, CallbackInfo info)
 	{
 		Screen currentScreen = minecraft.screen;
-
-		if (currentScreen != null && currentScreen instanceof AbstractContainerScreen<?> containerScreen)
+		if (currentScreen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
 		{
-			Slot hoveredSlot = containerScreen.hoveredSlot;
-
-			// If the tooltip stack is empty, try to get the stack from the slot under the mouse.
-			// This is needed for the creative inventory screen, which doesn't set the tooltip stack.
-			if (icebergTooltipStack.isEmpty() && hoveredSlot != null)
-			{
-				icebergTooltipStack = hoveredSlot.getItem();
-			}
-		}
-
-		int screenWidth = currentScreen != null ? currentScreen.width : minecraft.getWindow().getGuiScaledWidth();
-		int screenHeight = currentScreen != null ? currentScreen.height : minecraft.getWindow().getGuiScaledHeight();
-
-		List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, textComponents, itemComponent, x, screenWidth, screenHeight, null, font, -1);
-		if (newComponents != null && !newComponents.isEmpty())
-		{
-			components.clear();
-			components.addAll(newComponents);
+			if (icebergTooltipStack.isEmpty()) icebergTooltipStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
 		}
 	}
 
-
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;II)V", at = @At(value = "HEAD"))
-	public void renderTooltipTail(Font font, Component components, int x, int y, CallbackInfo info)
-	{
-		// Not an item tooltip, so clear the stack.
-		icebergTooltipStack = ItemStack.EMPTY;
-	}
-
-	private int xChange = 0, yChange = 0;
-
-	@Inject(method = "renderTooltipInternal", at = @At(value = "HEAD"), cancellable = true)
-	private void preRenderTooltipInternal(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info)
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), cancellable = true)
+	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
-		Screen currentScreen = minecraft.screen;
+
+		ItemStack containerStack = ItemStack.EMPTY;
+		if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+		{
+			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
+		}
+		if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
 
 		int width = minecraft.getWindow().getGuiScaledWidth();
 		int height = minecraft.getWindow().getGuiScaledHeight();
-		
-		if (currentScreen != null)
+
+		if (minecraft.screen != null)
 		{
-			width = currentScreen.width;
-			height = currentScreen.height;
+			width = minecraft.screen.width;
+			height = minecraft.screen.height;
 		}
-		else
+
+		if (!containerStack.isEmpty())
 		{
-			if (Services.getPlatformHelper().isModLoaded("andromeda") && icebergTooltipStack != null && !icebergTooltipStack.isEmpty())
+			// GATHER EVENT
+			Item.TooltipContext context = Item.TooltipContext.of(minecraft.level);
+			TooltipFlag flag = minecraft.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
+
+			List<Component> textComponents = containerStack.getTooltipLines(context, minecraft.player, flag);
+			Optional<TooltipComponent> itemComponent = containerStack.getTooltipImage();
+
+			List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(containerStack, textComponents, itemComponent, x, width, height, null, font, -1);
+
+			if (newComponents != null && !newComponents.isEmpty())
 			{
-				List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(icebergTooltipStack, Screen.getTooltipFromItem(minecraft, icebergTooltipStack), icebergTooltipStack.getTooltipImage(), x, width, height, null, font, -1);
-				if (newComponents != null && !newComponents.isEmpty())
-				{
-					int oldWidth = 0, oldHeight = 0;
-
-					for (ClientTooltipComponent tooltipComponent : components)
-					{
-						oldHeight += tooltipComponent.getHeight(font);
-						int thisWidth = tooltipComponent.getWidth(font);
-						if (thisWidth > oldWidth)
-						{
-							oldWidth = thisWidth;
-						}
-					}
-					
-					components.clear();
-					components.addAll(newComponents);
-					Rect2i newRect = Tooltips.calculateRect(icebergTooltipStack, self, positioner, components, x, y, width, height, width, font, 0, true);
-
-					if (minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
-					{
-						Matrix4fStack poseStack = RenderSystem.getModelViewStack();
-						xChange = (oldWidth - newRect.getWidth()) / 2;
-						yChange = oldHeight - newRect.getHeight();
-
-						poseStack.translate(xChange, yChange, 0);
-					}
-				}
+				components.clear();
+				components.addAll(newComponents);
 			}
-		}
 
-		if (!components.isEmpty())
-		{
-			PreExtResult eventResult = null;
-			InteractionResult result = InteractionResult.PASS;
+			// COLOREXT EVENT
+			int backgroundStart = Tooltips.DEFAULT_COLORS.backgroundColorStart().getValue();
+			int backgroundEnd = Tooltips.DEFAULT_COLORS.backgroundColorEnd().getValue();
+			int borderStart = Tooltips.DEFAULT_COLORS.borderColorStart().getValue();
+			int borderEnd = Tooltips.DEFAULT_COLORS.borderColorEnd().getValue();
 
-			eventResult = RenderTooltipEvents.PREEXT.invoker().onPre(icebergTooltipStack, self, x, y, width, height, font, components, positioner, false, 0);
-			result = eventResult.result();
+			ColorExtResult colorResult = RenderTooltipEvents.COLOREXT.invoker().onColor(containerStack, self, x, y, font, backgroundStart, backgroundEnd, borderStart, borderEnd, components, false, 0, resource, false, false);
 
-			if (result != InteractionResult.PASS)
+			if (colorResult != null)
+			{
+				Tooltips.currentColors = new Tooltips.TooltipColors(TextColor.fromRgb(colorResult.backgroundStart()), TextColor.fromRgb(colorResult.backgroundEnd()), TextColor.fromRgb(colorResult.borderStart()), TextColor.fromRgb(colorResult.borderEnd()));
+				Tooltips.gradientBackground = colorResult.gradientBackground();
+				Tooltips.gradientBorder = colorResult.gradientBorder();
+			}
+			else
+			{
+				Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
+				Tooltips.gradientBackground = false;
+				Tooltips.gradientBorder = false;
+			}
+
+			// PREEXT EVENT
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0);
+			if (preResult.result() != InteractionResult.PASS)
 			{
 				info.cancel();
 			}
 		}
+		else
+		{
+			Tooltips.currentColors = Tooltips.DEFAULT_COLORS;
+			Tooltips.gradientBackground = false;
+			Tooltips.gradientBorder = false;
+		}
 	}
 
-	@Group(name = "storeLocals", min = 1, max = 1)
-	@Inject(method = "renderTooltipInternal", at = @At(value = "INVOKE", target = "Lorg/joml/Vector2ic;x()I", shift = Shift.BEFORE, remap = false), locals = LocalCapture.CAPTURE_FAILSOFT)
-	private void storeLocals(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info, int tooltipWidth, int tooltipHeight, int tooltipWidth2, int tooltipHeight2, Vector2ic postPos)
-	{
-		storedTooltipWidth = tooltipWidth2;
-		storedTooltipHeight = tooltipHeight2;
-		storedPostPos = postPos;
-	}
-
-	@Inject(method = "renderTooltipInternal", at = @At(value = "TAIL"))
-	private void renderTooltipInternalTail(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, ResourceLocation resource, CallbackInfo info)
+	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("TAIL"))
+	private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
-		Screen currentScreen = minecraft.screen;
 		ItemStack containerStack = ItemStack.EMPTY;
-		if (currentScreen != null && currentScreen instanceof AbstractContainerScreen<?> containerScreen)
-		{
-			Slot hoveredSlot = containerScreen.hoveredSlot;
-			if (hoveredSlot != null)
-			{
-				containerStack = hoveredSlot.getItem();
-			}
-		}
 
-		if (containerStack.isEmpty())
+		if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
 		{
-			containerStack = icebergTooltipStack;
+			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
 		}
+		if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
 
 		if (!containerStack.isEmpty() && !components.isEmpty())
 		{
-			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, storedPostPos.x(), storedPostPos.y(), font, storedTooltipWidth, storedTooltipHeight, components, false, 0);
-		}
+			int tooltipWidth = 0;
+			int tooltipHeight = components.size() == 1 ? -2 : 0;
+			for (ClientTooltipComponent c : components)
+			{
+				int w = c.getWidth(font);
+				if (w > tooltipWidth) tooltipWidth = w;
+				tooltipHeight += c.getHeight(font);
+			}
 
-		if (Services.getPlatformHelper().isModLoaded("andromeda") && minecraft.player != null && icebergTooltipStack == minecraft.player.getMainHandItem())
-		{
-			Matrix4fStack poseStack = RenderSystem.getModelViewStack();
-			poseStack.translate(-xChange, -yChange, 0);
+			Vector2ic pos = positioner.positionTooltip(this.guiWidth(), this.guiHeight(), x, y, tooltipWidth, tooltipHeight);
+
+			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
 		}
 
 		icebergTooltipStack = ItemStack.EMPTY;

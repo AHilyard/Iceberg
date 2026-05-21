@@ -1,50 +1,44 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import java.util.function.Function;
-
+import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.anthonyhilyard.iceberg.util.Tooltips;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.TooltipRenderUtil;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
 
 @Mixin(TooltipRenderUtil.class)
 public class TooltipRenderUtilMixin
 {
-	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/ResourceLocation;IIII)V", ordinal = 0))
-	private static void icebergRenderBackground(GuiGraphics instance, Function<ResourceLocation, RenderType> renderTypeLookup, ResourceLocation sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
+	@Inject(method = "renderTooltipBackground", at = @At("HEAD"), cancellable = true)
+	private static void replaceTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, Identifier identifier, CallbackInfo ci)
 	{
-		if (Tooltips.gradientBackground)
+		if (Tooltips.gradientBackground || Tooltips.gradientBorder)
 		{
-			instance.pose().pushPose();
-			instance.pose().translate(0.0f, 0.0f, -z);
-			Tooltips.renderGradientBackground(instance, x, y, width, height, z, Tooltips.currentColors.backgroundColorStart().getValue(), Tooltips.currentColors.backgroundColorEnd().getValue());
-			instance.pose().popPose();
-		}
-		else
-		{
-			instance.blitSprite(renderTypeLookup, sprite, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
-		}
-	}
 
-	@Redirect(method = "renderTooltipBackground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;blitSprite(Ljava/util/function/Function;Lnet/minecraft/resources/ResourceLocation;IIII)V", ordinal = 1))
-	private static void icebergRenderBorder(GuiGraphics instance, Function<ResourceLocation, RenderType> renderTypeLookup, ResourceLocation sprite, int adjustedX, int adjustedY, int adjustedWidth, int adjustedHeight, GuiGraphics guiGraphics, int x, int y, int width, int height, int z)
-	{
-		if (Tooltips.gradientBorder)
-		{
-			instance.pose().pushPose();
-			instance.pose().translate(0.0f, 0.0f, -z);
-			Tooltips.renderGradientBorder(instance, x, y, width, height, z, Tooltips.currentColors.borderColorStart().getValue(), Tooltips.currentColors.borderColorEnd().getValue());
-			instance.pose().popPose();
-		}
-		else
-		{
-			instance.blitSprite(renderTypeLookup, sprite, adjustedX, adjustedY, adjustedWidth, adjustedHeight);
+			if (Tooltips.gradientBackground)
+			{
+				Tooltips.renderGradientBackground(
+						graphics, x, y, width, height,
+						Tooltips.currentColors.backgroundColorStart().getValue(),
+						Tooltips.currentColors.backgroundColorEnd().getValue()
+				);
+			}
+
+			if (Tooltips.gradientBorder)
+			{
+				Tooltips.renderGradientBorder(
+						graphics, x, y, width, height,
+						Tooltips.currentColors.borderColorStart().getValue(),
+						Tooltips.currentColors.borderColorEnd().getValue()
+				);
+			}
+
+			ci.cancel();
 		}
 	}
 }

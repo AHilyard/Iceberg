@@ -9,20 +9,20 @@ license="CC BY-NC-ND 4.0"
 	displayURL="https://anthonyhilyard.com/"
 	updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
 	logoFile="icon.png"
-	authors="Grend"
+	authors="Grend, Mat0u5"
 	description="A library containing events, helpers, and utilities to make modding easier."
 
 [[dependencies.iceberg]]
 	modId="neoforge"
 	type="required"
-	versionRange="[21.4.84-beta,)"
+	versionRange="[21.11.42,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	type="required"
-	versionRange="[1.21.3,)"
+	versionRange="[1.21.11]"
 	ordering="NONE"
 	side="BOTH"
 

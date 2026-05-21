@@ -9,20 +9,20 @@ displayName="Iceberg"
 displayURL="https://anthonyhilyard.com/"
 updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
 logoFile="icon.png"
-authors="Grend"
+authors="Grend, Mat0u5"
 description="A library containing events, helpers, and utilities to make modding easier."
 
 [[dependencies.iceberg]]
 	modId="forge"
 	mandatory=true
-	versionRange="[53,)"
+	versionRange="[61,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	mandatory=true
-	versionRange="[1.21.3,)"
+	versionRange="[1.21.11]"
 	ordering="NONE"
 	side="BOTH"
 

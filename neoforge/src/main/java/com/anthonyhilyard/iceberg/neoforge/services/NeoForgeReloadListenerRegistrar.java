@@ -3,27 +3,31 @@ package com.anthonyhilyard.iceberg.neoforge.services;
 import java.util.function.Supplier;
 import java.util.Map;
 
+import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.services.IReloadListenerRegistrar;
 import com.google.common.collect.Maps;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 
+@EventBusSubscriber(modid = Iceberg.MODID, value = Dist.CLIENT)
 public class NeoForgeReloadListenerRegistrar implements IReloadListenerRegistrar
 {
-	private static Map<ResourceLocation, PreparableReloadListener> listeners = Maps.newHashMap();
-	private static Map<ResourceLocation, Supplier<PreparableReloadListener>> listenerSuppliers = Maps.newHashMap();
+	private static Map<Identifier, PreparableReloadListener> listeners = Maps.newHashMap();
+	private static Map<Identifier, Supplier<PreparableReloadListener>> listenerSuppliers = Maps.newHashMap();
 
 	@Override
-	public void registerListener(PreparableReloadListener listener, ResourceLocation listenerId)
+	public void registerListener(PreparableReloadListener listener, Identifier listenerId)
 	{
 		listeners.put(listenerId, listener);
 	}
 
 	@Override
-	public void registerListener(Supplier<PreparableReloadListener> listener, ResourceLocation listenerId)
+	public void registerListener(Supplier<PreparableReloadListener> listener, Identifier listenerId)
 	{
 		listenerSuppliers.put(listenerId, listener);
 	}
@@ -31,12 +35,12 @@ public class NeoForgeReloadListenerRegistrar implements IReloadListenerRegistrar
 	@SubscribeEvent
 	public static void addListeners(AddClientReloadListenersEvent event)
 	{
-		for (ResourceLocation listenerId : listeners.keySet())
+		for (Identifier listenerId : listeners.keySet())
 		{
 			event.addListener(listenerId, listeners.get(listenerId));
 		}
 
-		for (ResourceLocation listenerId : listenerSuppliers.keySet())
+		for (Identifier listenerId : listenerSuppliers.keySet())
 		{
 			event.addListener(listenerId, listenerSuppliers.get(listenerId).get());
 		}
