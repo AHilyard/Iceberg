@@ -2,16 +2,14 @@ package com.anthonyhilyard.iceberg.forge.mixin;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
+import com.anthonyhilyard.iceberg.util.INestedTooltipAccess;
 import com.anthonyhilyard.iceberg.util.Tooltips;
 
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.TooltipFlag;
 import org.joml.Vector2ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,10 +24,8 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
 @Mixin(GuiGraphics.class)
@@ -60,22 +56,14 @@ public abstract class GuiGraphicsMixin
 			height = minecraft.screen.height;
 		}
 
+		if (itemStack != null && itemStack.isEmpty())
+		{
+			// Possible nested item.
+			itemStack = ((INestedTooltipAccess) self).getIcebergNestedTooltipStack();
+		}
+
 		if (itemStack != null && !itemStack.isEmpty())
 		{
-			Item.TooltipContext context = Item.TooltipContext.of(minecraft.level);
-			TooltipFlag flag = minecraft.options.advancedItemTooltips ? TooltipFlag.ADVANCED : TooltipFlag.NORMAL;
-
-			List<Component> textComponents = itemStack.getTooltipLines(context, minecraft.player, flag);
-			Optional<TooltipComponent> itemComponent = itemStack.getTooltipImage();
-
-			List<ClientTooltipComponent> newComponents = Tooltips.gatherTooltipComponents(itemStack, textComponents, itemComponent, x, width, height, null, font, -1);
-
-			if (newComponents != null && !newComponents.isEmpty())
-			{
-				components.clear();
-				components.addAll(newComponents);
-			}
-
 			int backgroundStart = Tooltips.DEFAULT_COLORS.backgroundColorStart().getValue();
 			int backgroundEnd = Tooltips.DEFAULT_COLORS.backgroundColorEnd().getValue();
 			int borderStart = Tooltips.DEFAULT_COLORS.borderColorStart().getValue();
@@ -114,6 +102,12 @@ public abstract class GuiGraphicsMixin
 	private void postRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
+
+		if (itemStack != null && itemStack.isEmpty())
+		{
+			// Possible nested item.
+			itemStack = ((INestedTooltipAccess) self).getIcebergNestedTooltipStack();
+		}
 
 		if (itemStack != null && !itemStack.isEmpty() && !components.isEmpty())
 		{
