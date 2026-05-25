@@ -8,6 +8,7 @@
 	],
 	"client": [
 		"AbstractContainerScreenAccessor",
+		"ClientBundleTooltipMixin",
 		"ScreenMixin",
 		"ClientPacketListenerMixin",
 		"GameRendererAccessor",

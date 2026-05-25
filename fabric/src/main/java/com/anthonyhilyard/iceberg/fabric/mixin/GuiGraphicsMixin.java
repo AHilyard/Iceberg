@@ -1,5 +1,6 @@
 package com.anthonyhilyard.iceberg.fabric.mixin;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -7,6 +8,7 @@ import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.PreExtResult;
 import com.anthonyhilyard.iceberg.events.client.RenderTooltipEvents.ColorExtResult;
 import com.anthonyhilyard.iceberg.mixin.AbstractContainerScreenAccessor;
+import com.anthonyhilyard.iceberg.util.INestedTooltipAccess;
 import com.anthonyhilyard.iceberg.util.ITooltipAccess;
 import com.anthonyhilyard.iceberg.util.Tooltips;
 
@@ -20,6 +22,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.client.Minecraft;
@@ -44,6 +47,8 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	@Shadow public abstract int guiHeight();
 
 	@Unique private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
+
+	@Unique private int renderTooltipDepth = 0;
 	@Unique private int xChange = 0;
 	@Unique private int yChange = 0;
 
@@ -51,6 +56,12 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	public void setIcebergTooltipStack(ItemStack stack)
 	{
 		icebergTooltipStack = stack != null ? stack : ItemStack.EMPTY;
+	}
+
+	@ModifyVariable(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), argsOnly = true)
+	private List<ClientTooltipComponent> makeComponentsMutable(List<ClientTooltipComponent> components)
+	{
+		return new ArrayList<>(components);
 	}
 
 	@Inject(method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V", at = @At("HEAD"))
@@ -78,14 +89,25 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), cancellable = true)
 	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
+		this.renderTooltipDepth++;
 		GuiGraphics self = (GuiGraphics)(Object)this;
 
 		ItemStack containerStack = ItemStack.EMPTY;
-		if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+		ItemStack nestedTooltipStack = ((INestedTooltipAccess) self).getIcebergNestedTooltipStack();
+
+		// Use the nested stack if present, else use the current hovered item.
+		if (!nestedTooltipStack.isEmpty())
 		{
-			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
+			containerStack = nestedTooltipStack;
 		}
-		if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
+		else if (this.renderTooltipDepth == 1)
+		{
+			if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+			{
+				containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
+			}
+			if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
+		}
 
 		int width = minecraft.getWindow().getGuiScaledWidth();
 		int height = minecraft.getWindow().getGuiScaledHeight();
@@ -138,6 +160,11 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0);
 			if (preResult.result() != InteractionResult.PASS)
 			{
+				this.renderTooltipDepth--;
+				if (this.renderTooltipDepth == 0)
+				{
+					icebergTooltipStack = ItemStack.EMPTY;
+				}
 				info.cancel();
 			}
 		}
@@ -154,12 +181,21 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	{
 		GuiGraphics self = (GuiGraphics)(Object)this;
 		ItemStack containerStack = ItemStack.EMPTY;
+		ItemStack nestedTooltipStack = ((INestedTooltipAccess) self).getIcebergNestedTooltipStack();
 
-		if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+		if (!nestedTooltipStack.isEmpty())
+		{
+			containerStack = nestedTooltipStack;
+		}
+		else if (this.renderTooltipDepth == 1 && minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
 		{
 			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
 		}
-		if (containerStack.isEmpty()) containerStack = icebergTooltipStack;
+
+		if (containerStack.isEmpty() && this.renderTooltipDepth == 1)
+		{
+			containerStack = icebergTooltipStack;
+		}
 
 		if (!containerStack.isEmpty() && !components.isEmpty())
 		{
@@ -177,8 +213,12 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
 		}
 
-		icebergTooltipStack = ItemStack.EMPTY;
-		xChange = 0;
-		yChange = 0;
+		this.renderTooltipDepth--;
+		if (this.renderTooltipDepth == 0)
+		{
+			icebergTooltipStack = ItemStack.EMPTY;
+			xChange = 0;
+			yChange = 0;
+		}
 	}
 }
