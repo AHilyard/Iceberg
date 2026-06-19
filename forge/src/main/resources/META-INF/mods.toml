@@ -15,14 +15,14 @@ description="A library containing events, helpers, and utilities to make modding
 [[dependencies.iceberg]]
 	modId="forge"
 	mandatory=true
-	versionRange="[61,)"
+	versionRange="[64,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	mandatory=true
-	versionRange="[1.21.11]"
+	versionRange="[26.1,)"
 	ordering="NONE"
 	side="BOTH"
 

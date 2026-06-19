@@ -1,6 +1,6 @@
 plugins {
-	id 'architectury-plugin' version "3.4-SNAPSHOT"
-	id 'dev.architectury.loom' version '1.13-SNAPSHOT' apply false
+	id "architectury-plugin" version "3.5-SNAPSHOT"
+	id "dev.architectury.loom-no-remap" version "1.17-SNAPSHOT" apply false
 	id 'io.github.goooler.shadow' version '8.1.7' apply false
 }
 
@@ -16,7 +16,7 @@ allprojects {
 }
 
 subprojects {
-	apply plugin: 'dev.architectury.loom'
+	apply plugin: 'dev.architectury.loom-no-remap'
 	apply plugin: 'architectury-plugin'
 	apply plugin: 'maven-publish'
 
@@ -33,19 +33,14 @@ subprojects {
 
 	dependencies {
 		minecraft "net.minecraft:minecraft:$rootProject.minecraftVersion"
-		mappings loom.officialMojangMappings()
 	}
 
 	java {
-		sourceCompatibility = JavaVersion.VERSION_21
-		targetCompatibility = JavaVersion.VERSION_21
+		sourceCompatibility = JavaVersion.VERSION_25
+		targetCompatibility = JavaVersion.VERSION_25
 	}
 
 	tasks.withType(JavaCompile).configureEach {
-		it.options.release = 21
-	}
-
-	remapJar {
-		destinationDirectory = file("$buildDir/../../output")
+		it.options.release = 25
 	}
 }

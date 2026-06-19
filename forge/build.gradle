@@ -2,13 +2,6 @@ plugins {
 	id 'io.github.goooler.shadow'
 }
 
-loom {
-	forge {
-		mixinConfig "iceberg.mixins.json"
-		mixinConfig "iceberg.forge.mixins.json"
-	}
-}
-
 architectury {
 	platformSetupLoomIde()
 	forge()
@@ -34,7 +27,7 @@ configurations {
 dependencies {
 	forge "net.minecraftforge:forge:$rootProject.forgeVersion"
 
-	common(project(path: ':common', configuration: 'namedElements')) { transitive false }
+	common(project(path: ":common")) { transitive false }
 	shadowBundle project(path: ':common', configuration: 'transformProductionForge')
 }
 
@@ -46,11 +39,21 @@ processResources {
 	}
 }
 
-shadowJar {
-	configurations = [project.configurations.shadowBundle]
+jar {
+	archiveClassifier = 'raw'
 }
 
-remapJar {
-	input.set shadowJar.archiveFile
-	atAccessWideners.add('iceberg.accesswidener')
+shadowJar {
+	dependsOn(jar)
+	mainSpec.sourcePaths.clear()
+	from(zipTree(jar.archiveFile))
+
+	configurations = [project.configurations.shadowBundle]
+	archiveClassifier = null
+
+	manifest {
+		attributes 'Loom-Access-Widener': 'iceberg.accesswidener'
+	}
+
+	destinationDirectory = file("$buildDir/../../output")
 }

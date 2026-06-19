@@ -34,11 +34,11 @@ repositories {
 dependencies {
 	neoForge "net.neoforged:neoforge:$rootProject.neoforgeVersion"
 	// For some reason sodium for neoforge bundles its main logic so we have to do compile only for the fabric version, to prevent errors.
-	modCompileOnly files("../libs/sodium-fabric-0.8.7+mc1.21.11.jar")
-	modRuntimeOnly files("../libs/sodium-neoforge-0.8.7+mc1.21.11.jar")
+	compileOnly files("../libs/sodium-fabric-0.8.12+mc26.1.2.jar")
+	runtimeOnly files("../libs/sodium-neoforge-0.8.12+mc26.1.2.jar")
 	implementation "net.bytebuddy:byte-buddy:1.14.18"
 
-	common(project(path: ':common', configuration: 'namedElements')) { transitive false }
+	common(project(path: ":common")) { transitive false }
 	shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
 }
 
@@ -51,12 +51,23 @@ processResources {
 	}
 }
 
-shadowJar {
-	configurations = [project.configurations.shadowBundle]
-	archiveClassifier = 'dev-shadow'
+jar {
+	archiveClassifier = 'raw'
 }
 
-remapJar {
-	input.set shadowJar.archiveFile
-	atAccessWideners.add('iceberg.accesswidener')
+shadowJar {
+	dependsOn(jar)
+	mainSpec.sourcePaths.clear()
+	from(zipTree(jar.archiveFile))
+
+	configurations = [project.configurations.shadowBundle]
+	archiveClassifier = null
+
+	manifest {
+		attributes 'Loom-Access-Widener': 'iceberg.accesswidener'
+	}
+}
+
+tasks.named('shadowJar').configure {
+	destinationDirectory = file("$buildDir/../../output")
 }
