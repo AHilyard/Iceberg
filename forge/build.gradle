@@ -1,5 +1,5 @@
 plugins {
-	id 'io.github.goooler.shadow'
+	id 'com.gradleup.shadow'
 }
 
 architectury {
@@ -52,7 +52,9 @@ shadowJar {
 	archiveClassifier = null
 
 	manifest {
-		attributes 'Loom-Access-Widener': 'iceberg.accesswidener'
+		attributes(
+				'MixinConfigs': 'iceberg.mixins.json,iceberg.forge.mixins.json'
+		)
 	}
 
 	destinationDirectory = file("$buildDir/../../output")

@@ -1,5 +1,5 @@
 plugins {
-	id 'io.github.goooler.shadow'
+	id 'com.gradleup.shadow'
 }
 
 architectury {
@@ -62,10 +62,6 @@ shadowJar {
 
 	configurations = [project.configurations.shadowBundle]
 	archiveClassifier = null
-
-	manifest {
-		attributes 'Loom-Access-Widener': 'iceberg.accesswidener'
-	}
 }
 
 tasks.named('shadowJar').configure {

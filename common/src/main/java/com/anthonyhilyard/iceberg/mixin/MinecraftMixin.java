@@ -15,6 +15,7 @@ public class MinecraftMixin
 	@Inject(method = "tick", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = { "ldc=gameRenderer" }))
 	public void runTick(CallbackInfo ci)
 	{
+		System.out.println("Test");//TODO remove
 		Minecraft instance = (Minecraft)(Object)this;
 		RenderTickEvents.START.invoker().onStart(instance.getDeltaTracker());
 	}

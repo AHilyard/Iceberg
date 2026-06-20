@@ -33,8 +33,6 @@ public abstract class GuiGraphicsMixin
 {
 
 	@Shadow @Final private Minecraft minecraft;
-	@Shadow public abstract int guiWidth();
-	@Shadow public abstract int guiHeight();
 
 	@ModifyVariable(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), argsOnly = true)
 	private List<ClientTooltipComponent> makeComponentsMutableForge(List<ClientTooltipComponent> components)
@@ -120,7 +118,7 @@ public abstract class GuiGraphicsMixin
 				tooltipHeight += c.getHeight(font);
 			}
 
-			Vector2ic pos = positioner.positionTooltip(this.guiWidth(), this.guiHeight(), x, y, tooltipWidth, tooltipHeight);
+			Vector2ic pos = positioner.positionTooltip(self.guiWidth(), self.guiHeight(), x, y, tooltipWidth, tooltipHeight);
 			RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
 		}
 	}

@@ -43,8 +43,6 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 {
 
 	@Shadow @Final private Minecraft minecraft;
-	@Shadow public abstract int guiWidth();
-	@Shadow public abstract int guiHeight();
 
 	@Unique private static ItemStack icebergTooltipStack = ItemStack.EMPTY;
 
@@ -208,7 +206,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 				tooltipHeight += c.getHeight(font);
 			}
 
-			Vector2ic pos = positioner.positionTooltip(this.guiWidth(), this.guiHeight(), x, y, tooltipWidth, tooltipHeight);
+			Vector2ic pos = positioner.positionTooltip(self.guiWidth(), self.guiHeight(), x, y, tooltipWidth, tooltipHeight);
 
 			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
 		}

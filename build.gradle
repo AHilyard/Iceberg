@@ -1,7 +1,7 @@
 plugins {
 	id "architectury-plugin" version "3.5-SNAPSHOT"
 	id "dev.architectury.loom-no-remap" version "1.17.9999" apply false // From local Maven
-	id 'io.github.goooler.shadow' version '8.1.7' apply false
+	id 'com.gradleup.shadow' version '9.4.2' apply false
 }
 
 apply plugin: 'architectury-plugin'
@@ -42,5 +42,20 @@ subprojects {
 
 	tasks.withType(JavaCompile).configureEach {
 		it.options.release = 25
+	}
+
+	plugins.withId('com.gradleup.shadow') {
+		tasks.named('assemble').configure {
+			dependsOn tasks.named('shadowJar')
+		}
+	}
+
+	afterEvaluate {
+		if (project.name == 'common') {
+			tasks.named('jar').configure {
+				archiveClassifier = null
+				destinationDirectory = file("$buildDir/../../output")
+			}
+		}
 	}
 }

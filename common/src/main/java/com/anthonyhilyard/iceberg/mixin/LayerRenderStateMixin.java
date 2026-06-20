@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.mixin;
 
 import java.util.List;
 
+import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,7 +27,7 @@ public class LayerRenderStateMixin implements ILayerRenderState
 	private ItemStackRenderState.FoilType foilType;
 
 	@Shadow
-	private int[] tintLayers;
+	private IntList tintLayers;
 
 	@Shadow
 	private SpecialModelRenderer<Object> specialRenderer;
@@ -44,7 +45,7 @@ public class LayerRenderStateMixin implements ILayerRenderState
 		}
 		else
 		{
-			submitNodeCollector.submitItem(poseStack, displayContext, packedLight, overlay, seed, tintLayers, quads, foilType);
+			submitNodeCollector.submitItem(poseStack, displayContext, packedLight, overlay, seed, tintLayers.toIntArray(), quads, foilType);
 		}
 	}
 }

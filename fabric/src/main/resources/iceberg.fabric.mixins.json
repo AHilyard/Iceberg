@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "com.anthonyhilyard.iceberg.fabric.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"ClientLevelMixin",
 		"MinecraftMixin",
