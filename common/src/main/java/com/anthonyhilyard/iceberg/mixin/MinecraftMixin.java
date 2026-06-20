@@ -12,10 +12,9 @@ import net.minecraft.client.Minecraft;
 @Mixin(Minecraft.class)
 public class MinecraftMixin
 {
-	@Inject(method = "tick", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = { "ldc=gameRenderer" }))
+	@Inject(method = "renderFrame", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = { "ldc=extract" }))
 	public void runTick(CallbackInfo ci)
 	{
-		System.out.println("Test");//TODO remove
 		Minecraft instance = (Minecraft)(Object)this;
 		RenderTickEvents.START.invoker().onStart(instance.getDeltaTracker());
 	}
