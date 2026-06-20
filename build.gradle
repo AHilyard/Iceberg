@@ -1,6 +1,6 @@
 plugins {
 	id "architectury-plugin" version "3.5-SNAPSHOT"
-	id "dev.architectury.loom-no-remap" version "1.17-SNAPSHOT" apply false
+	id "dev.architectury.loom-no-remap" version "1.17.9999" apply false // From local Maven
 	id 'io.github.goooler.shadow' version '8.1.7' apply false
 }
 
