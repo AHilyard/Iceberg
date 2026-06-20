@@ -12,23 +12,32 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.QuadInstance;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.BlitRenderState;
 import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.block.BlockModelRenderState;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.item.TrackingItemStackRenderState;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.util.ARGB;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -59,7 +68,7 @@ public class CustomItemRenderer
 {
 	private final Minecraft minecraft;
 	private RenderTarget renderTarget;
-	private final PerspectiveProjectionMatrixBuffer projectionMatrixBuffer;
+	private final ProjectionMatrixBuffer projectionMatrixBuffer;
 	private boolean isClosed = false;
 
 	private static ArmorStand armorStand = null;
@@ -72,30 +81,33 @@ public class CustomItemRenderer
 	private static Pair<Item, DataComponentMap> cachedWolfArmorItem = null;
 	private static Pair<Item, DataComponentMap> cachedEntityItem = null;
 
+	private final BlockModelRenderState blockRenderState = new BlockModelRenderState();
+	private final QuadInstance quadInstance = new QuadInstance();
+
 	public CustomItemRenderer(Minecraft mc)
 	{
 		this.minecraft = mc;
-		this.projectionMatrixBuffer = new PerspectiveProjectionMatrixBuffer("iceberg_custom_item");
+		this.projectionMatrixBuffer = new ProjectionMatrixBuffer("iceberg_custom_item");
 	}
 
-	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphics graphics)
+	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphicsExtractor graphics)
 	{
 		drawAndBlit(graphics, stack, x, y, 1.0f, rotation, true);
 	}
 
-	public void renderItemModelIntoGUIWithAlpha(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha)
+	public void renderItemModelIntoGUIWithAlpha(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y, float alpha)
 	{
 		drawAndBlit(graphics, stack, x, y, alpha, null, false);
 	}
 
-	public void renderItemIntoGUI(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation)
+	public void renderItemIntoGUI(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation)
 	{
 		drawAndBlit(graphics, stack, x, y, alpha, rotation, false);
 	}
 
 	private static final List<Item> horseArmor = List.of(Items.COPPER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR, Items.LEATHER_HORSE_ARMOR, Items.GOLDEN_HORSE_ARMOR, Items.DIAMOND_HORSE_ARMOR, Items.NETHERITE_HORSE_ARMOR);
 
-	private void drawAndBlit(GuiGraphics graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation, boolean renderEntities)
+	private void drawAndBlit(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y, float alpha, Quaternionf rotation, boolean renderEntities)
 	{
 		if (isClosed || stack.isEmpty())
 		{
@@ -180,7 +192,7 @@ public class CustomItemRenderer
 		if (!renderedEntity)
 		{
 			SubmitNodeStorage submitNodeStorage = minecraft.gameRenderer.getSubmitNodeStorage();
-			itemState.submit(poseStack, submitNodeStorage, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
+			itemState.submit(poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
 		}
 
 		minecraft.gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
@@ -200,7 +212,7 @@ public class CustomItemRenderer
 		int color = ARGB.color((int)(alpha * 255), 255, 255, 255);
 		GpuSampler sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
 
-		((IGuiRenderStateAccess) graphics).getRenderState().submitGuiElement(new BlitRenderState(
+		((IGuiRenderStateAccess) graphics).getGuiRenderState().addGuiElement(new BlitRenderState(
 			RenderPipelines.GUI_TEXTURED,
 			TextureSetup.singleTexture(renderTarget.getColorTextureView(), sampler),
 			new Matrix3x2f(graphics.pose()),
@@ -243,7 +255,7 @@ public class CustomItemRenderer
 				poseStack.scale(scale, scale, scale);
 				poseStack.translate(0, -entityHeight / 2.0f, 0);
 
-				renderEntityModel(cachedSpawnEntity, poseStack, LightTexture.FULL_BRIGHT);
+				renderEntityModel(cachedSpawnEntity, poseStack, LightCoordsUtil.FULL_BRIGHT);
 				poseStack.popPose();
 				renderedEntity = true;
 			}
@@ -268,14 +280,14 @@ public class CustomItemRenderer
 				BlockState bottomState = blockState.setValue(
 					BlockStateProperties.DOUBLE_BLOCK_HALF,
 					DoubleBlockHalf.LOWER);
-				minecraft.getBlockRenderer().renderSingleBlock(bottomState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(bottomState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 
 				poseStack.pushPose();
 				poseStack.translate(0.0f, 1.0f, 0.0f);
 				BlockState topState = blockState.setValue(
 					BlockStateProperties.DOUBLE_BLOCK_HALF,
 					DoubleBlockHalf.UPPER);
-				minecraft.getBlockRenderer().renderSingleBlock(topState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(topState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 				poseStack.popPose();
 			}
 			else
@@ -283,7 +295,7 @@ public class CustomItemRenderer
 				// Normal blocks logic.
 				poseStack.scale(0.5f, 0.5f, 0.5f);
 				poseStack.translate(-0.5f, -0.5f, -0.5f);
-				minecraft.getBlockRenderer().renderSingleBlock(blockState, poseStack, bufferSource, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(blockState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 			}
 
 			// Renderer for block entities.
@@ -299,6 +311,45 @@ public class CustomItemRenderer
 		return renderedEntity;
 	}
 
+	private void renderBlockState(BlockState blockState, PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, int lightCoords, int overlayCoords)
+	{
+		blockRenderState.clear();
+
+		BlockStateModel model = minecraft.getModelManager().getBlockStateModelSet().get(blockState);
+		RenderType renderType = model.hasMaterialFlag(1)
+				? Sheets.translucentBlockSheet()
+				: Sheets.cutoutBlockSheet();
+
+		List<BlockStateModelPart> parts = blockRenderState.setupModel(new Matrix4f(), model.hasMaterialFlag(1));
+		model.collectParts(blockRenderState.scratchRandomSource(1), parts);
+
+		VertexConsumer buffer = bufferSource.getBuffer(renderType);
+		PoseStack.Pose pose = poseStack.last();
+		int[] tints = blockRenderState.tintLayers().toArray(BlockModelRenderState.EMPTY_TINTS);
+
+		quadInstance.setLightCoords(lightCoords);
+		quadInstance.setOverlayCoords(overlayCoords);
+
+		for (BlockStateModelPart part : parts)
+		{
+			for (Direction dir : Direction.values())
+			{
+				for (BakedQuad quad : part.getQuads(dir))
+				{
+					int ti = quad.materialInfo().tintIndex();
+					quadInstance.setColor(ti != -1 && ti < tints.length ? tints[ti] : -1);
+					buffer.putBakedQuad(pose, quad, quadInstance);
+				}
+			}
+			for (BakedQuad quad : part.getQuads(null))
+			{
+				int ti = quad.materialInfo().tintIndex();
+				quadInstance.setColor(ti != -1 && ti < tints.length ? tints[ti] : -1);
+				buffer.putBakedQuad(pose, quad, quadInstance);
+			}
+		}
+	}
+
 	private boolean renderArmor(ItemStack stack, PoseStack poseStack)
 	{
 		if (horseArmor.contains(stack.getItem()) && updateHorseArmor(stack))
@@ -306,7 +357,7 @@ public class CustomItemRenderer
 			poseStack.pushPose();
 			poseStack.scale(0.28f, 0.28f, 0.28f);
 			poseStack.translate(0, -1.2f, 0);
-			renderEntityModel(horse, poseStack, LightTexture.FULL_BRIGHT);
+			renderEntityModel(horse, poseStack, LightCoordsUtil.FULL_BRIGHT);
 			poseStack.popPose();
 			return true;
 		}
@@ -315,7 +366,7 @@ public class CustomItemRenderer
 			poseStack.pushPose();
 			poseStack.scale(0.65f, 0.65f, 0.65f);
 			poseStack.translate(0, -0.5f, 0);
-			renderEntityModel(wolf, poseStack, LightTexture.FULL_BRIGHT);
+			renderEntityModel(wolf, poseStack, LightCoordsUtil.FULL_BRIGHT);
 			poseStack.popPose();
 			return true;
 		}
@@ -350,7 +401,7 @@ public class CustomItemRenderer
 			poseStack.translate(0, yOffset, 0);
 			poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
 
-			renderEntityModel(armorStand, poseStack, LightTexture.FULL_BRIGHT);
+			renderEntityModel(armorStand, poseStack, LightCoordsUtil.FULL_BRIGHT);
 			poseStack.popPose();
 			return true;
 		}

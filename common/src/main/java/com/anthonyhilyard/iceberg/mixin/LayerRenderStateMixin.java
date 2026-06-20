@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.mixin;
 
 import java.util.List;
 
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -9,8 +10,6 @@ import com.anthonyhilyard.iceberg.renderer.ILayerRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState.FoilType;
 import net.minecraft.client.renderer.item.ItemStackRenderState.LayerRenderState;
@@ -22,9 +21,6 @@ public class LayerRenderStateMixin implements ILayerRenderState
 {
 	@Shadow
 	private List<BakedQuad> quads;
-
-	@Shadow
-	private RenderType renderType;
 
 	@Shadow
 	private ItemStackRenderState.FoilType foilType;
@@ -44,11 +40,11 @@ public class LayerRenderStateMixin implements ILayerRenderState
 
 		if (specialRenderer != null)
 		{
-			specialRenderer.submit(argumentForSpecialRendering, displayContext, poseStack, submitNodeCollector, packedLight, overlay, foilType != FoilType.NONE, seed);
+			specialRenderer.submit(argumentForSpecialRendering, poseStack, submitNodeCollector, packedLight, overlay, foilType != FoilType.NONE, seed);
 		}
-		else if (renderType != null)
+		else
 		{
-			submitNodeCollector.submitItem(poseStack, displayContext, packedLight, overlay, seed, tintLayers, quads, renderType, foilType);
+			submitNodeCollector.submitItem(poseStack, displayContext, packedLight, overlay, seed, tintLayers, quads, foilType);
 		}
 	}
 }

@@ -12,6 +12,7 @@ import com.anthonyhilyard.iceberg.util.INestedTooltipAccess;
 import com.anthonyhilyard.iceberg.util.ITooltipAccess;
 import com.anthonyhilyard.iceberg.util.Tooltips;
 
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
@@ -27,7 +28,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -38,7 +38,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 
-@Mixin(GuiGraphics.class)
+@Mixin(GuiGraphicsExtractor.class)
 public abstract class GuiGraphicsMixin implements ITooltipAccess
 {
 
@@ -58,7 +58,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 		icebergTooltipStack = stack != null ? stack : ItemStack.EMPTY;
 	}
 
-	@ModifyVariable(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), argsOnly = true)
+	@ModifyVariable(method = "tooltip", at = @At("HEAD"), argsOnly = true)
 	private List<ClientTooltipComponent> makeComponentsMutable(List<ClientTooltipComponent> components)
 	{
 		return new ArrayList<>(components);
@@ -86,11 +86,11 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 		}
 	}
 
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "tooltip", at = @At("HEAD"), cancellable = true)
 	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
 		this.renderTooltipDepth++;
-		GuiGraphics self = (GuiGraphics)(Object)this;
+		GuiGraphicsExtractor self = (GuiGraphicsExtractor)(Object)this;
 
 		ItemStack containerStack = ItemStack.EMPTY;
 		ItemStack nestedTooltipStack = ((INestedTooltipAccess) self).getIcebergNestedTooltipStack();
@@ -176,10 +176,10 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 		}
 	}
 
-	@Inject(method = "renderTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;)V", at = @At("TAIL"))
+	@Inject(method = "tooltip", at = @At("TAIL"))
 	private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
 	{
-		GuiGraphics self = (GuiGraphics)(Object)this;
+		GuiGraphicsExtractor self = (GuiGraphicsExtractor)(Object)this;
 		ItemStack containerStack = ItemStack.EMPTY;
 		ItemStack nestedTooltipStack = ((INestedTooltipAccess) self).getIcebergNestedTooltipStack();
 

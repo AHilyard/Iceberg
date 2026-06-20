@@ -1,7 +1,9 @@
 package com.anthonyhilyard.iceberg.forge.services;
 
 import java.util.List;
+import java.util.Optional;
 
+import net.minecraftforge.fml.ModContainer;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 
 import com.anthonyhilyard.iceberg.services.IPlatformHelper;
@@ -25,13 +27,14 @@ public class ForgePlatformHelper implements IPlatformHelper
 			return false;
 		}
 
-		if (ModList.get() != null)
+		try
 		{
-			return ModList.get().isLoaded(modId);
+			return ModList.isLoaded(modId);
+
 		}
-		else
+		catch(Exception ignored)
 		{
-			return LoadingModList.get().getModFileById(modId) != null;
+			return LoadingModList.getModFileById(modId) != null;
 		}
 	}
 
@@ -40,13 +43,13 @@ public class ForgePlatformHelper implements IPlatformHelper
 	{
 		if (cachedModList == null)
 		{
-			if (ModList.get() != null)
+			try
 			{
-				cachedModList = ModList.get().applyForEachModContainer(mod -> mod.getModId()).toList();
+				cachedModList = ModList.applyForEachModContainer(mod -> mod.getModId()).toList();
 			}
-			else
+			catch(Exception ignored)
 			{
-				cachedModList = LoadingModList.get().getMods().stream().map(ModInfo::getModId).toList();
+				cachedModList = LoadingModList.getMods().stream().map(ModInfo::getModId).toList();
 			}
 		}
 
@@ -69,7 +72,11 @@ public class ForgePlatformHelper implements IPlatformHelper
 		{
 			try
 			{
-				result = ModList.get().getModContainerById(modId).get().getModInfo().getVersion().compareTo(new DefaultArtifactVersion(versionString)) >= 0;
+				Optional<? extends ModContainer> opt = ModList.getModContainerById(modId);
+				if (opt.isPresent())
+				{
+					result = opt.get().getModInfo().getVersion().compareTo(new DefaultArtifactVersion(versionString)) >= 0;
+				}
 			}
 			catch (Exception e) {}
 		}

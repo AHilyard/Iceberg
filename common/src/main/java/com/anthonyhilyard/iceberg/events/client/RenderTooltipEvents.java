@@ -7,7 +7,7 @@ import com.anthonyhilyard.iceberg.events.EventFactory;
 import com.mojang.datafixers.util.Either;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.network.chat.FormattedText;
@@ -77,19 +77,19 @@ public final class RenderTooltipEvents
 	@FunctionalInterface
 	public interface PreExt
 	{
-		PreExtResult onPre(ItemStack stack, GuiGraphics graphics, int x, int y, int screenWidth, int screenHeight, Font font, List<ClientTooltipComponent> components, ClientTooltipPositioner positioner, boolean comparison, int index);
+		PreExtResult onPre(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, int screenWidth, int screenHeight, Font font, List<ClientTooltipComponent> components, ClientTooltipPositioner positioner, boolean comparison, int index);
 	}
 
 	@FunctionalInterface
 	public interface ColorExt
 	{
-		ColorExtResult onColor(ItemStack stack, GuiGraphics graphics, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison, int index, Identifier tooltipResource, boolean gradientBackground, boolean gradientBorder);
+		ColorExtResult onColor(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, Font font, int backgroundStart, int backgroundEnd, int borderStart, int borderEnd, List<ClientTooltipComponent> components, boolean comparison, int index, Identifier tooltipResource, boolean gradientBackground, boolean gradientBorder);
 	}
 
 	@FunctionalInterface
 	public interface PostExt
 	{
-		void onPost(ItemStack stack, GuiGraphics graphics, int x, int y, Font font, int width, int height, List<ClientTooltipComponent> components, boolean comparison, int index);
+		void onPost(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, Font font, int width, int height, List<ClientTooltipComponent> components, boolean comparison, int index);
 	}
 
 	public record GatherResult(InteractionResult result, int maxWidth, List<Either<FormattedText, TooltipComponent>> tooltipElements) {}

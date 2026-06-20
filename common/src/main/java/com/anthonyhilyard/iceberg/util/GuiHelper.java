@@ -1,14 +1,14 @@
 package com.anthonyhilyard.iceberg.util;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
 
 public class GuiHelper
 {
-	public static void drawGradientRect(GuiGraphics graphics, int left, int top, int right, int bottom, int startColor, int endColor)
+	public static void drawGradientRect(GuiGraphicsExtractor graphics, int left, int top, int right, int bottom, int startColor, int endColor)
 	{
 		graphics.fillGradient(left, top, right, bottom, startColor, endColor);
 	}
@@ -30,7 +30,7 @@ public class GuiHelper
 		vertexConsumer.addVertex(mat, right, bottom, zLevel).setColor(  endRed,   endGreen,   endBlue,   endAlpha);
 	}
 
-	public static void drawGradientRectHorizontal(GuiGraphics graphics, int left, int top, int right, int bottom, int startColor, int endColor)
+	public static void drawGradientRectHorizontal(GuiGraphicsExtractor graphics, int left, int top, int right, int bottom, int startColor, int endColor)
 	{
 		int width = right - left;
 		int height = bottom - top;
@@ -44,17 +44,17 @@ public class GuiHelper
 		graphics.pose().popMatrix();
 	}
 
-	public static void blit(GuiGraphics graphics, Identifier texture, int x0, int x1, int y0, int y1, int z, int texWidth, int texHeight, float texX, float texY, int fullWidth, int fullHeight)
+	public static void blit(GuiGraphicsExtractor graphics, Identifier texture, int x0, int x1, int y0, int y1, int z, int texWidth, int texHeight, float texX, float texY, int fullWidth, int fullHeight)
 	{
 		graphics.blit(texture, x0, y0, x1, y1, (texX + 0.0F) / (float)fullWidth, (texX + (float)texWidth) / (float)fullWidth, (texY + 0.0F) / (float)fullHeight, (texY + (float)texHeight) / (float)fullHeight);
 	}
 
-	public static void blit(GuiGraphics graphics, Identifier texture, int x, int y, int width, int height, float texX, float texY, int texWidth, int texHeight, int fullWidth, int fullHeight)
+	public static void blit(GuiGraphicsExtractor graphics, Identifier texture, int x, int y, int width, int height, float texX, float texY, int texWidth, int texHeight, int fullWidth, int fullHeight)
 	{
 		graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, texX, texY, width, height, fullWidth, fullHeight);
 	}
 
-	public static void blit(GuiGraphics graphics, Identifier texture, int x, int y, int width, int height, float texX, float texY, int texWidth, int texHeight, int fullWidth, int fullHeight, int color)
+	public static void blit(GuiGraphicsExtractor graphics, Identifier texture, int x, int y, int width, int height, float texX, float texY, int texWidth, int texHeight, int fullWidth, int fullHeight, int color)
 	{
 		graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, texX, texY, width, height, fullWidth, fullHeight, color);
 	}
