@@ -3,14 +3,14 @@ package com.anthonyhilyard.iceberg.mixin;
 import com.anthonyhilyard.iceberg.util.IGuiRenderStateAccess;
 
 import com.anthonyhilyard.iceberg.util.INestedTooltipAccess;
-import net.minecraft.client.gui.render.state.GuiRenderState;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import net.minecraft.client.gui.GuiGraphics;
 import org.spongepowered.asm.mixin.Unique;
 
-@Mixin(GuiGraphics.class)
+@Mixin(GuiGraphicsExtractor.class)
 public abstract class GuiGraphicsMixin implements IGuiRenderStateAccess, INestedTooltipAccess
 {
 
@@ -18,7 +18,7 @@ public abstract class GuiGraphicsMixin implements IGuiRenderStateAccess, INested
 	private GuiRenderState guiRenderState;
 
 	@Override
-	public GuiRenderState getRenderState()
+	public GuiRenderState getGuiRenderState()
 	{
 		return this.guiRenderState;
 	}

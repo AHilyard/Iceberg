@@ -1,8 +1,8 @@
 package com.anthonyhilyard.iceberg.util;
 
-import net.minecraft.client.gui.render.state.GuiRenderState;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
 
 public interface IGuiRenderStateAccess
 {
-	GuiRenderState getRenderState();
+	GuiRenderState getGuiRenderState();
 }

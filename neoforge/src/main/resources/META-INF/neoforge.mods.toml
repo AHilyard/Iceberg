@@ -15,14 +15,14 @@ license="CC BY-NC-ND 4.0"
 [[dependencies.iceberg]]
 	modId="neoforge"
 	type="required"
-	versionRange="[21.11.42,)"
+	versionRange="[26.1,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	type="required"
-	versionRange="[1.21.11]"
+	versionRange="[26.1,)"
 	ordering="NONE"
 	side="BOTH"
 

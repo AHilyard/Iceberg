@@ -32,6 +32,7 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.TickRateManager;
 import net.minecraft.world.attribute.EnvironmentAttributeSystem;
+import net.minecraft.world.clock.ClockManager;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -93,10 +94,6 @@ public class EntityCollector extends Level
 		super(new WritableLevelData() {
 			@Override public RespawnData getRespawnData() { return RespawnData.of(wrapped.dimension(), BlockPos.ZERO, 0, 0);}
 			@Override public long getGameTime() { return 0; }
-			@Override public long getDayTime() { return 0; }
-			@Override public boolean isThundering() { return false; }
-			@Override public boolean isRaining() { return false; }
-			@Override public void setRaining(boolean isRaining) {}
 			@Override public boolean isHardcore() { return false; }
 			@Override public Difficulty getDifficulty() { return Difficulty.EASY; }
 			@Override public boolean isDifficultyLocked() { return false; }
@@ -295,9 +292,6 @@ public class EntityCollector extends Level
 	public FeatureFlagSet enabledFeatures() { return wrappedLevel.enabledFeatures(); }
 
 	@Override
-	public float getShade(Direction p_45522_, boolean p_45523_) { return wrappedLevel.getShade(p_45522_, p_45523_); }
-
-	@Override
 	public void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_) { /* No block updates. */ }
 
 	@Override
@@ -352,6 +346,9 @@ public class EntityCollector extends Level
 		};
 
 	}
+
+	@Override
+	public ClockManager clockManager() { return wrappedLevel.clockManager(); }
 
 	@Override
 	public int getSeaLevel() { return wrappedLevel.getSeaLevel(); }

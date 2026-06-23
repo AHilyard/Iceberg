@@ -16,11 +16,11 @@ import com.mojang.datafixers.util.Either;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.*;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
@@ -62,7 +62,7 @@ public class Tooltips
 	public static final TooltipColors DEFAULT_COLORS = new TooltipColors(TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF), TextColor.fromRgb(0xFFFFFFFF));
 
 	private static final FormattedCharSequence SPACE = FormattedCharSequence.forward(" ", Style.EMPTY);
-	private static ItemRenderer itemRenderer = null;
+	private static ItemModelResolver itemRenderer = null;
 	private static boolean tooltipWidthWarningShown = false;
 
 	public static TooltipColors currentColors = DEFAULT_COLORS;
@@ -153,14 +153,14 @@ public class Tooltips
 		return titleLines;
 	}
 
-	public static void renderGradientBackground(GuiGraphics graphics, int x, int y, int width, int height, int topColor, int bottomColor)
+	public static void renderGradientBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int topColor, int bottomColor)
 	{
 		graphics.nextStratum();
 		graphics.fillGradient(x - 4, y - 3, x + width + 4, y + height + 3, topColor, bottomColor);
 		graphics.fillGradient(x - 3, y - 4, x + width + 3, y - 3, topColor, topColor);
 		graphics.fillGradient(x - 3, y + height + 3, x + width + 3, y + height + 4, bottomColor, bottomColor);
 	}
-	public static void renderGradientBorder(GuiGraphics graphics, int x, int y, int width, int height, int topColor, int bottomColor)
+	public static void renderGradientBorder(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int topColor, int bottomColor)
 	{
 		graphics.nextStratum();
 		graphics.fillGradient(x - 2, y - 3, x + width + 2, y - 2, topColor, topColor);
@@ -172,7 +172,7 @@ public class Tooltips
 	public static void renderItemTooltip(@NotNull final ItemStack stack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
-										GuiGraphics graphics, ClientTooltipPositioner positioner,
+										GuiGraphicsExtractor graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index)
 	{
 		renderItemTooltip(stack, info, rect, screenWidth, screenHeight, backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, graphics, positioner, comparison, constrain, centeredTitle, index, stack.get(DataComponents.TOOLTIP_STYLE), true, true);
@@ -182,7 +182,7 @@ public class Tooltips
 	public static void renderItemTooltip(@NotNull final ItemStack stack, TooltipInfo info,
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
-										GuiGraphics graphics, ClientTooltipPositioner positioner,
+										GuiGraphicsExtractor graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index,
 										Identifier tooltipResource, boolean gradientBackground, boolean gradientBorder)
 	{
@@ -194,7 +194,7 @@ public class Tooltips
 		// Grab the itemRenderer now if needed.
 		if (itemRenderer == null)
 		{
-			itemRenderer = Minecraft.getInstance().getItemRenderer();
+			itemRenderer = Minecraft.getInstance().getItemModelResolver();
 		}
 
 		// Center the title now if needed.
@@ -237,7 +237,7 @@ public class Tooltips
 		if (backgroundColorStart != 0 || backgroundColorEnd != 0 || borderColorStart != 0 || borderColorEnd != 0)
 		{
 			graphics.nextStratum();
-			TooltipRenderUtil.renderTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), tooltipResource);
+			TooltipRenderUtil.extractTooltipBackground(graphics, finalRectX, finalRectY, rect.getWidth(), rect.getHeight(), tooltipResource);
 		}
 
 		currentColors = DEFAULT_COLORS;
@@ -253,7 +253,7 @@ public class Tooltips
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent textComponent = info.getComponents().get(componentNumber);
-			textComponent.renderText(graphics, preResult.font(), rectX, tooltipTop);
+			textComponent.extractText(graphics, preResult.font(), rectX, tooltipTop);
 			tooltipTop += textComponent.getHeight(preResult.font());
 			if ((textComponent instanceof ClientTextTooltip || textComponent instanceof InlineComponent) && titleLines > 0)
 			{
@@ -273,7 +273,7 @@ public class Tooltips
 		for (int componentNumber = 0; componentNumber < info.getComponents().size(); ++componentNumber)
 		{
 			ClientTooltipComponent imageComponent = info.getComponents().get(componentNumber);
-			imageComponent.renderImage(info.getFont(), rectX, tooltipTop, rect.getWidth(), rect.getHeight(), graphics);
+			imageComponent.extractImage(info.getFont(), rectX, tooltipTop, rect.getWidth(), rect.getHeight(), graphics);
 			tooltipTop += imageComponent.getHeight(info.getFont()) + (componentNumber == 0 ? 2 : 0);
 		}
 
@@ -402,25 +402,25 @@ public class Tooltips
 									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
-		GuiGraphics graphics = new GuiGraphics(minecraft, ((GameRendererAccessor)minecraft.gameRenderer).getGuiRenderState(), mouseX, mouseY);
+		GuiGraphicsExtractor graphics = new GuiGraphicsExtractor(minecraft, ((GameRendererAccessor)minecraft.gameRenderer).getGameRenderState().guiRenderState, mouseX, mouseY);
 		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, minWidth, centeredTitle);
 	}
 
 	@Deprecated
-	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, List<ClientTooltipComponent> components,
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphicsExtractor graphics, List<ClientTooltipComponent> components,
 									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
 	{
 		return calculateRect(stack, graphics, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
 	}
 
 	@Deprecated
-	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, List<ClientTooltipComponent> components,
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphicsExtractor graphics, List<ClientTooltipComponent> components,
 									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
 	{
 		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight,maxTextWidth, font, minWidth, centeredTitle);
 	}
 
-	public static Rect2i calculateRect(final ItemStack stack, GuiGraphics graphics, ClientTooltipPositioner positioner, List<ClientTooltipComponent> components,
+	public static Rect2i calculateRect(final ItemStack stack, GuiGraphicsExtractor graphics, ClientTooltipPositioner positioner, List<ClientTooltipComponent> components,
 									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
 	{
 		Rect2i rect = new Rect2i(0, 0, 0, 0);
