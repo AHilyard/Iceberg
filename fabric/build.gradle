@@ -37,7 +37,7 @@ dependencies {
 	implementation "com.electronwill.night-config:core:${project.nightconfigVersion}"
 	implementation "com.electronwill.night-config:toml:${project.nightconfigVersion}"
 
-	implementation files("../libs/sodium-fabric-0.8.12+mc26.1.2.jar")
+	implementation files("../libs/sodium-fabric-0.9.0+mc26.2.jar")
 
 	common(project(path: ":common")) { transitive false }
 	shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
