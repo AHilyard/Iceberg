@@ -3,6 +3,7 @@ package com.anthonyhilyard.iceberg.renderer;
 import com.anthonyhilyard.iceberg.util.EntityCollector;
 import com.anthonyhilyard.iceberg.util.IGuiRenderStateAccess;
 import com.anthonyhilyard.iceberg.util.ItemUtil;
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -12,8 +13,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.QuadInstance;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
@@ -29,19 +28,13 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.item.TrackingItemStackRenderState;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.LightCoordsUtil;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.animal.equine.Horse;
 import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -55,20 +48,19 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
-import org.joml.Matrix3x2f;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
-import org.joml.Quaternionf;
+import org.joml.*;
 
+import java.lang.Math;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.OptionalInt;
 
 public class CustomItemRenderer
 {
 	private final Minecraft minecraft;
 	private RenderTarget renderTarget;
 	private final ProjectionMatrixBuffer projectionMatrixBuffer;
+	private final SubmitNodeStorage submitNodeStorage = new SubmitNodeStorage();
 	private boolean isClosed = false;
 
 	private static ArmorStand armorStand = null;
@@ -82,7 +74,6 @@ public class CustomItemRenderer
 	private static Pair<Item, DataComponentMap> cachedEntityItem = null;
 
 	private final BlockModelRenderState blockRenderState = new BlockModelRenderState();
-	private final QuadInstance quadInstance = new QuadInstance();
 
 	public CustomItemRenderer(Minecraft mc)
 	{
@@ -132,13 +123,13 @@ public class CustomItemRenderer
 			{
 				renderTarget.destroyBuffers();
 			}
-			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, true);
+			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, true, GpuFormat.RGBA8_UNORM);
 		}
 
 		try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
 			() -> "Item",
 			// 0x00000000 is a transparent black (outline).
-			renderTarget.getColorTextureView(), OptionalInt.of(0x00000000),
+			renderTarget.getColorTextureView(), Optional.of(new Vector4f(0, 0, 0, 0)),
 			renderTarget.getDepthTextureView(), OptionalDouble.of(1.0)
 		)) {}
 
@@ -168,11 +159,9 @@ public class CustomItemRenderer
 		boolean is3D = itemState.usesBlockLight() || isSpinning;
 		boolean renderedEntity = false;
 
-		MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-
 		if (renderEntities)
 		{
-			if (tryEntityRenderers(stack, poseStack, rotation, bufferSource))
+			if (tryEntityRenderers(stack, poseStack, rotation))
 			{
 				renderedEntity = true;
 				is3D = true;
@@ -186,22 +175,20 @@ public class CustomItemRenderer
 
 		if (!is3D)
 		{
-			minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
+			minecraft.gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_FLAT);
 		}
 
 		if (!renderedEntity)
 		{
-			SubmitNodeStorage submitNodeStorage = minecraft.gameRenderer.getSubmitNodeStorage();
 			itemState.submit(poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
 		}
 
-		minecraft.gameRenderer.getFeatureRenderDispatcher().renderAllFeatures();
-		bufferSource.endBatch();
+		minecraft.gameRenderer.featureRenderDispatcher().renderAllFeatures(submitNodeStorage);
 
 		if (!is3D)
 		{
 			// We must set the renderer lighting back to 3D.
-			minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
+			minecraft.gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_3D);
 		}
 
 		modelViewStack.popMatrix();
@@ -224,7 +211,7 @@ public class CustomItemRenderer
 		));
 	}
 
-	private boolean tryEntityRenderers(ItemStack stack, PoseStack poseStack, Quaternionf rotation, MultiBufferSource.BufferSource bufferSource)
+	private boolean tryEntityRenderers(ItemStack stack, PoseStack poseStack, Quaternionf rotation)
 	{
 		boolean renderedEntity = false;
 
@@ -280,14 +267,14 @@ public class CustomItemRenderer
 				BlockState bottomState = blockState.setValue(
 					BlockStateProperties.DOUBLE_BLOCK_HALF,
 					DoubleBlockHalf.LOWER);
-				renderBlockState(bottomState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(bottomState, poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 
 				poseStack.pushPose();
 				poseStack.translate(0.0f, 1.0f, 0.0f);
 				BlockState topState = blockState.setValue(
 					BlockStateProperties.DOUBLE_BLOCK_HALF,
 					DoubleBlockHalf.UPPER);
-				renderBlockState(topState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(topState, poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 				poseStack.popPose();
 			}
 			else
@@ -295,7 +282,7 @@ public class CustomItemRenderer
 				// Normal blocks logic.
 				poseStack.scale(0.5f, 0.5f, 0.5f);
 				poseStack.translate(-0.5f, -0.5f, -0.5f);
-				renderBlockState(blockState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(blockState, poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 			}
 
 			// Renderer for block entities.
@@ -311,43 +298,13 @@ public class CustomItemRenderer
 		return renderedEntity;
 	}
 
-	private void renderBlockState(BlockState blockState, PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, int lightCoords, int overlayCoords)
+	private void renderBlockState(BlockState blockState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, int overlayCoords)
 	{
 		blockRenderState.clear();
-
 		BlockStateModel model = minecraft.getModelManager().getBlockStateModelSet().get(blockState);
-		RenderType renderType = model.hasMaterialFlag(1)
-				? Sheets.translucentBlockSheet()
-				: Sheets.cutoutBlockSheet();
-
 		List<BlockStateModelPart> parts = blockRenderState.setupModel(new Matrix4f(), model.hasMaterialFlag(1));
 		model.collectParts(blockRenderState.scratchRandomSource(1), parts);
-
-		VertexConsumer buffer = bufferSource.getBuffer(renderType);
-		PoseStack.Pose pose = poseStack.last();
-		int[] tints = blockRenderState.tintLayers().toArray(BlockModelRenderState.EMPTY_TINTS);
-
-		quadInstance.setLightCoords(lightCoords);
-		quadInstance.setOverlayCoords(overlayCoords);
-
-		for (BlockStateModelPart part : parts)
-		{
-			for (Direction dir : Direction.values())
-			{
-				for (BakedQuad quad : part.getQuads(dir))
-				{
-					int ti = quad.materialInfo().tintIndex();
-					quadInstance.setColor(ti != -1 && ti < tints.length ? tints[ti] : -1);
-					buffer.putBakedQuad(pose, quad, quadInstance);
-				}
-			}
-			for (BakedQuad quad : part.getQuads(null))
-			{
-				int ti = quad.materialInfo().tintIndex();
-				quadInstance.setColor(ti != -1 && ti < tints.length ? tints[ti] : -1);
-				buffer.putBakedQuad(pose, quad, quadInstance);
-			}
-		}
+		blockRenderState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, 0);
 	}
 
 	private boolean renderArmor(ItemStack stack, PoseStack poseStack)
@@ -427,8 +384,7 @@ public class CustomItemRenderer
 
 		try
 		{
-			SubmitNodeCollector submitNodeCollector = minecraft.gameRenderer.getSubmitNodeStorage();
-			renderer.submit(state, poseStack, submitNodeCollector, null);
+			renderer.submit(state, poseStack, submitNodeStorage, null);
 		} catch (Exception e) {}
 
 		poseStack.popPose();
@@ -453,8 +409,7 @@ public class CustomItemRenderer
 					float partialTicks = minecraft.getDeltaTracker().getGameTimeDeltaTicks();
 					renderer.extractRenderState((T) blockEntity, state, partialTicks, net.minecraft.world.phys.Vec3.ZERO, null);
 
-					SubmitNodeCollector submitNodeCollector = minecraft.gameRenderer.getSubmitNodeStorage();
-					renderer.submit(state, poseStack, submitNodeCollector, null);
+					renderer.submit(state, poseStack, submitNodeStorage, null);
 
 					return true;
 				}
@@ -496,7 +451,7 @@ public class CustomItemRenderer
 
 		if (armorStand == null && minecraft.level != null)
 		{
-			armorStand = EntityType.ARMOR_STAND.create(minecraft.level, EntitySpawnReason.COMMAND);
+			armorStand = EntityTypes.ARMOR_STAND.create(minecraft.level, EntitySpawnReason.COMMAND);
 			if (armorStand != null)
 			{
 				armorStand.setInvisible(true);
@@ -525,7 +480,7 @@ public class CustomItemRenderer
 	{
 		if (horse == null && minecraft.level != null)
 		{
-			horse = EntityType.HORSE.create(minecraft.level, EntitySpawnReason.COMMAND);
+			horse = EntityTypes.HORSE.create(minecraft.level, EntitySpawnReason.COMMAND);
 			if (horse != null)
 			{
 				horse.setInvisible(true);
@@ -540,7 +495,7 @@ public class CustomItemRenderer
 		Pair<Item, DataComponentMap> currentItem = Pair.of(horseArmorItem.getItem(), horseArmorItem.getComponents());
 		if (!currentItem.equals(cachedHorseArmorItem))
 		{
-			horse.setBodyArmorItem(horseArmorItem);
+			horse.setItemSlot(EquipmentSlot.BODY, horseArmorItem);
 			cachedHorseArmorItem = currentItem;
 		}
 		return true;
@@ -550,7 +505,7 @@ public class CustomItemRenderer
 	{
 		if (wolf == null && minecraft.level != null)
 		{
-			wolf = EntityType.WOLF.create(minecraft.level, EntitySpawnReason.COMMAND);
+			wolf = EntityTypes.WOLF.create(minecraft.level, EntitySpawnReason.COMMAND);
 			if (wolf != null)
 			{
 				wolf.setInvisible(true);
@@ -565,7 +520,7 @@ public class CustomItemRenderer
 		Pair<Item, DataComponentMap> currentItem = Pair.of(wolfArmorItem.getItem(), wolfArmorItem.getComponents());
 		if (!currentItem.equals(cachedWolfArmorItem))
 		{
-			wolf.setBodyArmorItem(wolfArmorItem);
+			wolf.setItemSlot(EquipmentSlot.BODY, wolfArmorItem);
 			cachedWolfArmorItem = currentItem;
 		}
 		return true;
