@@ -270,6 +270,7 @@ public class CustomItemRenderer
 			poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
 
 			BlockState blockState = blockItem.getBlock().defaultBlockState();
+			SubmitNodeStorage submitNodeStorage = minecraft.gameRenderer.getSubmitNodeStorage();
 
 			if (blockState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
 			{
@@ -280,14 +281,14 @@ public class CustomItemRenderer
 				BlockState bottomState = blockState.setValue(
 					BlockStateProperties.DOUBLE_BLOCK_HALF,
 					DoubleBlockHalf.LOWER);
-				renderBlockState(bottomState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(bottomState, poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 
 				poseStack.pushPose();
 				poseStack.translate(0.0f, 1.0f, 0.0f);
 				BlockState topState = blockState.setValue(
 					BlockStateProperties.DOUBLE_BLOCK_HALF,
 					DoubleBlockHalf.UPPER);
-				renderBlockState(topState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(topState, poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 				poseStack.popPose();
 			}
 			else
@@ -295,7 +296,7 @@ public class CustomItemRenderer
 				// Normal blocks logic.
 				poseStack.scale(0.5f, 0.5f, 0.5f);
 				poseStack.translate(-0.5f, -0.5f, -0.5f);
-				renderBlockState(blockState, poseStack, bufferSource, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+				renderBlockState(blockState, poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 			}
 
 			// Renderer for block entities.
@@ -311,43 +312,13 @@ public class CustomItemRenderer
 		return renderedEntity;
 	}
 
-	private void renderBlockState(BlockState blockState, PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, int lightCoords, int overlayCoords)
+	private void renderBlockState(BlockState blockState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, int overlayCoords)
 	{
 		blockRenderState.clear();
-
 		BlockStateModel model = minecraft.getModelManager().getBlockStateModelSet().get(blockState);
-		RenderType renderType = model.hasMaterialFlag(1)
-				? Sheets.translucentBlockSheet()
-				: Sheets.cutoutBlockSheet();
-
 		List<BlockStateModelPart> parts = blockRenderState.setupModel(new Matrix4f(), model.hasMaterialFlag(1));
 		model.collectParts(blockRenderState.scratchRandomSource(1), parts);
-
-		VertexConsumer buffer = bufferSource.getBuffer(renderType);
-		PoseStack.Pose pose = poseStack.last();
-		int[] tints = blockRenderState.tintLayers().toArray(BlockModelRenderState.EMPTY_TINTS);
-
-		quadInstance.setLightCoords(lightCoords);
-		quadInstance.setOverlayCoords(overlayCoords);
-
-		for (BlockStateModelPart part : parts)
-		{
-			for (Direction dir : Direction.values())
-			{
-				for (BakedQuad quad : part.getQuads(dir))
-				{
-					int ti = quad.materialInfo().tintIndex();
-					quadInstance.setColor(ti != -1 && ti < tints.length ? tints[ti] : -1);
-					buffer.putBakedQuad(pose, quad, quadInstance);
-				}
-			}
-			for (BakedQuad quad : part.getQuads(null))
-			{
-				int ti = quad.materialInfo().tintIndex();
-				quadInstance.setColor(ti != -1 && ti < tints.length ? tints[ti] : -1);
-				buffer.putBakedQuad(pose, quad, quadInstance);
-			}
-		}
+		blockRenderState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, 0);
 	}
 
 	private boolean renderArmor(ItemStack stack, PoseStack poseStack)
