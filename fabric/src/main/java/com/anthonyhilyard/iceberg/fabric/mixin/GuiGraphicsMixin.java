@@ -77,7 +77,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	@Inject(method = "setTooltipForNextFrameInternal", at = @At("HEAD"))
 	public void modifyGatheredComponents(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean bl, CallbackInfo info)
 	{
-		Screen currentScreen = minecraft.screen;
+		Screen currentScreen = minecraft.gui.screen();
 		if (currentScreen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
 		{
 			if (icebergTooltipStack.isEmpty()) icebergTooltipStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
@@ -100,7 +100,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 		}
 		else if (this.renderTooltipDepth == 1)
 		{
-			if (minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+			if (minecraft.gui.screen() instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
 			{
 				containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
 			}
@@ -110,10 +110,10 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 		int width = minecraft.getWindow().getGuiScaledWidth();
 		int height = minecraft.getWindow().getGuiScaledHeight();
 
-		if (minecraft.screen != null)
+		if (minecraft.gui.screen() != null)
 		{
-			width = minecraft.screen.width;
-			height = minecraft.screen.height;
+			width = minecraft.gui.screen().width;
+			height = minecraft.gui.screen().height;
 		}
 
 		if (!containerStack.isEmpty())
@@ -185,7 +185,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 		{
 			containerStack = nestedTooltipStack;
 		}
-		else if (this.renderTooltipDepth == 1 && minecraft.screen instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
+		else if (this.renderTooltipDepth == 1 && minecraft.gui.screen() instanceof AbstractContainerScreen<?> containerScreen && ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot() != null)
 		{
 			containerStack = ((AbstractContainerScreenAccessor)containerScreen).getHoveredSlot().getItem();
 		}

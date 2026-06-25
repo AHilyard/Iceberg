@@ -1,5 +1,8 @@
 package com.anthonyhilyard.iceberg.fabric.services;
 
+import com.anthonyhilyard.iceberg.services.IBufferSource;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryStack;
@@ -10,11 +13,8 @@ import com.anthonyhilyard.iceberg.services.IBufferSourceFactory;
 import com.anthonyhilyard.iceberg.util.UnsafeUtil;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormatElement;
 
 import net.caffeinemc.mods.sodium.api.vertex.buffer.VertexBufferWriter;
-
-import net.minecraft.client.renderer.MultiBufferSource;
 
 public class FabricBufferSourceFactory implements IBufferSourceFactory
 {
@@ -22,7 +22,7 @@ public class FabricBufferSourceFactory implements IBufferSourceFactory
 	@Override
 	public CheckedBufferSource createCheckedBufferSource(Object bufferSource)
 	{
-		return new CheckedBufferSource((MultiBufferSource)bufferSource) {
+		return new CheckedBufferSource((IBufferSource)bufferSource) {
 
 			@Override
 			public VertexConsumer getBuffer(RenderType renderType)
@@ -126,15 +126,21 @@ public class FabricBufferSourceFactory implements IBufferSourceFactory
 					{
 						// Loop over each vertex, and add it to the list if it's opaque.
 						// To determine this, we need to check the vertex format to find the vertex position and alpha.
+						VertexFormatElement posElement = format.getElement(DefaultVertexFormat.POSITION_SEMANTIC_NAME);
+						VertexFormatElement colorElement = format.getElement(DefaultVertexFormat.COLOR_SEMANTIC_NAME);
+						if (posElement == null || colorElement == null)
+						{
+							return;
+						}
 						for (int i = 0; i < count; i++)
 						{
 							// Get the vertex position.
-							float x = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.POSITION));
-							float y = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.POSITION) + 4);
-							float z = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.POSITION) + 8);
+							float x = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + posElement.offset());
+							float y = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + posElement.offset() + 4);
+							float z = UnsafeUtil.readFloat(pointer + i * format.getVertexSize() + posElement.offset() + 8);
 
 							// Get the vertex alpha.
-							int a = UnsafeUtil.readByte(pointer + i * format.getVertexSize() + format.getOffset(VertexFormatElement.COLOR) + 3) & 0xFF;
+							int a = UnsafeUtil.readByte(pointer + i * format.getVertexSize() + colorElement.offset() + 3) & 0xFF;
 
 							// Add the vertex to the list if it's opaque.
 							if (a >= 25)
@@ -147,5 +153,4 @@ public class FabricBufferSourceFactory implements IBufferSourceFactory
 			}
 		};
 	}
-	
 }

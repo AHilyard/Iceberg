@@ -1,5 +1,6 @@
 package com.anthonyhilyard.iceberg.renderer;
 
+import com.anthonyhilyard.iceberg.services.IBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -7,21 +8,19 @@ import com.anthonyhilyard.iceberg.Iceberg;
 import com.anthonyhilyard.iceberg.services.Services;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
-import net.minecraft.client.renderer.MultiBufferSource;
-
-public class CheckedBufferSource implements MultiBufferSource
+public class CheckedBufferSource implements IBufferSource
 {
 	protected boolean hasRendered = false;
-	protected final MultiBufferSource bufferSource;
+	protected final IBufferSource bufferSource;
 
 	private static Boolean useSodiumVersion = null;
 
-	protected CheckedBufferSource(MultiBufferSource bufferSource)
+	protected CheckedBufferSource(IBufferSource bufferSource)
 	{
 		this.bufferSource = bufferSource;
 	}
 
-	public static CheckedBufferSource create(MultiBufferSource bufferSource)
+	public static CheckedBufferSource create(IBufferSource bufferSource)
 	{
 		if (useSodiumVersion == null)
 		{

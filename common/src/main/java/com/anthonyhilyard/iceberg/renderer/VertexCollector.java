@@ -2,6 +2,7 @@ package com.anthonyhilyard.iceberg.renderer;
 
 import java.util.Set;
 
+import com.anthonyhilyard.iceberg.services.IBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.joml.Vector3f;
@@ -11,9 +12,7 @@ import com.anthonyhilyard.iceberg.services.Services;
 import com.google.common.collect.Sets;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
-import net.minecraft.client.renderer.MultiBufferSource;
-
-public class VertexCollector implements MultiBufferSource
+public class VertexCollector implements IBufferSource
 {
 	protected final Set<Vector3f> vertices = Sets.newHashSet();
 	protected final Vector3f currentVertex = new Vector3f();

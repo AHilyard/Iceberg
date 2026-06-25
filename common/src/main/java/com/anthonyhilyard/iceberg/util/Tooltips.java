@@ -18,7 +18,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.*;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.core.component.DataComponents;
@@ -244,7 +243,6 @@ public class Tooltips
 		Tooltips.gradientBackground = false;
 		Tooltips.gradientBorder = false;
 
-		MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
 		graphics.nextStratum();
 
 		int tooltipTop = rectY;
@@ -265,7 +263,6 @@ public class Tooltips
 			}
 		}
 
-		bufferSource.endBatch();
 		graphics.nextStratum();
 
 		tooltipTop = rectY;
