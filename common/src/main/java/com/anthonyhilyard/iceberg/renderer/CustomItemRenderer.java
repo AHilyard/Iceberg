@@ -258,7 +258,6 @@ public class CustomItemRenderer
 			poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
 
 			BlockState blockState = blockItem.getBlock().defaultBlockState();
-			SubmitNodeStorage submitNodeStorage = minecraft.gameRenderer.getSubmitNodeStorage();
 
 			if (blockState.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF))
 			{
