@@ -60,6 +60,7 @@ public class CustomItemRenderer
 	private final Minecraft minecraft;
 	private RenderTarget renderTarget;
 	private final ProjectionMatrixBuffer projectionMatrixBuffer;
+	private final Projection projection = new Projection();
 	private final SubmitNodeStorage submitNodeStorage = new SubmitNodeStorage();
 	private boolean isClosed = false;
 
@@ -130,7 +131,7 @@ public class CustomItemRenderer
 			() -> "Item",
 			// 0x00000000 is a transparent black (outline).
 			renderTarget.getColorTextureView(), Optional.of(new Vector4f(0, 0, 0, 0)),
-			renderTarget.getDepthTextureView(), OptionalDouble.of(1.0)
+			renderTarget.getDepthTextureView(), OptionalDouble.of(0.0)
 		)) {}
 
 		RenderSystem.outputColorTextureOverride = renderTarget.getColorTextureView();
@@ -141,9 +142,9 @@ public class CustomItemRenderer
 		modelViewStack.pushMatrix();
 		modelViewStack.identity();
 
-		Matrix4f ortho = new Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f);
+		this.projection.setupOrtho(-1000.0f, 1000.0f, 16, 16, true);
 		RenderSystem.setProjectionMatrix(
-			this.projectionMatrixBuffer.getBuffer(ortho),
+			this.projectionMatrixBuffer.getBuffer(this.projection),
 			ProjectionType.ORTHOGRAPHIC
 		);
 
@@ -455,6 +456,7 @@ public class CustomItemRenderer
 			if (armorStand != null)
 			{
 				armorStand.setInvisible(true);
+				armorStand.setId(1);
 			}
 		}
 
@@ -484,6 +486,7 @@ public class CustomItemRenderer
 			if (horse != null)
 			{
 				horse.setInvisible(true);
+				horse.setId(1);
 			}
 		}
 
@@ -509,6 +512,7 @@ public class CustomItemRenderer
 			if (wolf != null)
 			{
 				wolf.setInvisible(true);
+				wolf.setId(1);
 			}
 		}
 
