@@ -46,10 +46,10 @@ public abstract class GuiGraphicsMixin
 		int width = minecraft.getWindow().getGuiScaledWidth();
 		int height = minecraft.getWindow().getGuiScaledHeight();
 
-		if (minecraft.screen != null)
+		if (minecraft.gui.screen() != null)
 		{
-			width = minecraft.screen.width;
-			height = minecraft.screen.height;
+			width = minecraft.gui.screen().width;
+			height = minecraft.gui.screen().height;
 		}
 
 		if (itemStack != null && itemStack.isEmpty())
