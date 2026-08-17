@@ -92,6 +92,13 @@ public class EntityCollector extends Level
 	{
 		if (!wrappedLevelsMap.containsKey(wrappedLevel))
 		{
+			if (wrappedLevel.isClientSide)
+			{
+				wrappedLevelsMap.keySet().stream()
+						.filter(Level::isClientSide)
+						.findFirst()
+						.ifPresent(wrappedLevelsMap::remove);
+			}
 			wrappedLevelsMap.put(wrappedLevel, new EntityCollector(wrappedLevel));
 		}
 
