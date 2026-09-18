@@ -8,21 +8,21 @@ license="CC BY-NC-ND 4.0"
 	displayName="Iceberg"
 	displayURL="https://anthonyhilyard.com/"
 	updateJSONURL="https://mc-update-check.anthonyhilyard.com/520110"
-	logoFile="icon.png"
+	iconFile="icon.png"
 	authors="Grend, Mat0u5"
 	description="A library containing events, helpers, and utilities to make modding easier."
 
 [[dependencies.iceberg]]
 	modId="neoforge"
 	type="required"
-	versionRange="[26.2,)"
+	versionRange="[26.3,)"
 	ordering="NONE"
 	side="BOTH"
 
 [[dependencies.iceberg]]
 	modId="minecraft"
 	type="required"
-	versionRange="[26.2,)"
+	versionRange="[26.3,)"
 	ordering="NONE"
 	side="BOTH"
 
