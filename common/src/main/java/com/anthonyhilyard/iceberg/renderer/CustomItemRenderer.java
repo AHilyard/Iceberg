@@ -175,12 +175,13 @@ public class CustomItemRenderer
 			itemState.submit(poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
 		}
 
-		try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+		try (
+				FeatureRenderDispatcher.PreparedFrame frame = minecraft.gameRenderer.featureRenderDispatcher().prepareFrame(this.submitNodeStorage);
+				RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
 				() -> "Item",
 				renderTarget.getColorTextureView(), Optional.of(new Vector4f(0, 0, 0, 0)),
 				renderTarget.getDepthTextureView(), OptionalDouble.of(0.0)
 		)) {
-			FeatureRenderDispatcher.PreparedFrame frame = minecraft.gameRenderer.featureRenderDispatcher().prepareFrame(this.submitNodeStorage);
 			FeatureRenderDispatcher.renderAllFeatures(clearPass, frame);
 		}
 
