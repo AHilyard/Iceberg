@@ -36,11 +36,11 @@ public final class RenderTooltipEvents
 		});
 
 	public static final Event<RenderTooltipEvents.PreExt> PREEXT = EventFactory.create(RenderTooltipEvents.PreExt.class,
-		callbacks ->  (stack, graphics, x, y, screenWidth, screenHeight, font, components, positioner, comparison, index) -> {
+		callbacks ->  (stack, graphics, x, y, screenWidth, screenHeight, font, components, positioner, comparison, index, extraSpaceAfterFirstLine) -> {
 			PreExtResult result = new PreExtResult(InteractionResult.PASS, x, y, screenWidth, screenHeight, font);
 			for (RenderTooltipEvents.PreExt callback : callbacks)
 			{
-				result = callback.onPre(stack, graphics, result.x, result.y, result.screenWidth, result.screenHeight, result.font, components, positioner, comparison, index);
+				result = callback.onPre(stack, graphics, result.x, result.y, result.screenWidth, result.screenHeight, result.font, components, positioner, comparison, index, extraSpaceAfterFirstLine);
 
 				if (result.result != InteractionResult.PASS)
 				{
@@ -61,10 +61,10 @@ public final class RenderTooltipEvents
 	});
 
 	public static final Event<RenderTooltipEvents.PostExt> POSTEXT = EventFactory.create(RenderTooltipEvents.PostExt.class,
-		callbacks -> (stack, graphics, x, y, font, width, height, components, comparison, index) -> {
+		callbacks -> (stack, graphics, x, y, font, width, height, components, comparison, index, extraSpaceAfterFirstLine) -> {
 			for (RenderTooltipEvents.PostExt callback : callbacks)
 			{
-				callback.onPost(stack, graphics, x, y, font, width, height, components, comparison, index);
+				callback.onPost(stack, graphics, x, y, font, width, height, components, comparison, index, extraSpaceAfterFirstLine);
 			}
 	});
 
@@ -77,7 +77,7 @@ public final class RenderTooltipEvents
 	@FunctionalInterface
 	public interface PreExt
 	{
-		PreExtResult onPre(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, int screenWidth, int screenHeight, Font font, List<ClientTooltipComponent> components, ClientTooltipPositioner positioner, boolean comparison, int index);
+		PreExtResult onPre(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, int screenWidth, int screenHeight, Font font, List<ClientTooltipComponent> components, ClientTooltipPositioner positioner, boolean comparison, int index, boolean extraSpaceAfterFirstLine);
 	}
 
 	@FunctionalInterface
@@ -89,7 +89,7 @@ public final class RenderTooltipEvents
 	@FunctionalInterface
 	public interface PostExt
 	{
-		void onPost(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, Font font, int width, int height, List<ClientTooltipComponent> components, boolean comparison, int index);
+		void onPost(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, Font font, int width, int height, List<ClientTooltipComponent> components, boolean comparison, int index, boolean extraSpaceAfterFirstLine);
 	}
 
 	public record GatherResult(InteractionResult result, int maxWidth, List<Either<FormattedText, TooltipComponent>> tooltipElements) {}

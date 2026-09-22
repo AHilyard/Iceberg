@@ -80,7 +80,7 @@ public abstract class GuiGraphicsMixin
 				Tooltips.gradientBorder = false;
 			}
 
-			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(itemStack, self, x, y, width, height, font, components, positioner, false, 0);
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(itemStack, self, x, y, width, height, font, components, positioner, false, 0, extraSpaceAfterFirstLine);
 			if (preResult.result() != InteractionResult.PASS)
 			{
 				info.cancel();
@@ -117,7 +117,7 @@ public abstract class GuiGraphicsMixin
 			}
 
 			Vector2ic pos = positioner.positionTooltip(self.guiWidth(), self.guiHeight(), x, y, tooltipWidth, tooltipHeight);
-			RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0, extraSpaceAfterFirstLine);
 		}
 	}
 }

@@ -155,7 +155,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 			}
 
 			// PREEXT EVENT
-			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0);
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0, extraSpaceAfterFirstLine);
 			if (preResult.result() != InteractionResult.PASS)
 			{
 				this.renderTooltipDepth--;
@@ -208,7 +208,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 
 			Vector2ic pos = positioner.positionTooltip(self.guiWidth(), self.guiHeight(), x, y, tooltipWidth, tooltipHeight);
 
-			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0, extraSpaceAfterFirstLine);
 		}
 
 		this.renderTooltipDepth--;

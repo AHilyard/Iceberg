@@ -172,9 +172,10 @@ public class Tooltips
 										Rect2i rect, int screenWidth, int screenHeight,
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
 										GuiGraphicsExtractor graphics, ClientTooltipPositioner positioner,
-										boolean comparison, boolean constrain, boolean centeredTitle, int index)
+										boolean comparison, boolean constrain, boolean centeredTitle, int index,
+										boolean extraSpaceAfterFirstLine)
 	{
-		renderItemTooltip(stack, info, rect, screenWidth, screenHeight, backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, graphics, positioner, comparison, constrain, centeredTitle, index, stack.get(DataComponents.TOOLTIP_STYLE), true, true);
+		renderItemTooltip(stack, info, rect, screenWidth, screenHeight, backgroundColorStart, backgroundColorEnd, borderColorStart, borderColorEnd, graphics, positioner, comparison, constrain, centeredTitle, index, stack.get(DataComponents.TOOLTIP_STYLE), true, true, extraSpaceAfterFirstLine);
 	}
 
 
@@ -183,7 +184,8 @@ public class Tooltips
 										int backgroundColorStart, int backgroundColorEnd, int borderColorStart, int borderColorEnd,
 										GuiGraphicsExtractor graphics, ClientTooltipPositioner positioner,
 										boolean comparison, boolean constrain, boolean centeredTitle, int index,
-										Identifier tooltipResource, boolean gradientBackground, boolean gradientBorder)
+										Identifier tooltipResource, boolean gradientBackground, boolean gradientBorder,
+										boolean extraSpaceAfterFirstLine)
 	{
 		if (info.getComponents().isEmpty())
 		{
@@ -205,7 +207,7 @@ public class Tooltips
 		int rectX = rect.getX() + 4;
 		int rectY = rect.getY() + 4;
 
-		RenderTooltipEvents.PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, rectX, rectY, screenWidth, screenHeight, info.getFont(), info.getComponents(), positioner, comparison, index);
+		RenderTooltipEvents.PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, rectX, rectY, screenWidth, screenHeight, info.getFont(), info.getComponents(), positioner, comparison, index, extraSpaceAfterFirstLine);
 		if (preResult.result() != InteractionResult.PASS)
 		{
 			return;
@@ -256,7 +258,7 @@ public class Tooltips
 			if ((textComponent instanceof ClientTextTooltip || textComponent instanceof InlineComponent) && titleLines > 0)
 			{
 				titleLines -= (textComponent instanceof InlineComponent) ? 2 : 1;
-				if (titleLines <= 0)
+				if (titleLines <= 0 && extraSpaceAfterFirstLine)
 				{
 					tooltipTop += 2;
 				}
@@ -271,10 +273,10 @@ public class Tooltips
 		{
 			ClientTooltipComponent imageComponent = info.getComponents().get(componentNumber);
 			imageComponent.extractImage(info.getFont(), rectX, tooltipTop, rect.getWidth(), rect.getHeight(), graphics);
-			tooltipTop += imageComponent.getHeight(info.getFont()) + (componentNumber == 0 ? 2 : 0);
+			tooltipTop += imageComponent.getHeight(info.getFont()) + ((extraSpaceAfterFirstLine && componentNumber == 0) ? 2 : 0);
 		}
 
-		RenderTooltipEvents.POSTEXT.invoker().onPost(stack, graphics, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), info.getComponents(), comparison, index);
+		RenderTooltipEvents.POSTEXT.invoker().onPost(stack, graphics, rectX, rectY, info.getFont(), rect.getWidth(), rect.getHeight(), info.getComponents(), comparison, index, extraSpaceAfterFirstLine);
 	}
 
 	private static ClientTooltipComponent getClientComponent(TooltipComponent componentData)
@@ -389,36 +391,41 @@ public class Tooltips
 
 	@Deprecated
 	public static Rect2i calculateRect(final ItemStack stack, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth,
+									   Font font, boolean extraSpaceAfterFirstLine)
 	{
-		return calculateRect(stack, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+		return calculateRect(stack, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false, extraSpaceAfterFirstLine);
 	}
 
 	@Deprecated
 	public static Rect2i calculateRect(final ItemStack stack, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth,
+									   Font font, int minWidth, boolean centeredTitle, boolean extraSpaceAfterFirstLine)
 	{
 		Minecraft minecraft = Minecraft.getInstance();
 		GuiGraphicsExtractor graphics = new GuiGraphicsExtractor(minecraft, ((GameRendererAccessor)minecraft.gameRenderer).getGameRenderState().guiRenderState, mouseX, mouseY);
-		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, minWidth, centeredTitle);
+		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, minWidth, centeredTitle, extraSpaceAfterFirstLine);
 	}
 
 	@Deprecated
 	public static Rect2i calculateRect(final ItemStack stack, GuiGraphicsExtractor graphics, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font)
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font,
+									   boolean extraSpaceAfterFirstLine)
 	{
-		return calculateRect(stack, graphics, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false);
+		return calculateRect(stack, graphics, components, mouseX, mouseY, screenWidth, screenHeight, maxTextWidth, font, 0, false, extraSpaceAfterFirstLine);
 	}
 
 	@Deprecated
 	public static Rect2i calculateRect(final ItemStack stack, GuiGraphicsExtractor graphics, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+									   int mouseX, int mouseY, int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth,
+									   boolean centeredTitle, boolean extraSpaceAfterFirstLine)
 	{
-		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight,maxTextWidth, font, minWidth, centeredTitle);
+		return calculateRect(stack, graphics, DefaultTooltipPositioner.INSTANCE, components, mouseX, mouseY, screenWidth, screenHeight,maxTextWidth, font, minWidth, centeredTitle, extraSpaceAfterFirstLine);
 	}
 
 	public static Rect2i calculateRect(final ItemStack stack, GuiGraphicsExtractor graphics, ClientTooltipPositioner positioner, List<ClientTooltipComponent> components,
-									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth, boolean centeredTitle)
+									   int mouseX, int mouseY,int screenWidth, int screenHeight, int maxTextWidth, Font font, int minWidth,
+									   boolean centeredTitle, boolean extraSpaceAfterFirstLine)
 	{
 		Rect2i rect = new Rect2i(0, 0, 0, 0);
 		if (components == null || components.isEmpty() || stack == null)
@@ -427,7 +434,7 @@ public class Tooltips
 		}
 
 		// Generate a tooltip event even though we aren't rendering anything in case event handlers are modifying the input values.
-		RenderTooltipEvents.PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, mouseX, mouseY, screenWidth, screenHeight, font, components, positioner, false, 0);
+		RenderTooltipEvents.PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(stack, graphics, mouseX, mouseY, screenWidth, screenHeight, font, components, positioner, false, 0, extraSpaceAfterFirstLine);
 		if (preResult.result() != InteractionResult.PASS)
 		{
 			return rect;
@@ -440,7 +447,7 @@ public class Tooltips
 		font = preResult.font();
 
 		int tooltipTextWidth = minWidth;
-		int tooltipHeight = components.size() == 1 ? -2 : 0;
+		int tooltipHeight = (extraSpaceAfterFirstLine && components.size() != 1) ? 0 : -2;
 		int titleLines = calculateTitleLines(components);
 
 		if (centeredTitle)
