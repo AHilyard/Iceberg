@@ -43,7 +43,6 @@ import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
-import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.item.crafting.RecipeAccess;
@@ -54,7 +53,6 @@ import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.ChunkSource;
@@ -319,9 +317,6 @@ public class EntityCollector extends Level
 	public TickRateManager tickRateManager() { return wrappedLevel.tickRateManager(); }
 
 	@Override
-	public PotionBrewing potionBrewing() { return wrappedLevel.potionBrewing(); }
-
-	@Override
 	public LevelEntityGetter<Entity> getEntities()
 	{
 		return new LevelEntityGetter<Entity>() {
@@ -357,9 +352,6 @@ public class EntityCollector extends Level
 	public void explode(@Nullable Entity entity, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator explosionDamageCalculator,
 						double d, double e, double f, float g, boolean bl, ExplosionInteraction explosionInteraction, ParticleOptions particleOptions,
 						ParticleOptions particleOptions2, WeightedList<ExplosionParticleInfo> weightedList, Holder<SoundEvent> holder) {}
-
-	@Override
-	public FuelValues fuelValues() { return wrappedLevel.fuelValues(); }
 
 	@Override
 	public RecipeAccess recipeAccess() { return wrappedLevel.recipeAccess(); }

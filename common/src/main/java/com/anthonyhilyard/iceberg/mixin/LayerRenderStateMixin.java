@@ -1,9 +1,7 @@
 package com.anthonyhilyard.iceberg.mixin;
 
-import java.util.List;
-
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.geometry.ItemQuads;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -21,7 +19,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 public class LayerRenderStateMixin implements ILayerRenderState
 {
 	@Shadow
-	private List<BakedQuad> quads;
+	private ItemQuads quads;
 
 	@Shadow
 	private ItemStackRenderState.FoilType foilType;

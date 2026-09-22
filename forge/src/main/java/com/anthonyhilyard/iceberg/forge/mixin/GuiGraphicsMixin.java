@@ -32,14 +32,14 @@ public abstract class GuiGraphicsMixin
 
 	@Shadow @Final private Minecraft minecraft;
 
-	@ModifyVariable(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), argsOnly = true)
+	@ModifyVariable(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;ZLnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), argsOnly = true)
 	private List<ClientTooltipComponent> makeComponentsMutableForge(List<ClientTooltipComponent> components)
 	{
 		return new ArrayList<>(components);
 	}
 
-	@Inject(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), cancellable = true)
-	private void preRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
+	@Inject(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;ZLnet/minecraft/world/item/ItemStack;)V", at = @At("HEAD"), cancellable = true)
+	private void preRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean extraSpaceAfterFirstLine, ItemStack itemStack, CallbackInfo info)
 	{
 		GuiGraphicsExtractor self = (GuiGraphicsExtractor)(Object)this;
 
@@ -80,7 +80,7 @@ public abstract class GuiGraphicsMixin
 				Tooltips.gradientBorder = false;
 			}
 
-			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(itemStack, self, x, y, width, height, font, components, positioner, false, 0);
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(itemStack, self, x, y, width, height, font, components, positioner, false, 0, extraSpaceAfterFirstLine);
 			if (preResult.result() != InteractionResult.PASS)
 			{
 				info.cancel();
@@ -94,8 +94,8 @@ public abstract class GuiGraphicsMixin
 		}
 	}
 
-	@Inject(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;Lnet/minecraft/world/item/ItemStack;)V", at = @At("TAIL"))
-	private void postRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, ItemStack itemStack, CallbackInfo info)
+	@Inject(method = "tooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;IILnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipPositioner;Lnet/minecraft/resources/Identifier;ZLnet/minecraft/world/item/ItemStack;)V", at = @At("TAIL"))
+	private void postRenderTooltipForge(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean extraSpaceAfterFirstLine, ItemStack itemStack, CallbackInfo info)
 	{
 		GuiGraphicsExtractor self = (GuiGraphicsExtractor)(Object)this;
 
@@ -117,7 +117,7 @@ public abstract class GuiGraphicsMixin
 			}
 
 			Vector2ic pos = positioner.positionTooltip(self.guiWidth(), self.guiHeight(), x, y, tooltipWidth, tooltipHeight);
-			RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(itemStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0, extraSpaceAfterFirstLine);
 		}
 	}
 }

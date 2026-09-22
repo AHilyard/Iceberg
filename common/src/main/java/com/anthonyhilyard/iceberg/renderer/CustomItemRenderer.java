@@ -3,18 +3,18 @@ package com.anthonyhilyard.iceberg.renderer;
 import com.anthonyhilyard.iceberg.util.EntityCollector;
 import com.anthonyhilyard.iceberg.util.IGuiRenderStateAccess;
 import com.anthonyhilyard.iceberg.util.ItemUtil;
-import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Axis;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuSampler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.render.TextureSetup;
@@ -27,6 +27,7 @@ import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.item.TrackingItemStackRenderState;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -124,18 +125,8 @@ public class CustomItemRenderer
 			{
 				renderTarget.destroyBuffers();
 			}
-			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, true, GpuFormat.RGBA8_UNORM);
+			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, GpuFormat.RGBA8_UNORM, null);
 		}
-
-		try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-			() -> "Item",
-			// 0x00000000 is a transparent black (outline).
-			renderTarget.getColorTextureView(), Optional.of(new Vector4f(0, 0, 0, 0)),
-			renderTarget.getDepthTextureView(), OptionalDouble.of(0.0)
-		)) {}
-
-		RenderSystem.outputColorTextureOverride = renderTarget.getColorTextureView();
-		RenderSystem.outputDepthTextureOverride = renderTarget.getDepthTextureView();
 
 		RenderSystem.backupProjectionMatrix();
 		Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
@@ -153,7 +144,7 @@ public class CustomItemRenderer
 		poseStack.scale(16.0f, -16.0f, 16.0f);
 		if (rotation != null)
 		{
-			poseStack.mulPose(rotation);
+			poseStack.rotate(rotation);
 		}
 
 		boolean isSpinning = rotation != null;
@@ -184,7 +175,15 @@ public class CustomItemRenderer
 			itemState.submit(poseStack, submitNodeStorage, LightCoordsUtil.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
 		}
 
-		minecraft.gameRenderer.featureRenderDispatcher().renderAllFeatures(submitNodeStorage);
+		try (
+			FeatureRenderDispatcher.PreparedFrame frame = minecraft.gameRenderer.featureRenderDispatcher().prepareFrame(this.submitNodeStorage);
+			RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+				() -> "Item",
+				renderTarget.getColorTextureView(), Optional.of(new Vector4f(0, 0, 0, 0)),
+				renderTarget.getDepthTextureView(), OptionalDouble.of(0.0))
+		) {
+			FeatureRenderDispatcher.renderAllFeatures(clearPass, frame);
+		}
 
 		if (!is3D)
 		{
@@ -194,8 +193,6 @@ public class CustomItemRenderer
 
 		modelViewStack.popMatrix();
 		RenderSystem.restoreProjectionMatrix();
-		RenderSystem.outputColorTextureOverride = null;
-		RenderSystem.outputDepthTextureOverride = null;
 
 		int color = ARGB.color((int)(alpha * 255), 255, 255, 255);
 		GpuSampler sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
@@ -232,8 +229,8 @@ public class CustomItemRenderer
 			{
 				poseStack.pushPose();
 
-				poseStack.mulPose(Axis.XP.rotationDegrees(30.0f));
-				poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
+				poseStack.rotateDegrees(Axis.XP, 30.0f);
+				poseStack.rotateDegrees(Axis.YP, 225.0f);
 
 				float entityWidth  = cachedSpawnEntity.getBbWidth();
 				float entityHeight = cachedSpawnEntity.getBbHeight();
@@ -254,8 +251,8 @@ public class CustomItemRenderer
 		{
 			poseStack.pushPose();
 
-			poseStack.mulPose(Axis.XP.rotationDegrees(30.0f));
-			poseStack.mulPose(Axis.YP.rotationDegrees(225.0f));
+			poseStack.rotateDegrees(Axis.XP, 30.0f);
+			poseStack.rotateDegrees(Axis.YP, 225.0f);
 
 			BlockState blockState = blockItem.getBlock().defaultBlockState();
 
@@ -357,7 +354,7 @@ public class CustomItemRenderer
 
 			poseStack.scale(scale, scale, scale);
 			poseStack.translate(0, yOffset, 0);
-			poseStack.mulPose(Axis.YP.rotationDegrees(-90.0f));
+			poseStack.rotateDegrees(Axis.YP, -90.0f);
 
 			renderEntityModel(armorStand, poseStack, LightCoordsUtil.FULL_BRIGHT);
 			poseStack.popPose();
@@ -381,7 +378,7 @@ public class CustomItemRenderer
 		state.lightCoords = packedLight;
 
 		poseStack.pushPose();
-		poseStack.mulPose(Axis.YP.rotationDegrees(90.0f));
+		poseStack.rotateDegrees(Axis.YP, 90.0f);
 
 		try
 		{
@@ -427,6 +424,10 @@ public class CustomItemRenderer
 		if (!collectedEntities.isEmpty())
 		{
 			collectedEntity = collectedEntities.get(0);
+		}
+		if (collectedEntity != null)
+		{
+			collectedEntity.setId(1);
 		}
 		return collectedEntity;
 	}

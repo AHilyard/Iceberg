@@ -85,7 +85,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	}
 
 	@Inject(method = "tooltip", at = @At("HEAD"), cancellable = true)
-	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
+	private void preRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean extraSpaceAfterFirstLine, CallbackInfo info)
 	{
 		this.renderTooltipDepth++;
 		GuiGraphicsExtractor self = (GuiGraphicsExtractor)(Object)this;
@@ -155,7 +155,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 			}
 
 			// PREEXT EVENT
-			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0);
+			PreExtResult preResult = RenderTooltipEvents.PREEXT.invoker().onPre(containerStack, self, x, y, width, height, font, components, positioner, false, 0, extraSpaceAfterFirstLine);
 			if (preResult.result() != InteractionResult.PASS)
 			{
 				this.renderTooltipDepth--;
@@ -175,7 +175,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 	}
 
 	@Inject(method = "tooltip", at = @At("TAIL"))
-	private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, CallbackInfo info)
+	private void postRenderTooltip(Font font, List<ClientTooltipComponent> components, int x, int y, ClientTooltipPositioner positioner, Identifier resource, boolean extraSpaceAfterFirstLine, CallbackInfo info)
 	{
 		GuiGraphicsExtractor self = (GuiGraphicsExtractor)(Object)this;
 		ItemStack containerStack = ItemStack.EMPTY;
@@ -208,7 +208,7 @@ public abstract class GuiGraphicsMixin implements ITooltipAccess
 
 			Vector2ic pos = positioner.positionTooltip(self.guiWidth(), self.guiHeight(), x, y, tooltipWidth, tooltipHeight);
 
-			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0);
+			RenderTooltipEvents.POSTEXT.invoker().onPost(containerStack, self, pos.x(), pos.y(), font, tooltipWidth, tooltipHeight, components, false, 0, extraSpaceAfterFirstLine);
 		}
 
 		this.renderTooltipDepth--;
