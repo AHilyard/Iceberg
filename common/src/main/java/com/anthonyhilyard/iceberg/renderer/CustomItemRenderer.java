@@ -176,12 +176,12 @@ public class CustomItemRenderer
 		}
 
 		try (
-				FeatureRenderDispatcher.PreparedFrame frame = minecraft.gameRenderer.featureRenderDispatcher().prepareFrame(this.submitNodeStorage);
-				RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+			FeatureRenderDispatcher.PreparedFrame frame = minecraft.gameRenderer.featureRenderDispatcher().prepareFrame(this.submitNodeStorage);
+			RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
 				() -> "Item",
 				renderTarget.getColorTextureView(), Optional.of(new Vector4f(0, 0, 0, 0)),
-				renderTarget.getDepthTextureView(), OptionalDouble.of(0.0)
-		)) {
+				renderTarget.getDepthTextureView(), OptionalDouble.of(0.0))
+		) {
 			FeatureRenderDispatcher.renderAllFeatures(clearPass, frame);
 		}
 
@@ -425,7 +425,8 @@ public class CustomItemRenderer
 		{
 			collectedEntity = collectedEntities.get(0);
 		}
-		if (collectedEntity != null) {
+		if (collectedEntity != null)
+		{
 			collectedEntity.setId(1);
 		}
 		return collectedEntity;
