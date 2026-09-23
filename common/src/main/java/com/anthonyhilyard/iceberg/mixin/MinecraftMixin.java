@@ -1,5 +1,6 @@
 package com.anthonyhilyard.iceberg.mixin;
 
+import com.anthonyhilyard.iceberg.renderer.CustomItemRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,5 +19,6 @@ public class MinecraftMixin
 	{
 		Minecraft instance = (Minecraft)(Object)this;
 		RenderTickEvents.START.invoker().onStart(instance.getDeltaTracker());
+		CustomItemRenderer.onRenderTickStart();
 	}
 }
