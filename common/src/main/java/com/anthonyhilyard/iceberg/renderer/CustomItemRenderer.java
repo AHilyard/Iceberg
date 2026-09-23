@@ -60,6 +60,7 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Quaternionf;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -88,6 +89,56 @@ public class CustomItemRenderer
 	{
 		this.minecraft = mc;
 		this.projectionMatrixBuffer = new ProjectionMatrixBuffer("iceberg_custom_item");
+	}
+
+	private static long frameCounter = 0;
+	public static void onRenderTickStart()
+	{
+		frameCounter++;
+	}
+
+	private final List<TextureTarget> targetPool = new ArrayList<>();
+	private int maxTargetPoolCount = 10;
+	private int targetPoolIndex = 0;
+	private long lastRenderedFrame = -1;
+	private TextureTarget acquireRenderTarget(int fboWidth, int fboHeight, boolean useDepth)
+	{
+		if (frameCounter != lastRenderedFrame)
+		{
+			targetPoolIndex = 0;
+			lastRenderedFrame = frameCounter;
+		}
+
+		if (targetPoolIndex >= targetPool.size())
+		{
+			targetPool.add(getTextureTarget(fboWidth, fboHeight, useDepth));
+		}
+
+		TextureTarget target = targetPool.get(targetPoolIndex);
+		if (target.height != fboHeight || target.width != fboWidth)
+		{
+			target.destroyBuffers();
+			target = getTextureTarget(fboWidth, fboHeight, useDepth);
+			targetPool.set(targetPoolIndex, target);
+		}
+		targetPoolIndex = (targetPoolIndex + 1) % maxTargetPoolCount;
+
+		return target;
+	}
+
+	private TextureTarget getTextureTarget(int fboWidth, int fboHeight, boolean useDepth)
+	{
+		return new TextureTarget("Iceberg Item Renderer #" + targetPoolIndex, fboWidth, fboHeight, useDepth);
+	}
+
+	public int getMaxTargetPoolCount()
+	{
+		return this.maxTargetPoolCount;
+	}
+
+	public void setMaxTargetPoolCount(int count)
+	{
+		this.maxTargetPoolCount = count;
 	}
 
 	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphicsExtractor graphics)
@@ -126,14 +177,7 @@ public class CustomItemRenderer
 		}
 
 		int fboSize = 96;
-		if (renderTarget == null || renderTarget.width != fboSize)
-		{
-			if (renderTarget != null)
-			{
-				renderTarget.destroyBuffers();
-			}
-			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, true);
-		}
+		renderTarget = acquireRenderTarget(fboSize, fboSize, true);
 
 		try (RenderPass clearPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
 			() -> "Item",
@@ -550,11 +594,12 @@ public class CustomItemRenderer
 		}
 		isClosed = true;
 
-		if (renderTarget != null)
+		for (TextureTarget target : targetPool)
 		{
-			renderTarget.destroyBuffers();
-			renderTarget = null;
+			target.destroyBuffers();
 		}
+		targetPool.clear();
+		renderTarget = null;
 		projectionMatrixBuffer.close();
 	}
 }
