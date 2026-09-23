@@ -52,6 +52,7 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import org.joml.*;
 
 import java.lang.Math;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -81,6 +82,56 @@ public class CustomItemRenderer
 	{
 		this.minecraft = mc;
 		this.projectionMatrixBuffer = new ProjectionMatrixBuffer("iceberg_custom_item");
+	}
+
+	private static long frameCounter = 0;
+	public static void onRenderTickStart()
+	{
+		frameCounter++;
+	}
+
+	private final List<TextureTarget> targetPool = new ArrayList<>();
+	private int maxTargetPoolCount = 10;
+	private int targetPoolIndex = 0;
+	private long lastRenderedFrame = -1;
+	private TextureTarget acquireRenderTarget(int fboWidth, int fboHeight, GpuFormat depthFormat)
+	{
+		if (frameCounter != lastRenderedFrame)
+		{
+			targetPoolIndex = 0;
+			lastRenderedFrame = frameCounter;
+		}
+
+		if (targetPoolIndex >= targetPool.size())
+		{
+			targetPool.add(getTextureTarget(fboWidth, fboHeight, depthFormat));
+		}
+
+		TextureTarget target = targetPool.get(targetPoolIndex);
+		if (target.height != fboHeight || target.width != fboWidth)
+		{
+			target.destroyBuffers();
+			target = getTextureTarget(fboWidth, fboHeight, depthFormat);
+			targetPool.set(targetPoolIndex, target);
+		}
+		targetPoolIndex = (targetPoolIndex + 1) % maxTargetPoolCount;
+
+		return target;
+	}
+
+	private TextureTarget getTextureTarget(int fboWidth, int fboHeight, GpuFormat depthFormat)
+	{
+		return new TextureTarget("Iceberg Item Renderer #" + targetPoolIndex, fboWidth, fboHeight, GpuFormat.RGBA8_UNORM, depthFormat);
+	}
+
+	public int getMaxTargetPoolCount()
+	{
+		return this.maxTargetPoolCount;
+	}
+
+	public void setMaxTargetPoolCount(int count)
+	{
+		this.maxTargetPoolCount = count;
 	}
 
 	public void renderDetailModelIntoGUI(ItemStack stack, int x, int y, Quaternionf rotation, GuiGraphicsExtractor graphics)
@@ -119,14 +170,7 @@ public class CustomItemRenderer
 		}
 
 		int fboSize = 96;
-		if (renderTarget == null || renderTarget.width != fboSize)
-		{
-			if (renderTarget != null)
-			{
-				renderTarget.destroyBuffers();
-			}
-			renderTarget = new TextureTarget("Iceberg Item Renderer", fboSize, fboSize, GpuFormat.RGBA8_UNORM, null);
-		}
+		renderTarget = acquireRenderTarget(fboSize, fboSize, GpuFormat.D32_FLOAT);
 
 		RenderSystem.backupProjectionMatrix();
 		Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
@@ -539,11 +583,12 @@ public class CustomItemRenderer
 		}
 		isClosed = true;
 
-		if (renderTarget != null)
+		for (TextureTarget target : targetPool)
 		{
-			renderTarget.destroyBuffers();
-			renderTarget = null;
+			target.destroyBuffers();
 		}
+		targetPool.clear();
+		renderTarget = null;
 		projectionMatrixBuffer.close();
 	}
 }
