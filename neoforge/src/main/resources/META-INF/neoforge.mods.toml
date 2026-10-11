@@ -15,7 +15,7 @@ license="CC BY-NC-ND 4.0"
 [[dependencies.iceberg]]
 	modId="neoforge"
 	type="required"
-	versionRange="[26.3,)"
+	versionRange="[26.3.0.37,)"
 	ordering="NONE"
 	side="BOTH"
 

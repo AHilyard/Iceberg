@@ -44,7 +44,7 @@ public final class IcebergNeoForge
 			Config.setInsertionOrderPreserved(true);
 
 			ModContainer targetContainer = container.get();
-			targetContainer.registerConfig(ModConfig.Type.COMMON, (NeoForgeIcebergConfigSpec)spec, String.format(Locale.ROOT, "%s.toml", modid));
+			targetContainer.registerConfig(ModConfig.Type.LOCAL, (NeoForgeIcebergConfigSpec)spec, String.format(Locale.ROOT, "%s.toml", modid));
 
 			IEventBus targetBus = targetContainer.getEventBus();
 
